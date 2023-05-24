@@ -1,7 +1,7 @@
 import numpy as np
 
 class FowardModel_Box: 
-    def __init__(self, solid, q_mag, q_dir, g_x): #some arbitrary starting values todo
+    def __init__(self, g_x, solid, q_mag, q_dir): #some arbitrary starting values todo
         self.solid = solid
         self.q_mag = q_mag #magnitude of applied q [W/m^2]
         self.q_dir = q_dir #direction of applied q, [x,y,z] [m]
