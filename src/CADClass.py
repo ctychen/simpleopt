@@ -13,10 +13,10 @@ import os
 
 #this happens in launchHEAT.py as of HEAT v2.0, but left here for reference
 #you need to do this before running this module
-#FREECADPATH = '/opt/freecad/appImage/squashfs-root/usr/lib'
-#oldpath = sys.path
-#sys.path.append(FREECADPATH)
-#sys.path = [FREECADPATH]
+# FREECADPATH = '/opt/freecad/appImage/squashfs-root/usr/lib'
+# oldpath = sys.path
+# sys.path.append(FREECADPATH)
+# sys.path = [FREECADPATH]
 
 import FreeCAD
 #set compound merge on STP imports to Off
