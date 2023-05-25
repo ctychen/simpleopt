@@ -2,9 +2,11 @@ import time
 import sys
 import numpy as np
 
-import Solid
-import ForwardModel_Box
-import OptModel_Box
+from CADClass import CAD
+
+from Solid import Box
+from ForwardModel_Box import ForwardModel
+from OptModel_Box import OptModel
 
 
 if __name__ == '__main__':
@@ -34,9 +36,9 @@ if __name__ == '__main__':
     qDirIn = [0, 1, 0] #[m]
     qMagIn = 10 #[W/m^2]
 
-    box = Solid(stpPath)
-    fwd = ForwardModel_Box(g_obj, box, qMagIn, qDirIn) 
-    opt = OptModel_Box()
+    box = Box(stpPath)
+    fwd = ForwardModel(g_obj, box, qMagIn, qDirIn) 
+    opt = OptModel()
 
     t0 = time.time()
 

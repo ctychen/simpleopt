@@ -3,7 +3,7 @@ import Part
 import Mesh
 import MeshPart
 
-class OptModel_Box:
+class OptModel:
     def __init__(self, threshold = 0.5, gprev = 10000, gcurr = 1):
         #all placeholder values for now I have no idea what they should be yet - maybe these shouldn't be here and instead in opt? 
         self.threshold_err = 0.5
