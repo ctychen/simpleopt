@@ -23,6 +23,10 @@ if __name__ == '__main__':
     #if not, manipulate the solid and repeat
     #log time for vibes
 
+    FreeCADPath = '/usr/lib/freecad-daily/lib'
+    sys.path.append(FreeCADPath)
+    sys.path = [FreeCADPath]
+
     #objective function
     g_obj = lambda qvals: np.maximum(qvals)
 
