@@ -2,13 +2,6 @@ import time
 import sys
 import numpy as np
 
-from CADClass import CAD
-
-from Solid import Box
-from ForwardModel_Box import ForwardModel
-from OptModel_Box import OptModel
-
-
 if __name__ == '__main__':
 
     #set up scenario
@@ -28,6 +21,12 @@ if __name__ == '__main__':
     FreeCADPath = '/usr/lib/freecad-daily/lib'
     sys.path.append(FreeCADPath)
     sys.path = [FreeCADPath]
+
+    from CADClass import CAD
+
+    from Solid import Box
+    from ForwardModel_Box import ForwardModel
+    from OptModel_Box import OptModel    
 
     #objective function
     g_obj = lambda qvals: np.maximum(qvals)
