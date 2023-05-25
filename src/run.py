@@ -26,11 +26,17 @@ if __name__ == '__main__':
     #objective function
     g_obj = lambda qvals: np.maximum(qvals)
 
-    box = Solid()
-    fwd = ForwardModel_Box(g_obj, ) #fill out rest todo
+    stpPath = "test.stp"
+    qDirIn = [0, 1, 0] #[m]
+    qMagIn = 10 #[W/m^2]
+
+    box = Solid(stpPath)
+    fwd = ForwardModel_Box(g_obj, box, qMagIn, qDirIn) 
     opt = OptModel_Box()
 
     t0 = time.time()
+
+    box.loadSTEP()
 
     # while (del_e > threshold_err): 
     #     q = fwd.calculateQ()
@@ -50,9 +56,11 @@ if __name__ == '__main__':
         del_e = opt.calculateDelE()
 
         if (del_e > opt.threshold_err):
+            print(f"found opt, time elapsed: {time.time() - t0}, err: {opt.del_e}")
             break
         else: 
-            opt.doTransform(box) #this prob doesn't match yet, gonna fix
+            del_theta = opt.doTransform(box) #this prob doesn't match yet, gonna fix
+            print(f"transformed: [err]: {opt.del_e} [g_x now]: {opt.g_curr} [g_x prev]: {opt.g_prev} [theta]: {del_theta}")
 
 
 

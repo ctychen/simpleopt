@@ -4,11 +4,11 @@ import Mesh
 import MeshPart
 
 class OptModel_Box:
-    def __init__(self, threshold = 0.5, gprev = 10000, gnow = 1):
+    def __init__(self, threshold = 0.5, gprev = 10000, gcurr = 1):
         #all placeholder values for now I have no idea what they should be yet - maybe these shouldn't be here and instead in opt? 
         self.threshold_err = 0.5
-        self.g_prev = 10000
-        self.g_curr = 10000
+        self.g_prev = gprev
+        self.g_curr = gcurr
         self.delstep = 0.1
         self.del_e = 1
         return
@@ -36,7 +36,7 @@ class OptModel_Box:
         for obj in cadModel.Objects:
             if type(obj) == Part.Feature:
                 obj.Placement = transform.multiply(obj.Placement)
-        return 
+        return del_theta
     
 
     def updategValues(self, g_new):
