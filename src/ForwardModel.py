@@ -1,6 +1,6 @@
 import numpy as np
 
-class FowardModel_Box: 
+class ForwardModel_Box: 
     def __init__(self, g_x, solid, q_mag, q_dir): #some arbitrary starting values todo
         self.solid = solid
         self.q_mag = q_mag #magnitude of applied q [W/m^2]

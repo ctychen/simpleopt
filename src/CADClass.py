@@ -18,10 +18,10 @@ import os
 # sys.path.append(FREECADPATH)
 # sys.path = [FREECADPATH]
 
-FREECADPATH = '/usr/lib/freecad-daily/lib'
-oldpath = sys.path
-sys.path.append(FREECADPATH)
-sys.path = [FREECADPATH]
+# FREECADPATH = '/usr/lib/freecad-python3/lib'
+# oldpath = sys.path
+# sys.path.append(FREECADPATH)
+# sys.path = [FREECADPATH]
 
 
 import FreeCAD
@@ -31,7 +31,6 @@ import Part
 import Mesh
 
 import MeshPart
-sys.path = oldpath
 import Import
 import stl
 

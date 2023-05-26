@@ -1,10 +1,23 @@
 import time
 import sys
 import numpy as np
+import os
 
-FreeCADPath = '/usr/lib/freecad-daily/lib'
+try:
+    runMode = os.environ["runMode"]
+except:
+    runMode = 'local'
+    os.environ["runMode"] = runMode
+
+if (runMode == 'docker'):
+    FreeCADPath = '/usr/lib/freecad-daily/lib'
+    # HEATPath = '/root/source/HEAT'
+else:
+    FreeCADPath = '/usr/lib/freecad-python3/lib'
+    # HEATPath = '/Users/cchen/Desktop/HEAT'
+
 sys.path.append(FreeCADPath)
-sys.path = [FreeCADPath]
+print(sys.path)
 
 import CADClass
 
@@ -21,7 +34,7 @@ class RunSetup:
         qMagIn = 10 #[W/m^2]
 
         self.box = Solid.Box(stpPath)
-        self.fwd = ForwardModel.ForwardModel_Box(g_obj, box, qMagIn, qDirIn) 
+        self.fwd = ForwardModel.ForwardModel_Box(g_obj, self.box, qMagIn, qDirIn) 
         self.opt = OptModel.OptModel_Box()
 
         self.box.loadSTEP()
