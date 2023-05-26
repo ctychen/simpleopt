@@ -13,14 +13,14 @@ import os
 
 #this happens in launchHEAT.py as of HEAT v2.0, but left here for reference
 #you need to do this before running this module
-FREECADPATH = '/opt/freecad/appImage/squashfs-root/usr/lib'
-oldpath = sys.path
+# FREECADPATH = '/opt/freecad/appImage/squashfs-root/usr/lib'
+# oldpath = sys.path
+# sys.path.append(FREECADPATH)
+# sys.path = [FREECADPATH]
+
+FREECADPATH = '/usr/lib/freecad-daily/lib'
 sys.path.append(FREECADPATH)
 sys.path = [FREECADPATH]
-
-# FreeCADPath = '/usr/lib/freecad-daily/lib'
-# sys.path.append(FreeCADPath)
-# sys.path = [FreeCADPath]
 
 
 import FreeCAD

@@ -2,6 +2,19 @@ import time
 import sys
 import numpy as np
 
+FreeCADPath = '/usr/lib/freecad-daily/lib'
+sys.path.append(FreeCADPath)
+sys.path = [FreeCADPath]
+
+import CADClass
+
+# from Solid import Box
+# from ForwardModel_Box import ForwardModel
+# from OptModel_Box import OptModel  
+import Solid
+import ForwardModel_Box
+import OptModel_Box
+
 if __name__ == '__main__':
 
     #set up scenario
@@ -16,17 +29,7 @@ if __name__ == '__main__':
     #calculate dele between this and prev g
     #check if dele > threshold
     #if not, manipulate the solid and repeat
-    #log time for vibes
-
-    FreeCADPath = '/usr/lib/freecad-daily/lib'
-    sys.path.append(FreeCADPath)
-    sys.path = [FreeCADPath]
-
-    from CADClass import CAD
-
-    from Solid import Box
-    from ForwardModel_Box import ForwardModel
-    from OptModel_Box import OptModel    
+    #log time for vibes  
 
     #objective function
     g_obj = lambda qvals: np.maximum(qvals)
