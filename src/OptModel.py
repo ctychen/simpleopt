@@ -34,7 +34,8 @@ class OptModel_Box:
         #looks like for Placement you can define a local origin which would be what center would be - 
         #to do that you add pos = Placement.Base and then add pos to below 
         transform = FreeCAD.Placement(axis, rot)
-        for obj in cadModel.Objects:
+        #for obj in cadModel.Objects: #to be fixed, take in mesh
+        for obj in cadModel.meshes:
             if type(obj) == Part.Feature:
                 obj.Placement = transform.multiply(obj.Placement)
         return del_theta

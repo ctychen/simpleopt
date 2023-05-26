@@ -29,7 +29,7 @@ class RunSetup:
     def __init__(self):
         g_obj = lambda qvals: max(qvals)
 
-        stpPath = "box.stp" #why isn't this working?
+        stpPath = "box.step" 
         stlPath = "box.stl"
         qDirIn = [0, 1, 0] #[m]
         qMagIn = 10 #[W/m^2]
