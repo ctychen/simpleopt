@@ -27,17 +27,19 @@ import OptModel
 
 class RunSetup:
     def __init__(self):
-        g_obj = lambda qvals: np.maximum(qvals)
+        g_obj = lambda qvals: max(qvals)
 
-        stpPath = "test.stp"
+        stpPath = "box.stp" #why isn't this working?
+        stlPath = "box.stl"
         qDirIn = [0, 1, 0] #[m]
         qMagIn = 10 #[W/m^2]
 
-        self.box = Solid.Box(stpPath)
+        self.box = Solid.Box(stlPath, stpPath) #this is bc stp export isn't working....
         self.fwd = ForwardModel.ForwardModel_Box(g_obj, self.box, qMagIn, qDirIn) 
         self.opt = OptModel.OptModel_Box()
 
-        self.box.loadSTEP()
+        #self.box.loadSTEP()
+        # mesh = self.box.load1Mesh(stlPath)
 
         self.del_theta = 0
         return
@@ -47,6 +49,7 @@ class RunSetup:
             self.fwd.processCADModel()
             q_mesh_all = self.fwd.calcQMesh()
             g_now = self.fwd.calcObjective(q_mesh_all)
+            print(f"g value found: {g_now}")
             self.opt.updategValues(g_now)
             del_err = self.opt.calculateDelE()
 
@@ -54,7 +57,8 @@ class RunSetup:
                 print(f"found opt, last err: {del_err}, rotated: {self.del_theta}")
                 break
             else: 
-                self.del_theta = opt.doTransform(box) #this prob doesn't match yet, gonna fix
+                print(f"transform needed, error: {del_err}")
+                self.del_theta = self.opt.doTransform(self.box) #this prob doesn't match yet, gonna fix
                 print(f"transformed: [err]: {del_err} [g_x now]: {self.opt.g_curr} [g_x prev]: {self.opt.g_prev} [theta]: {self.del_theta}")
             
             return

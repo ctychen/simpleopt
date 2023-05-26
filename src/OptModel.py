@@ -29,6 +29,7 @@ class OptModel_Box:
         del_theta = -1 * self.delstep * self.del_e
         axis = FreeCAD.Vector(x, y, z) 
         rot = FreeCAD.Rotation(axis, del_theta)
+        print(f"Need to rotate by {del_theta}, transforming")
         # center = FreeCAD.Vector(0, 0, 0) #assuming cube centered on origin, doesn't really matter for simple rotation but maybe later
         #looks like for Placement you can define a local origin which would be what center would be - 
         #to do that you add pos = Placement.Base and then add pos to below 

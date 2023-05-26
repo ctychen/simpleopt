@@ -11,25 +11,32 @@ class ForwardModel_Box:
     def processCADModel(self):
         #meshing the thing
         self.meshes = self.solid.createMesh()
+        if type(self.meshes) != list:
+            self.meshes = [self.meshes]        
         #calc centers, normals, areas for meshed
         normcenterarea = self.solid.normsCentersAreas(self.meshes)
         self.norms = normcenterarea[0] #norm[i] = [xi, yi, zi]
         self.centers = normcenterarea[1]
         self.areas = normcenterarea[2]
+        print("Model processed")
         return
     
     def calcQMesh(self):
         #for every mesh element, calculate q and store in list/arr with same length as mesh elem list
         q_mesh_all = []
-        for i in range(len(self.meshes)): 
+        # print(self.meshes)
+        for i in range(len(self.norms[0])): 
             #calculate q
             #defn for q: (qdir dot normal)*(mag of q) at center for each element
             #how to handle q? should be uniform so direction and mag constant
             #add q value to list
-            norm = self.norms[i]
+            # print(self.q_dir)
+            # print(self.norms)
+            norm = self.norms[0][i]
+            # print(norm)
             q_i = np.dot(self.q_dir, norm) * self.q_mag
             q_mesh_all.append(q_i)
-
+        print(q_mesh_all)
         return q_mesh_all
     
     def calcObjective(self, q_mesh_all): 

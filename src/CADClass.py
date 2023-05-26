@@ -363,10 +363,10 @@ class CAD:
         self.CAD = Import.open(self.STPfile)
         self.CADdoc = FreeCAD.ActiveDocument
         #Coordinate permutation if necessary
-        if self.permute_mask=='True' or self.permute_mask == True:
-            self.permuteSTEP()
-            #self.permuteSTEPAssy()
-            self.permute_mask = False
+        # if self.permute_mask=='True' or self.permute_mask == True:
+        #     self.permuteSTEP()
+        #     #self.permuteSTEPAssy()
+        #     self.permute_mask = False
 
         #Save all parts/objects
         self.CADobjs = self.CADdoc.Objects
