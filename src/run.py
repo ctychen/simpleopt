@@ -25,16 +25,16 @@ import Solid
 import ForwardModel
 import OptModel
 
-class RunSetup:
+class RunSetup_1DBox:
     def __init__(self):
-        g_obj = lambda qvals: max(qvals)
+        g_obj = lambda qvals: max(qvals) #+ qvals.count(max(qvals)) #maybe changing obj function helps??
 
-        stpPath = "box.step" 
+        stpPath = "test_box.step" 
         stlPath = " " #"box.stl"
-        qDirIn = [0, 1.0, 0] #[m]
+        qDirIn = [0.0, -1.0, 0] #[m]
         qMagIn = 10.0 #[W/m^2]
 
-        self.box = Solid.Box(stlPath, stpPath) #this is bc stp export isn't working....
+        self.box = Solid.Box(stlPath, stpPath) 
         self.fwd = ForwardModel.ForwardModel_Box(g_obj, self.box, qMagIn, qDirIn) 
         self.opt = OptModel.OptModel_Box()
 
@@ -45,7 +45,8 @@ class RunSetup:
         return
 
     def runModel(self):
-        while (abs(self.opt.del_e) > self.opt.threshold_err):
+
+        while ((abs(self.opt.del_e) > self.opt.threshold_err)):
             self.fwd.processCADModel()
             q_mesh_all = self.fwd.calcQMesh()
             g_now = self.fwd.calcObjective(q_mesh_all)
@@ -53,7 +54,50 @@ class RunSetup:
             self.opt.updategValues(g_now)
             self.opt.calculateDelE()
 
-            if (abs(self.opt.del_e) < self.opt.threshold_err):
+            if (abs(self.opt.del_e) < self.opt.threshold_err) and (self.opt.g_prev > self.opt.g_curr):
+                print(f"[err]: {self.opt.del_e} [g_x now]: {self.opt.g_curr} [g_x prev]: {self.opt.g_prev} [theta]: {self.del_theta}")
+                print(f"found opt, last err: {self.opt.del_e}, rotated: {self.del_theta}")
+                self.box.saveSTEP("final_box.step", self.box.CADobjs)
+                break
+            else: 
+                print(f"transform needed, error: {self.opt.del_e}")
+                self.del_theta = self.opt.doTransform(self.box) #this prob doesn't match yet, gonna fix
+                print(f"transformed: [err]: {self.opt.del_e} [g_x now]: {self.opt.g_curr} [g_x prev]: {self.opt.g_prev} [theta]: {self.del_theta}")
+                print(type(self.box.CADobjs))
+            
+        return
+
+
+class RunSetup_3DBox:
+    def __init__(self):
+        g_obj = lambda qvals: max(qvals) #+ qvals.count(max(qvals)) #maybe changing obj function helps??
+
+        stpPath = "test_box.step" 
+        stlPath = " " #"box.stl"
+        qDirIn = [0.0, -1.0, 0] #[m]
+        qMagIn = 10.0 #[W/m^2]
+
+        self.box = Solid.Box(stlPath, stpPath) 
+        self.fwd = ForwardModel.ForwardModel_Box(g_obj, self.box, qMagIn, qDirIn) 
+        self.opt = OptModel.OptModel_Box()
+
+        #self.box.loadSTEP()
+        # mesh = self.box.load1Mesh(stlPath)
+
+        self.del_theta = 0
+        return
+
+    def runModel(self):
+
+        while ((abs(self.opt.del_e) > self.opt.threshold_err)):
+            self.fwd.processCADModel()
+            q_mesh_all = self.fwd.calcQMesh()
+            g_now = self.fwd.calcObjective(q_mesh_all)
+            print(f"g value found: {g_now}")
+            self.opt.updategValues(g_now)
+            self.opt.calculateDelE()
+
+            if (abs(self.opt.del_e) < self.opt.threshold_err) and (self.opt.g_prev > self.opt.g_curr):
                 print(f"[err]: {self.opt.del_e} [g_x now]: {self.opt.g_curr} [g_x prev]: {self.opt.g_prev} [theta]: {self.del_theta}")
                 print(f"found opt, last err: {self.opt.del_e}, rotated: {self.del_theta}")
                 break
@@ -61,17 +105,16 @@ class RunSetup:
                 print(f"transform needed, error: {self.opt.del_e}")
                 self.del_theta = self.opt.doTransform(self.box) #this prob doesn't match yet, gonna fix
                 print(f"transformed: [err]: {self.opt.del_e} [g_x now]: {self.opt.g_curr} [g_x prev]: {self.opt.g_prev} [theta]: {self.del_theta}")
-            
+                 
         return
         
-
 
 
 if __name__ == '__main__':
 
     t0 = time.time()
 
-    setup = RunSetup()
+    setup = RunSetup_1DBox()
     setup.runModel()
 
     print(f"Time elapsed: {time.time() - t0}")
