@@ -23,5 +23,8 @@ class Box(CADClass.CAD):
         self.parts = self.loadSTEP()
         self.meshes = self.part2meshStandard(self.CADparts)
         # meshSTL = self.writeMesh2file(meshes, "meshes")
+        print(f"Meshed this:")
+        print(self.meshes)
+        print(type(self.meshes[0]))
         return self.meshes
     

@@ -51,15 +51,16 @@ class RunSetup:
             g_now = self.fwd.calcObjective(q_mesh_all)
             print(f"g value found: {g_now}")
             self.opt.updategValues(g_now)
-            del_err = self.opt.calculateDelE()
+            self.opt.calculateDelE()
 
-            if (abs(del_err) < self.opt.threshold_err):
-                print(f"found opt, last err: {del_err}, rotated: {self.del_theta}")
+            if (abs(self.opt.del_e) < self.opt.threshold_err):
+                print(f"[err]: {self.opt.del_e} [g_x now]: {self.opt.g_curr} [g_x prev]: {self.opt.g_prev} [theta]: {self.del_theta}")
+                print(f"found opt, last err: {self.opt.del_e}, rotated: {self.del_theta}")
                 break
             else: 
-                print(f"transform needed, error: {del_err}")
+                print(f"transform needed, error: {self.opt.del_e}")
                 self.del_theta = self.opt.doTransform(self.box) #this prob doesn't match yet, gonna fix
-                print(f"transformed: [err]: {del_err} [g_x now]: {self.opt.g_curr} [g_x prev]: {self.opt.g_prev} [theta]: {self.del_theta}")
+                print(f"transformed: [err]: {self.opt.del_e} [g_x now]: {self.opt.g_curr} [g_x prev]: {self.opt.g_prev} [theta]: {self.del_theta}")
             
         return
         
