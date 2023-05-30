@@ -31,8 +31,8 @@ class RunSetup:
 
         stpPath = "box.step" 
         stlPath = " " #"box.stl"
-        qDirIn = [0, 1, 0] #[m]
-        qMagIn = 10 #[W/m^2]
+        qDirIn = [0, 1.0, 0] #[m]
+        qMagIn = 10.0 #[W/m^2]
 
         self.box = Solid.Box(stlPath, stpPath) #this is bc stp export isn't working....
         self.fwd = ForwardModel.ForwardModel_Box(g_obj, self.box, qMagIn, qDirIn) 

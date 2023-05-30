@@ -33,7 +33,7 @@ class ForwardModel_Box:
             # print(self.q_dir)
             # print(self.norms)
             norm = self.norms[0][i]
-            # print(norm)
+            print(norm)
             q_i = np.dot(self.q_dir, norm) * self.q_mag
             q_mesh_all.append(q_i)
         print(q_mesh_all)

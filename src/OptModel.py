@@ -5,13 +5,13 @@ import MeshPart
 from FreeCAD import Base
 
 class OptModel_Box:
-    def __init__(self, threshold = 0.5, gprev = 10000, gcurr = 1):
+    def __init__(self, threshold = 0.5, gprev = 10000, gcurr = 5):
         #all placeholder values for now I have no idea what they should be yet - maybe these shouldn't be here and instead in opt? 
         self.threshold_err = 0.5
         self.g_prev = gprev
         self.g_curr = gcurr
-        self.delstep = 5
-        self.del_e = 1
+        self.delstep = 2
+        self.del_e = 2
         return
     
     def calculateDelE(self): 
@@ -39,36 +39,6 @@ class OptModel_Box:
         transform = FreeCAD.Placement(axis, rot)
 
         transform_base = Base.Rotation(axis, del_theta)
-
-        # cadModel.CADdoc.recompute() #needed here?
-        #for obj in cadModel.Objects: #to be fixed, take in mesh
-        # print(cadModel.meshes[0])
-
-        #attempt 1...
-
-        # for obj in cadModel.meshes:
-        #     print(obj)
-        #     obj.Placement = transform.multiply(obj.Placement)
-        #     if type(obj) == Part.Feature:
-        #         obj.Placement = transform.multiply(obj.Placement)
-        #         #cadModel.CADdoc.recompute() #not sure if we need this?
-        #         #print(f"Recomputed with transformation on mesh")
-        #         print(f"Applied transform?") #seems like code isn't getting here, wack
-        #     print(f"Applied transform for object")
-        # cadModel.CADdoc.recompute()
-
-        #attempt 2... (maybe this is not how mesh elements work?)
-
-        # print(dir(cadModel.meshes[0]))
-
-        # face_list = cadModel.meshes[0].Facets
-        # for face in face_list:
-        #     # face.Placement = transform.multiply(face.Placement)
-        #     face.rotate(axis, del_theta) #or, could do this?
-        #     print(f"Applied transform")
-        #     cadModel.CADdoc.recompute()
-
-        #attempt 3...
 
         mesh = cadModel.meshes[0] 
 
