@@ -34,7 +34,7 @@ box_shape = Part.makeBox(length, width, height)
 box_solid = Part.Solid(box_shape)
 
 # Add the solid to the document
-doc.addObject("Part::Feature", "Box").Shape = box_solid
+box_solid = doc.addObject("Part::Feature", "Box").Shape 
 
 # Export the document to an STP file
 output_path = "box.stp"

@@ -30,7 +30,7 @@ class RunSetup:
         g_obj = lambda qvals: max(qvals)
 
         stpPath = "box.step" 
-        stlPath = "box.stl"
+        stlPath = " " #"box.stl"
         qDirIn = [0, 1, 0] #[m]
         qMagIn = 10 #[W/m^2]
 
@@ -45,7 +45,7 @@ class RunSetup:
         return
 
     def runModel(self):
-        while (self.opt.del_e > self.opt.threshold_err):
+        while (abs(self.opt.del_e) > self.opt.threshold_err):
             self.fwd.processCADModel()
             q_mesh_all = self.fwd.calcQMesh()
             g_now = self.fwd.calcObjective(q_mesh_all)
@@ -53,7 +53,7 @@ class RunSetup:
             self.opt.updategValues(g_now)
             del_err = self.opt.calculateDelE()
 
-            if (del_err > self.opt.threshold_err):
+            if (abs(del_err) < self.opt.threshold_err):
                 print(f"found opt, last err: {del_err}, rotated: {self.del_theta}")
                 break
             else: 
@@ -61,7 +61,7 @@ class RunSetup:
                 self.del_theta = self.opt.doTransform(self.box) #this prob doesn't match yet, gonna fix
                 print(f"transformed: [err]: {del_err} [g_x now]: {self.opt.g_curr} [g_x prev]: {self.opt.g_prev} [theta]: {self.del_theta}")
             
-            return
+        return
         
 
 
