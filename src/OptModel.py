@@ -5,13 +5,13 @@ import MeshPart
 from FreeCAD import Base
 
 class OptModel_Box:
-    def __init__(self, threshold = 0.1, gprev = 10000, gcurr = 5):
+    def __init__(self, threshold = 0.05, gprev = 10000, gcurr = 5, delstep = 0.05, del_e = 1):
         #all placeholder values for now I have no idea what they should be yet - maybe these shouldn't be here and instead in opt? 
         self.threshold_err = threshold
         self.g_prev = gprev
         self.g_curr = gcurr
-        self.delstep = 0.1
-        self.del_e = 1
+        self.delstep = delstep
+        self.del_e = del_e
         return
     
     def calculateDelE(self): 
@@ -36,33 +36,6 @@ class OptModel_Box:
 
         cadModel.rotateByAmount(0, 0, del_theta, x, y, z)
 
-        # transform = FreeCAD.Placement(axis, rot)
-
-        # transform_base = Base.Rotation(axis, del_theta)
-
-        # mesh = cadModel.meshes[0] 
-
-        # mesh.Placement.Rotation = mesh.Placement.Rotation.multiply(transform_base)
-
-        # print("Transformed?????")
-
-        #maybe we don't modify the mesh, but we modify the shape. so extract the shape and rotate the whole thing....
-        # rot = FreeCAD.Placement( FreeCAD.Vector(0,0,0), FreeCAD.Rotation(0,0,90) )
-        # for obj in FreeCAD.ActiveDocument.Objects:
-        #     if type(obj) == Part.Feature:
-        #         obj.Placement = rot.multiply(obj.Placement)    
-        # 
-        # print(dir(cadModel))
-
-        # print(dir(cadModel.Objects))
-
-        # print(dir(cadModel.Objects[0]))
-
-        # for obj in FreeCAD.ActiveDocument.Objects:
-        #     if type(obj) == Part.Feature:
-        #         obj.Placement = rot.multiply(obj.Placement)
-        #         cadModel.CADdoc.recompute()
-
         return del_theta
 
     def updategValues(self, g_new):
@@ -72,13 +45,13 @@ class OptModel_Box:
 
 
 class OptModel_3DRot:
-    def __init__(self, threshold = 0.1, gprev = 10000, gcurr = 5):
+    def __init__(self, threshold = 0.1, gprev = 10000, gcurr = 5, delstep = 0.1, del_e = 1):
         #all placeholder values for now I have no idea what they should be yet - maybe these shouldn't be here and instead in opt? 
         self.threshold_err = threshold
         self.g_prev = gprev
         self.g_curr = gcurr
-        self.delstep = 0.1
-        self.del_e = 1
+        self.delstep = delstep
+        self.del_e = del_e
         return
 
     def calculateError(self):
@@ -86,13 +59,13 @@ class OptModel_3DRot:
 
 
 class OptModel_Template:
-    def __init__(self, threshold = 1, gprev = 10000, gcurr = 5):
+    def __init__(self, threshold = 0.1, gprev = 10000, gcurr = 5, delstep = 0.1, del_e = 1):
         #all placeholder values for now I have no idea what they should be yet - maybe these shouldn't be here and instead in opt? 
-        self.threshold_err = 0.5
+        self.threshold_err = threshold
         self.g_prev = gprev
         self.g_curr = gcurr
-        self.delstep = 0.1
-        self.del_e = 1
+        self.delstep = delstep
+        self.del_e = del_e
         return
     
     def calculateDelE(self): 

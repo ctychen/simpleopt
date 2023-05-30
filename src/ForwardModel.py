@@ -24,14 +24,7 @@ class ForwardModel_Box:
     def calcQMesh(self):
         #for every mesh element, calculate q and store in list/arr with same length as mesh elem list
         q_mesh_all = []
-        # print(self.meshes)
         for i in range(len(self.norms[0])): 
-            #calculate q
-            #defn for q: (qdir dot normal)*(mag of q) at center for each element
-            #how to handle q? should be uniform so direction and mag constant
-            #add q value to list
-            # print(self.q_dir)
-            # print(self.norms)
             norm = self.norms[0][i]
             print(norm)
             q_i = np.dot(self.q_dir, norm) * self.q_mag

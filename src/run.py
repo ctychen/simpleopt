@@ -57,13 +57,13 @@ class RunSetup_1DBox:
             if (abs(self.opt.del_e) < self.opt.threshold_err) and (self.opt.g_prev > self.opt.g_curr):
                 print(f"[err]: {self.opt.del_e} [g_x now]: {self.opt.g_curr} [g_x prev]: {self.opt.g_prev} [theta]: {self.del_theta}")
                 print(f"found opt, last err: {self.opt.del_e}, rotated: {self.del_theta}")
+                self.box.CADdoc.recompute()
                 self.box.saveSTEP("final_box.step", self.box.CADobjs)
                 break
             else: 
                 print(f"transform needed, error: {self.opt.del_e}")
                 self.del_theta = self.opt.doTransform(self.box) #this prob doesn't match yet, gonna fix
                 print(f"transformed: [err]: {self.opt.del_e} [g_x now]: {self.opt.g_curr} [g_x prev]: {self.opt.g_prev} [theta]: {self.del_theta}")
-                print(type(self.box.CADobjs))
             
         return
 
@@ -79,7 +79,9 @@ class RunSetup_3DBox:
 
         self.box = Solid.Box(stlPath, stpPath) 
         self.fwd = ForwardModel.ForwardModel_Box(g_obj, self.box, qMagIn, qDirIn) 
-        self.opt = OptModel.OptModel_Box()
+        self.opt = OptModel.OptModel_3DRot()
+
+        self.q_max = 9 #set this to whatever
 
         #self.box.loadSTEP()
         # mesh = self.box.load1Mesh(stlPath)
@@ -89,24 +91,43 @@ class RunSetup_3DBox:
 
     def runModel(self):
 
-        while ((abs(self.opt.del_e) > self.opt.threshold_err)):
+        all_q_max = [] #i-th index will correspond to qval calculated on i-th iteration, before the transform
+        all_rotations_found = [] #i-th index will correspond to rotation found on i-th iteration, so the i-th transform
+
+        while (max(all_q_max) > self.q_max_threshold): 
+
             self.fwd.processCADModel()
+
             q_mesh_all = self.fwd.calcQMesh()
+
+            all_q_max.append(max(q_mesh_all)) 
+
             g_now = self.fwd.calcObjective(q_mesh_all)
             print(f"g value found: {g_now}")
-            self.opt.updategValues(g_now)
-            self.opt.calculateDelE()
 
-            if (abs(self.opt.del_e) < self.opt.threshold_err) and (self.opt.g_prev > self.opt.g_curr):
-                print(f"[err]: {self.opt.del_e} [g_x now]: {self.opt.g_curr} [g_x prev]: {self.opt.g_prev} [theta]: {self.del_theta}")
-                print(f"found opt, last err: {self.opt.del_e}, rotated: {self.del_theta}")
-                break
-            else: 
-                print(f"transform needed, error: {self.opt.del_e}")
-                self.del_theta = self.opt.doTransform(self.box) #this prob doesn't match yet, gonna fix
-                print(f"transformed: [err]: {self.opt.del_e} [g_x now]: {self.opt.g_curr} [g_x prev]: {self.opt.g_prev} [theta]: {self.del_theta}")
-                 
+            self.opt.updategValues(g_now)
+
+            rotation_found = gradientDescent3D() #to be written, but calculate grad desc - this will have an internal loop that runs x times
+
+            all_rotations_found.append(rotation_found)
+
+        #once that condition reached, should mean that we're done optimizing, and so we can export a final file
+        self.box.CADdoc.recompute()
+        self.box.saveSTEP("final_box_3drot.step", self.box.CADobjs)
+        
         return
+
+            # if (abs(self.opt.del_e) < self.opt.threshold_err) and (self.opt.g_prev > self.opt.g_curr):
+            #     print(f"[err]: {self.opt.del_e} [g_x now]: {self.opt.g_curr} [g_x prev]: {self.opt.g_prev} [theta]: {self.del_theta}")
+            #     print(f"found opt, last err: {self.opt.del_e}, rotated: {self.del_theta}")
+            #     self.box.CADdoc.recompute()
+            #     self.box.saveSTEP("final_box.step", self.box.CADobjs)
+            #     break
+            # else: 
+            #     print(f"transform needed, error: {self.opt.del_e}")
+            #     self.del_theta = self.opt.doTransform(self.box) #this prob doesn't match yet, gonna fix
+            #     print(f"transformed: [err]: {self.opt.del_e} [g_x now]: {self.opt.g_curr} [g_x prev]: {self.opt.g_prev} [theta]: {self.del_theta}")
+                      
         
 
 
@@ -114,7 +135,8 @@ if __name__ == '__main__':
 
     t0 = time.time()
 
-    setup = RunSetup_1DBox()
+    # setup = RunSetup_1DBox()
+    setup = RunSetup_3DBox()
     setup.runModel()
 
     print(f"Time elapsed: {time.time() - t0}")
