@@ -5,7 +5,7 @@ import MeshPart
 from FreeCAD import Base
 
 class OptModel_Box:
-    def __init__(self, threshold = 0.05, gprev = 10000, gcurr = 5, delstep = 0.05, del_e = 1):
+    def __init__(self, threshold = 0.1, gprev = 10000, gcurr = 5, delstep = 0.05, del_e = 1):
         #all placeholder values for now I have no idea what they should be yet - maybe these shouldn't be here and instead in opt? 
         self.threshold_err = threshold
         self.g_prev = gprev
@@ -36,6 +36,8 @@ class OptModel_Box:
 
         cadModel.rotateByAmount(0, 0, del_theta, x, y, z)
 
+        cadModel.CADdoc.recompute()
+
         return del_theta
 
     def updategValues(self, g_new):
@@ -56,6 +58,26 @@ class OptModel_3DRot:
 
     def calculateError(self):
         return 
+
+    # def calculateRotationMatrix(self):
+    #     return 
+
+    def calculateGradientRotation(self):
+        return 
+
+    def doTransform(self, cadModel, rotation):
+        cadModel.rotateModel(rotation) #is rotation a rotation matrix? what exactly -> TBD -> rotation is a Matrix4D
+        return
+
+
+    # def gradientDescent3D(self, cadModel, rotationInit): #start off with whatever last one was, so maybe take in value?
+    #     #set up loop... 
+    #     return
+
+
+
+
+    
 
 
 class OptModel_Template:
