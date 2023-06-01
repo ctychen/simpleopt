@@ -8,6 +8,7 @@ class ForwardModel_Box:
         self.g_x = g_x #objective function, can swap out
         return
     
+    # todo: maybe this shouldn't stay here. and instead be in solid.py
     def processCADModel(self):
         #meshing the thing
         meshes = self.solid.createMesh(res=2000)

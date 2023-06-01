@@ -5,6 +5,8 @@ import os
 
 import plotly.graph_objects as go
 import plotly.io as pio
+from plotly.subplots import make_subplots
+
 
 import matplotlib.pyplot as plt
 
@@ -89,16 +91,16 @@ class RunSetup_3DBox:
 
         self.box = Solid.Box(stlPath, stpPath) 
         self.fwd = ForwardModel.ForwardModel_Box(g_obj, self.box, qMagIn, qDirIn) 
-        self.opt = OptModel.OptModel_3DRot()
+        self.opt = OptModel.OptModel_3DRot(g_obj)
 
-        self.q_max = 9 #set this to whatever
+        self.q_max_threshold = 9 #set this to whatever
 
         #self.box.loadSTEP()
         # mesh = self.box.load1Mesh(stlPath)
 
-        self.Nx = 10
-        self.Ny = 10
-        self.Nz = 10
+        self.Nx = 3
+        self.Ny = 3
+        self.Nz = 3
 
         self.xRot = np.linspace(-45.0, 45.0, self.Nx)
         self.yRot = np.linspace(-45.0, 45.0, self.Ny)
@@ -109,23 +111,51 @@ class RunSetup_3DBox:
         self.del_theta = 0
         return
 
-    def gradientDescent3D(self, iterations):
-        
-        # for i in range(iterations):
-        #     flux_mesh_all = self.fwd.calcQMesh()
-        #     gradRot = self.opt.calculateGradientRotation() #returns list with both
-
-
-        return 
-
     def calcPeakQWithRotation(self, xR, yR, zR):
-
-        self.box.rotateTo(xR, yR, zR)
+        self.box.rotateTo(xR, yR, zR) #use this rotate fcn
         self.fwd.processCADModel()
         q_mesh_all = self.fwd.calcQMesh()
         qPeak = max(q_mesh_all)
         print(f"Calculated Peak Q: {qPeak}")
         return qPeak
+
+
+    def runModel(self, stlEn = True, plotEn = True):
+
+        all_q_found = [] #i-th index will correspond to qval calculated on i-th iteration, before the transform
+        all_rotations_found = [] #i-th index will correspond to rotation found on i-th iteration, so the i-th transform
+        noVals = True
+
+        while (noVals or (np.amin(all_q_found) > self.q_max_threshold)): 
+
+            if noVals: noVals = False
+
+            # self.fwd.processCADModel()
+
+            # q_mesh_all = self.fwd.calcQMesh()
+
+            # g_now = self.fwd.calcObjective(q_mesh_all)
+            # print(f"g value found: {g_now}")
+
+            # self.opt.updategValues(g_now)
+
+            resultFromStep = self.opt.gradientDescent(self.box, self.calcPeakQWithRotation)
+            #apply this rotation and repeat
+            min_q_result = resultFromStep[1]
+            rotation_result = resultFromStep[0] #format: [x, y, z]
+
+            self.box.rotateTo(rotation_result[0], rotation_result[1], rotation_result[2])
+            self.fwd.processCADModel()
+
+            all_q_found.append(min_q_result)
+            all_rotations_found.append(rotation_result)
+
+        #once that condition reached, should mean that we're done optimizing, and so we can export a final file
+        self.box.CADdoc.recompute()
+        self.box.saveSTEP("final_box_3drot.step", self.box.CADobjs)
+        
+        return
+
 
     def plotRotations(self):
 
@@ -150,17 +180,22 @@ class RunSetup_3DBox:
         qPeak_1D = qPeak_all.flatten()
         globalMinQ = np.amin(qPeak_1D) 
         idxMin = np.argmin(qPeak_1D)
-        print(f"Global minimum of max(q): {globalMinQ}")
+        print(f"Global minimum of max(q): {globalMinQ} at index: {idxMin}")
 
-        xMin= self.xAng.flatten()[idxMin]
-        yMin= self.yAng.flatten()[idxMin]
-        zMin= self.zAng.flatten()[idxMin]
+        xFlat=self.xAng.flatten(),
+        yFlat=self.yAng.flatten(),
+        zFlat=self.zAng.flatten(),
+
+        print(qPeak_all)
+
+        xMin= xFlat[0][idxMin]
+        yMin= yFlat[0][idxMin]
+        zMin= zFlat[0][idxMin]
 
         print(f"Angles for minimum: {xMin}, {yMin}, {zMin}")
 
-
         # Create a 3D surface plot with color mapped to function values
-        fig = go.Figure(data=go.Volume(
+        fig_4d = go.Figure(data=go.Volume(
             x=self.xAng.flatten(),
             y=self.yAng.flatten(),
             z=self.zAng.flatten(),
@@ -172,8 +207,8 @@ class RunSetup_3DBox:
             colorscale='Thermal'
         ))
 
-        # Set plot layout and axis labels
-        fig.update_layout(
+        # # Set plot layout and axis labels
+        fig_4d.update_layout(
             title='Peak Heat Flux Across Rotations',
             scene=dict(
                 xaxis_title='X',
@@ -182,57 +217,43 @@ class RunSetup_3DBox:
             )
         )
 
-        # Show the plot
-        fig.show()
+        # zIndex = np.abs(self.zRot - zMin).argmin()
+        # q_zFixed = qPeak_all[:, :, zIndex]
+        # fig_z = go.Figure(data=go.Volume(
+        #     x=self.xAng.flatten(),
+        #     y=self.yAng.flatten(),
+        #     z=(q_zFixed.flatten(),),
+        #     value=q_zFixed.flatten(),
+        #     isomin=np.min(q_zFixed),
+        #     isomax=np.max(q_zFixed),
+        #     opacity=0.3,
+        #     surface_count=17,
+        #     colorscale='Thermal'
+        # ))
 
-        output_file = 'plot_attempt_2.html'
-        pio.write_html(fig, output_file)
+        # # Set plot layout and axis labels
+        # fig_z.update_layout(
+        #     title='Peak Heat Flux Across Rotations',
+        #     scene=dict(
+        #         xaxis_title='X',
+        #         yaxis_title='Y',
+        #         zaxis_title='Z'
+        #     )
+        # )
+
+        # Show the plot
+        fig_4d.show()
+        # fig_z.show()
+
+        output_file_4d = 'plot_attempt_4d.html'
+        pio.write_html(fig_4d, output_file_4d)
+
+        # pio.write_html(fig_z, 'plot_z.html')
 
         print(f"Plotted Rotations Space")
         return globalMinQ
 
-    
 
-
-    def runModel(self, stlEn = True, plotEn = True):
-
-        all_q_max = [] #i-th index will correspond to qval calculated on i-th iteration, before the transform
-        all_rotations_found = [] #i-th index will correspond to rotation found on i-th iteration, so the i-th transform
-
-        while (max(all_q_max) > self.q_max_threshold): 
-
-            self.fwd.processCADModel()
-
-            q_mesh_all = self.fwd.calcQMesh()
-
-            all_q_max.append(max(q_mesh_all)) 
-
-            g_now = self.fwd.calcObjective(q_mesh_all)
-            print(f"g value found: {g_now}")
-
-            self.opt.updategValues(g_now)
-
-            rotation_found = self.gradientDescent3D() #to be written, but calculate grad desc - this will have an internal loop that runs x times
-
-            all_rotations_found.append(rotation_found)
-
-        #once that condition reached, should mean that we're done optimizing, and so we can export a final file
-        self.box.CADdoc.recompute()
-        self.box.saveSTEP("final_box_3drot.step", self.box.CADobjs)
-        
-        return
-
-            # if (abs(self.opt.del_e) < self.opt.threshold_err) and (self.opt.g_prev > self.opt.g_curr):
-            #     print(f"[err]: {self.opt.del_e} [g_x now]: {self.opt.g_curr} [g_x prev]: {self.opt.g_prev} [theta]: {self.del_theta}")
-            #     print(f"found opt, last err: {self.opt.del_e}, rotated: {self.del_theta}")
-            #     self.box.CADdoc.recompute()
-            #     self.box.saveSTEP("final_box.step", self.box.CADobjs)
-            #     break
-            # else: 
-            #     print(f"transform needed, error: {self.opt.del_e}")
-            #     self.del_theta = self.opt.doTransform(self.box) #this prob doesn't match yet, gonna fix
-            #     print(f"transformed: [err]: {self.opt.del_e} [g_x now]: {self.opt.g_curr} [g_x prev]: {self.opt.g_prev} [theta]: {self.del_theta}")
-                      
         
 
 if __name__ == '__main__':
@@ -241,8 +262,8 @@ if __name__ == '__main__':
 
     # setup = RunSetup_1DBox()
     setup = RunSetup_3DBox()
-    # setup.runModel()
-    setup.plotRotations()
+    setup.runModel()
+    # setup.plotRotations()
 
     print(f"Time elapsed: {time.time() - t0}")
 

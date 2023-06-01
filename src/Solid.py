@@ -25,16 +25,22 @@ class Box(CADClass.CAD):
     #todo: maybe can replace some stuff wiht objFromPartnum from CADClass directly
 
     def createMesh(self, res=1000): 
-        #standard mesh for now, can change this
-        # meshes = self.load1Mesh(self.STLfile)
-        # self.parts = self.loadSTEP() #NORMALLY: DO NOT WANT THIS HERE, OTHERWISE IT'LL BE DONE EACH TIME! ONLY KEEPING IT FOR NOW TO PLOT CONTOURS
-        #self.meshes = self.part2meshStandard(self.CADparts)
         self.meshes = self.part2mesh(self.CADparts, res)
-        # meshSTL = self.writeMesh2file(meshes, "meshes")
         print("Meshed")
-        # print(self.meshes)
-        # print(type(self.meshes[0]))
         return self.meshes
+
+    def processModel(self, res=1000):
+        #meshing the thing
+        meshes = self.createMesh(res)
+        if type(meshes) != list:
+            meshes = [self.meshes]        
+        #calc centers, normals, areas for meshed
+        normcenterarea = self.normsCentersAreas(meshes)
+        self.norms = normcenterarea[0] #norm[i] = [xi, yi, zi]
+        self.centers = normcenterarea[1]
+        self.areas = normcenterarea[2]
+        print("Meshed, founds norms, centers, areas")
+        return
 
     def rotateByAmount(self, thetax, thetay, thetaz, x, y, z):
         
@@ -51,13 +57,12 @@ class Box(CADClass.CAD):
 
     def getCurrentRotation(self):
         return FreeCAD.ActiveDocument.Objects[0].Placement.Rotation #axis, angle
+
+    def getCurrentRotationAngles(self):
+        return self.getCurrentRotation().toEuler() #to access components, do (output)[0], etc. from 0-2
     
-    def rotateTo(self, rotX, rotY, rotZ):
+    def rotateTo(self, rotX, rotY, rotZ): #use this rotate fcn for now!
         rotMatrix = FreeCAD.Matrix() #unity matrix
-        #the following all take inputs in radians.... MAYBE THIS IS A LIE
-        # rotX = math.radians(rotX)
-        # rotY = math.radians(rotY)
-        # rotZ = math.radians(rotZ)
         rotMatrix.rotateX(rotX)
         rotMatrix.rotateY(rotY)
         rotMatrix.rotateZ(rotZ)
