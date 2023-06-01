@@ -130,15 +130,6 @@ class RunSetup_3DBox:
 
             if noVals: noVals = False
 
-            # self.fwd.processCADModel()
-
-            # q_mesh_all = self.fwd.calcQMesh()
-
-            # g_now = self.fwd.calcObjective(q_mesh_all)
-            # print(f"g value found: {g_now}")
-
-            # self.opt.updategValues(g_now)
-
             resultFromStep = self.opt.gradientDescent(self.box, self.calcPeakQWithRotation)
             #apply this rotation and repeat
             min_q_result = resultFromStep[1]

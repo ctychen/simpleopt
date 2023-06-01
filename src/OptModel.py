@@ -88,33 +88,16 @@ class OptModel_3DRot:
                             count -= 1
                             print(f"Points left: {count}")        
 
-        # q_inGrid = calcQVal(X, Y, Z) #replace with actually iterating bc my func can't do this
-
-        # print(q_inGrid)
-
         q_1D = q_inGrid.flatten()
 
         min_q = np.amin(q_1D)
         idxMin = np.argmin(q_1D)
-
-        # print(X.flatten())
-        # print(X.flatten()[0])
 
         xNew = X.flatten()[idxMin]
         yNew = Y.flatten()[idxMin]
         zNew = Z.flatten()[idxMin]
 
         return [[xNew, yNew, zNew], min_q]    
-        # return bestRotation
-
-    # def doTransform(self, cadModel, rotation):
-    #     cadModel.rotateModel(rotation) 
-    #     return
-
-
-    # def gradientDescent3D(self, cadModel, rotationInit): #start off with whatever last one was, so maybe take in value?
-    #     #set up loop... 
-    #     return
 
 
 
