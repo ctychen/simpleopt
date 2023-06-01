@@ -6,6 +6,8 @@ import os
 import plotly.graph_objects as go
 import plotly.io as pio
 
+import matplotlib.pyplot as plt
+
 try:
     runMode = os.environ["runMode"]
 except:
@@ -94,9 +96,9 @@ class RunSetup_3DBox:
         #self.box.loadSTEP()
         # mesh = self.box.load1Mesh(stlPath)
 
-        self.Nx = 10
-        self.Ny = 10
-        self.Nz = 10
+        self.Nx = 5
+        self.Ny = 5
+        self.Nz = 5
 
         self.xRot = np.linspace(-45.0, 45.0, self.Nx)
         self.yRot = np.linspace(-45.0, 45.0, self.Ny)
@@ -148,8 +150,11 @@ class RunSetup_3DBox:
     def plotRotations(self):
 
         print(f"Total number of points: {len(self.xAng) * len(self.yAng) * len(self.zAng)}")
-        count = len(self.xAng) * len(self.yAng) * len(self.zAng)
-        qPeak_all = np.zeros((self.Nx, self.Ny, self.Nz))
+        total = len(self.xAng) * len(self.yAng) * len(self.zAng)
+        count = total
+        # qPeak_all = np.zeros((self.Nx, self.Ny, self.Nz))
+        points_all = []
+        qPeak_all = []
         # print(self.xRot)
         # print(self.yRot)
         # print(self.zRot)
@@ -160,23 +165,80 @@ class RunSetup_3DBox:
         #             qPeak_all[i][j][k] = self.calcPeakQWithRotation() 
         #             print(qPeak_all[i][j][k])
 
-        for i in range(len(self.xAng)):
-            for j in range(len(self.yAng)):
-                for k in range(len(self.zAng)):
-                    pointX = self.xAng[i, j, k]
-                    pointY = self.yAng[i, j, k]
-                    pointZ = self.zAng[i, j, k]
-                    pointX2 = self.xRot[i]
-                    pointY2 = self.yRot[j]
-                    pointZ2 = self.zRot[k]
-                    print(f"{pointX}, {pointY}, {pointZ}")
-                    print({f"{pointX2}, {pointY2}, {pointZ2}"})
-                    qPeak_all[i, j, k] = self.calcPeakQWithRotation(pointX, pointY, pointZ)
-                    # print(qPeak_all[i, j, k])
+        # for i in range(len(self.xAng)):
+        #     for j in range(len(self.yAng)):
+        #         for k in range(len(self.zAng)):
+        #             pointX = self.xAng[i, j, k]
+        #             pointY = self.yAng[i, j, k]
+        #             pointZ = self.zAng[i, j, k]
+        #             pointX2 = self.xRot[i]
+        #             pointY2 = self.yRot[j]
+        #             pointZ2 = self.zRot[k]
+        #             print(f"{pointX}, {pointY}, {pointZ}")
+        #             print({f"{pointX2}, {pointY2}, {pointZ2}"})
+        #             qPeak_all[i, j, k] = self.calcPeakQWithRotation(pointX, pointY, pointZ)
+        #             # print(qPeak_all[i, j, k])
+        #             count -= 1
+        #             print(f"Points left: {count}")
+
+        for i in range(len(self.xRot)):
+            for j in range(len(self.yRot)):
+                for k in range(len(self.zRot)):
+                    xVal = self.xRot[i]
+                    yVal = self.yRot[j]
+                    zVal = self.zRot[k]
+                    newQPeak = self.calcPeakQWithRotation(xVal, yVal, zVal)
+                    qPeak_all.append(newQPeak)
+                    points_all.append([xVal, yVal, zVal])
+                    # qPeak_all[i, j, k] = self.calcPeakQWithRotation(xVal, yVal, zVal)
+                    print(f"Point done: {xVal}, {yVal}, {zVal}")
                     count -= 1
                     print(f"Points left: {count}")
 
-        fig = go.Figure()
+        print(points_all)
+        print(qPeak_all)
+
+
+        globalMinQ = np.amin(qPeak_all) #todo: actually calc min in whole 3d arr
+        print(f"Global minimum of max(q): {globalMinQ}")
+
+        # globalMinAng = np.argmin(qPeak_all)
+        # print(globalMinAng)
+
+        
+
+        # minXAng = self.xRot[globalMinAng[0]]
+        # minYAng = self.yRot[globalMinAng[1]]
+        # minZAng = self.zRot[globalMinAng[2]]
+
+        # print(f"Angles for global minimum: {minXAng}, {minYAng}, {minZAng}")
+
+        # print(self.xAng.shape)
+        print(self.xRot)
+        # print(self.xAng.flatten())
+        # print(len(self.xAng))
+        # print(len(self.xAng.flatten()))
+        # print(qPeak_all)
+        # print(len(qPeak_all))
+
+        # fig = go.Figure()
+
+        # fig.add_trace(go.Scatter3d(x=self.xRot, y=self.yRot, z=self.zRot, color=qPeak_all))
+
+        # fig = go.Figure(
+        #     data = go.Scatter3d(
+        #         x=self.xRot, y=self.yRot, z=self.zRot, 
+        #         marker = dict(
+        #                         size = 12,
+        #                         color = qPeak_all
+        #                     )
+        #         # surfacecolor = qPeak_all
+        #     )
+        # )
+
+
+
+
         #fig.add_trace(go.Scatter3d(self.xRot, self.yRot, self.zRot, qPeak_all))
 
         # fig = go.Figure(data=go.Surface(x=self.xRot, y=self.yRot, z=self.zRot, surfacecolor=qPeak_all))
@@ -186,7 +248,9 @@ class RunSetup_3DBox:
 
         # fig = go.Figure(data=[surface])
 
-        fig.add_trace(go.Surface(x=self.xAng.flatten(), y=self.yAng.flatten(), z=self.zAng.flatten(), surfacecolor=qPeak_all))
+        # fig.add_trace(go.Surface(x=self.xRot, y=self.yRot, z=self.zRot, surfacecolor=qPeak_all))
+
+        fig = go.Figure(data = go.Surface(x=self.xRot, y=self.yRot, z=self.zRot, surfacecolor=qPeak_all))
 
         # Set plot layout and axis labels
         fig.update_layout(
@@ -195,9 +259,9 @@ class RunSetup_3DBox:
                 xaxis_title='X Angle',
                 yaxis_title='Y Angle',
                 zaxis_title='Z Angle',
-                xaxis = dict(nticks=4, range=[-45.0, 45.0],),
-                yaxis = dict(nticks=4, range=[-45.0, 45.0],),
-                zaxis = dict(nticks=4, range=[-45.0, 45.0],),
+                xaxis = dict(range=[-45.0, 45.0],),
+                yaxis = dict(range=[-45.0, 45.0],),
+                zaxis = dict(range=[-45.0, 45.0],),
             )
         )
 
@@ -212,7 +276,7 @@ class RunSetup_3DBox:
         pio.write_html(fig, output_file)
 
         print(f"Plotted Rotations Space")
-        return
+        return globalMinQ
 
     
 

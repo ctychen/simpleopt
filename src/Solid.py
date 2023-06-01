@@ -24,12 +24,12 @@ class Box(CADClass.CAD):
 
     #todo: maybe can replace some stuff wiht objFromPartnum from CADClass directly
 
-    def createMesh(self): 
+    def createMesh(self, res=1000): 
         #standard mesh for now, can change this
         # meshes = self.load1Mesh(self.STLfile)
         # self.parts = self.loadSTEP() #NORMALLY: DO NOT WANT THIS HERE, OTHERWISE IT'LL BE DONE EACH TIME! ONLY KEEPING IT FOR NOW TO PLOT CONTOURS
         #self.meshes = self.part2meshStandard(self.CADparts)
-        self.meshes = self.part2mesh(self.CADparts, 500)
+        self.meshes = self.part2mesh(self.CADparts, res)
         # meshSTL = self.writeMesh2file(meshes, "meshes")
         print("Meshed")
         # print(self.meshes)
