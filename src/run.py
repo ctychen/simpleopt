@@ -96,9 +96,9 @@ class RunSetup_3DBox:
         #self.box.loadSTEP()
         # mesh = self.box.load1Mesh(stlPath)
 
-        self.Nx = 5
-        self.Ny = 5
-        self.Nz = 5
+        self.Nx = 10
+        self.Ny = 10
+        self.Nz = 10
 
         self.xRot = np.linspace(-45.0, 45.0, self.Nx)
         self.yRot = np.linspace(-45.0, 45.0, self.Ny)
@@ -119,26 +119,6 @@ class RunSetup_3DBox:
         return 
 
     def calcPeakQWithRotation(self, xR, yR, zR):
-        # self.box.rotateByAmount()
-        # initialMatrix = Matrix4D() #starts with an identity matrix since not sure what else to do
-        #syntax is Rotation(rotateFrom, rotateTo)
-
-        # for obj in FreeCAD.ActiveDocument.Objects:
-        #     if type(obj) == Part.Feature:
-
-                # print(f"Before Modifying Placement: {obj.Placement}")
-                # obj.Placement = rot.multiply(obj.Placement)
-                # obj.recompute()
-                # print(f"After Modifying Placement: {obj.Placement}")
-        # rotMatrix = FreeCAD.Rotation(FreeCAD.Vector(x, y, z), FreeCAD.Vector(xR, yR, zR))
-        # currentPos = self.box.rotateModel()
-
-        #make new mesh after applying the rotation, which is from current rotation to newly defined one. All coordinates are angles - Euler angles?
-        #calculate q_all for this mesh
-        #find max of q_all
-
-        #how to make sure we start in the same place each time? Should all be an absolute rotation from (0,0,0) and the same initial fixed rotation.... 
-        #maybe in this case we do have to re-load-in the model each time? 
 
         self.box.rotateTo(xR, yR, zR)
         self.fwd.processCADModel()
@@ -152,34 +132,7 @@ class RunSetup_3DBox:
         print(f"Total number of points: {len(self.xAng) * len(self.yAng) * len(self.zAng)}")
         total = len(self.xAng) * len(self.yAng) * len(self.zAng)
         count = total
-        # qPeak_all = np.zeros((self.Nx, self.Ny, self.Nz))
-        points_all = []
-        qPeak_all = []
-        # print(self.xRot)
-        # print(self.yRot)
-        # print(self.zRot)
-
-        # for i in len(self.xRot):
-        #     for j in len(self.yRot):
-        #         for k in len(self.zRot):
-        #             qPeak_all[i][j][k] = self.calcPeakQWithRotation() 
-        #             print(qPeak_all[i][j][k])
-
-        # for i in range(len(self.xAng)):
-        #     for j in range(len(self.yAng)):
-        #         for k in range(len(self.zAng)):
-        #             pointX = self.xAng[i, j, k]
-        #             pointY = self.yAng[i, j, k]
-        #             pointZ = self.zAng[i, j, k]
-        #             pointX2 = self.xRot[i]
-        #             pointY2 = self.yRot[j]
-        #             pointZ2 = self.zRot[k]
-        #             print(f"{pointX}, {pointY}, {pointZ}")
-        #             print({f"{pointX2}, {pointY2}, {pointZ2}"})
-        #             qPeak_all[i, j, k] = self.calcPeakQWithRotation(pointX, pointY, pointZ)
-        #             # print(qPeak_all[i, j, k])
-        #             count -= 1
-        #             print(f"Points left: {count}")
+        qPeak_all = np.zeros((self.Nx, self.Ny, self.Nz))
 
         for i in range(len(self.xRot)):
             for j in range(len(self.yRot)):
@@ -188,91 +141,51 @@ class RunSetup_3DBox:
                     yVal = self.yRot[j]
                     zVal = self.zRot[k]
                     newQPeak = self.calcPeakQWithRotation(xVal, yVal, zVal)
-                    qPeak_all.append(newQPeak)
-                    points_all.append([xVal, yVal, zVal])
-                    # qPeak_all[i, j, k] = self.calcPeakQWithRotation(xVal, yVal, zVal)
+                    qPeak_all[i, j, k] = self.calcPeakQWithRotation(xVal, yVal, zVal)
                     print(f"Point done: {xVal}, {yVal}, {zVal}")
                     count -= 1
                     print(f"Points left: {count}")
 
-        print(points_all)
-        print(qPeak_all)
 
-
-        globalMinQ = np.amin(qPeak_all) #todo: actually calc min in whole 3d arr
+        qPeak_1D = qPeak_all.flatten()
+        globalMinQ = np.amin(qPeak_1D) 
+        idxMin = np.argmin(qPeak_1D)
         print(f"Global minimum of max(q): {globalMinQ}")
 
-        # globalMinAng = np.argmin(qPeak_all)
-        # print(globalMinAng)
+        xMin= self.xAng.flatten()[idxMin]
+        yMin= self.yAng.flatten()[idxMin]
+        zMin= self.zAng.flatten()[idxMin]
 
-        
-
-        # minXAng = self.xRot[globalMinAng[0]]
-        # minYAng = self.yRot[globalMinAng[1]]
-        # minZAng = self.zRot[globalMinAng[2]]
-
-        # print(f"Angles for global minimum: {minXAng}, {minYAng}, {minZAng}")
-
-        # print(self.xAng.shape)
-        print(self.xRot)
-        # print(self.xAng.flatten())
-        # print(len(self.xAng))
-        # print(len(self.xAng.flatten()))
-        # print(qPeak_all)
-        # print(len(qPeak_all))
-
-        # fig = go.Figure()
-
-        # fig.add_trace(go.Scatter3d(x=self.xRot, y=self.yRot, z=self.zRot, color=qPeak_all))
-
-        # fig = go.Figure(
-        #     data = go.Scatter3d(
-        #         x=self.xRot, y=self.yRot, z=self.zRot, 
-        #         marker = dict(
-        #                         size = 12,
-        #                         color = qPeak_all
-        #                     )
-        #         # surfacecolor = qPeak_all
-        #     )
-        # )
+        print(f"Angles for minimum: {xMin}, {yMin}, {zMin}")
 
 
-
-
-        #fig.add_trace(go.Scatter3d(self.xRot, self.yRot, self.zRot, qPeak_all))
-
-        # fig = go.Figure(data=go.Surface(x=self.xRot, y=self.yRot, z=self.zRot, surfacecolor=qPeak_all))
-
-        # surface = go.Surface(x=self.xRot.flatten(), y=self.yRot.flatten(), z=self.zRot.flatten(), surfacecolor=qPeak_all.flatten())
-        # contour = go.Contour(x=self.xRot.flatten(), y=self.yRot.flatten(), z=self.zRot.flatten(), value=qPeak_all.flatten())
-
-        # fig = go.Figure(data=[surface])
-
-        # fig.add_trace(go.Surface(x=self.xRot, y=self.yRot, z=self.zRot, surfacecolor=qPeak_all))
-
-        fig = go.Figure(data = go.Surface(x=self.xRot, y=self.yRot, z=self.zRot, surfacecolor=qPeak_all))
+        # Create a 3D surface plot with color mapped to function values
+        fig = go.Figure(data=go.Volume(
+            x=self.xAng.flatten(),
+            y=self.yAng.flatten(),
+            z=self.zAng.flatten(),
+            value=qPeak_all.flatten(),
+            isomin=np.min(qPeak_all),
+            isomax=np.max(qPeak_all),
+            opacity=0.3,
+            surface_count=17,
+            colorscale='Thermal'
+        ))
 
         # Set plot layout and axis labels
         fig.update_layout(
-            title='Function Values with Contours in 3D Grid',
+            title='Peak Heat Flux Across Rotations',
             scene=dict(
-                xaxis_title='X Angle',
-                yaxis_title='Y Angle',
-                zaxis_title='Z Angle',
-                xaxis = dict(range=[-45.0, 45.0],),
-                yaxis = dict(range=[-45.0, 45.0],),
-                zaxis = dict(range=[-45.0, 45.0],),
+                xaxis_title='X',
+                yaxis_title='Y',
+                zaxis_title='Z'
             )
         )
-
-        # fig.update_layout(xaxis_range[-45.0, 45.0])
-        # fig.update_layout(yaxis_range[-45.0, 45.0])
-        # fig.update_layout(zaxis_range[-45.0, 45.0])
 
         # Show the plot
         fig.show()
 
-        output_file = 'plot.html'
+        output_file = 'plot_attempt_2.html'
         pio.write_html(fig, output_file)
 
         print(f"Plotted Rotations Space")

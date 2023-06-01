@@ -10,7 +10,7 @@ class ForwardModel_Box:
     
     def processCADModel(self):
         #meshing the thing
-        meshes = self.solid.createMesh()
+        meshes = self.solid.createMesh(res=2000)
         if type(meshes) != list:
             meshes = [self.meshes]        
         #calc centers, normals, areas for meshed
