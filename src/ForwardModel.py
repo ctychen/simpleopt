@@ -8,9 +8,10 @@ class ForwardModel_Box:
         self.g_x = g_x #objective function, can swap out
         return
     
+    # todo: maybe this shouldn't stay here. and instead be in solid.py
     def processCADModel(self):
         #meshing the thing
-        meshes = self.solid.createMesh()
+        meshes = self.solid.createMesh(res=500)
         if type(meshes) != list:
             meshes = [self.meshes]        
         #calc centers, normals, areas for meshed
@@ -18,7 +19,7 @@ class ForwardModel_Box:
         self.norms = normcenterarea[0] #norm[i] = [xi, yi, zi]
         self.centers = normcenterarea[1]
         self.areas = normcenterarea[2]
-        print("Model processed")
+        # print("Model processed")
         return
     
     def calcQMesh(self):
@@ -26,10 +27,10 @@ class ForwardModel_Box:
         q_mesh_all = []
         for i in range(len(self.norms[0])): 
             norm = self.norms[0][i]
-            print(norm)
+            # print(norm)
             q_i = np.dot(self.q_dir, norm) * self.q_mag
             q_mesh_all.append(q_i)
-        print(q_mesh_all)
+        # print(q_mesh_all)
         return q_mesh_all
     
     def calcObjective(self, q_mesh_all): 
