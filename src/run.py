@@ -93,14 +93,14 @@ class RunSetup_3DBox:
         self.fwd = ForwardModel.ForwardModel_Box(g_obj, self.box, qMagIn, qDirIn) 
         self.opt = OptModel.OptModel_3DRot(g_obj)
 
-        self.q_max_threshold = 9 #set this to whatever
+        # self.q_max_threshold = 6.0 #set this to whatever, 6 might be ambitious??
 
         #self.box.loadSTEP()
         # mesh = self.box.load1Mesh(stlPath)
 
-        self.Nx = 3
-        self.Ny = 3
-        self.Nz = 3
+        self.Nx = 10
+        self.Ny = 10
+        self.Nz = 10
 
         self.xRot = np.linspace(-45.0, 45.0, self.Nx)
         self.yRot = np.linspace(-45.0, 45.0, self.Ny)
@@ -120,32 +120,54 @@ class RunSetup_3DBox:
         return qPeak
 
 
-    def runModel(self, stlEn = True, plotEn = True):
+    def runModel(self, threshold, margin = 0.01, stlEn = True, plotEn = True):
 
         all_q_found = [] #i-th index will correspond to qval calculated on i-th iteration, before the transform
         all_rotations_found = [] #i-th index will correspond to rotation found on i-th iteration, so the i-th transform
         noVals = True
+        count = 0
+        prev_q = 0
+        curr_q = threshold
+        below_margin_count = 0
 
-        while (noVals or (np.amin(all_q_found) > self.q_max_threshold)): 
-
-            if noVals: noVals = False
+        while (noVals or (np.amin(all_q_found) > threshold)): 
 
             resultFromStep = self.opt.gradientDescent(self.box, self.calcPeakQWithRotation)
             #apply this rotation and repeat
             min_q_result = resultFromStep[1]
             rotation_result = resultFromStep[0] #format: [x, y, z]
 
+            if stlEn and noVals:
+                self.box.saveMeshSTL(self.box.meshes, f"outputs/boxmesh_initial", 500)
+
             self.box.rotateTo(rotation_result[0], rotation_result[1], rotation_result[2])
             self.fwd.processCADModel()
+
+            if stlEn:
+                self.box.saveMeshSTL(self.box.meshes, f"outputs/boxmesh_{count}", 500)
 
             all_q_found.append(min_q_result)
             all_rotations_found.append(rotation_result)
 
+            if noVals: noVals = False
+
+            prev_q = curr_q
+            curr_q = min_q_result
+
+            # if (np.abs(prev_q - curr_q) > margin): below_margin_count += 1
+
+            count += 1
+
         #once that condition reached, should mean that we're done optimizing, and so we can export a final file
         self.box.CADdoc.recompute()
-        self.box.saveSTEP("final_box_3drot.step", self.box.CADobjs)
+        if stlEn:
+                self.box.saveMeshSTL(self.box.meshes, f"outputs/boxmesh_final", 500)
+        self.box.saveSTEP("outputs/final_box_3drot.step", self.box.CADobjs)
+
+        print(f"Reached below threshold in {count} iterations, minimum q is {all_q_found[len(all_q_found) - 1]}")
+        print(f"Initial rotation: {all_rotations_found[0]}, found best rotation: {all_rotations_found[len(all_rotations_found) - 1]}")
         
-        return
+        return [all_q_found, all_rotations_found]
 
 
     def plotRotations(self):
@@ -161,11 +183,11 @@ class RunSetup_3DBox:
                     xVal = self.xRot[i]
                     yVal = self.yRot[j]
                     zVal = self.zRot[k]
-                    newQPeak = self.calcPeakQWithRotation(xVal, yVal, zVal)
+                    # newQPeak = self.calcPeakQWithRotation(xVal, yVal, zVal)
                     qPeak_all[i, j, k] = self.calcPeakQWithRotation(xVal, yVal, zVal)
-                    print(f"Point done: {xVal}, {yVal}, {zVal}")
+                    # print(f"Point done: {xVal}, {yVal}, {zVal}")
                     count -= 1
-                    print(f"Points left: {count}")
+                    # print(f"Points left: {count}")
 
 
         qPeak_1D = qPeak_all.flatten()
@@ -253,8 +275,10 @@ if __name__ == '__main__':
 
     # setup = RunSetup_1DBox()
     setup = RunSetup_3DBox()
-    setup.runModel()
+    all_q_found = setup.runModel(threshold=5.88)
     # setup.plotRotations()
+
+    print(f"Initial heat flux: {all_q_found[0][0]}, best heat flux: {min(all_q_found[0])}")
 
     print(f"Time elapsed: {time.time() - t0}")
 
