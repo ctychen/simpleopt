@@ -497,8 +497,8 @@ class CAD:
         for i in range(len(part)):
             shape = part[i].Shape.copy(False)
             shape.Placement = part[i].getGlobalPlacement()
-            print('Meshing part ' + part[i].Label)
-            log.info('Meshing part ' + part[i].Label)
+            # print('Meshing part ' + part[i].Label)
+            # log.info('Meshing part ' + part[i].Label)
             mesh = MeshPart.meshFromShape(shape, MaxLength=resolution)
             meshes.append(mesh)
         print("Converted parts to mesh objects at resolution: {:f}".format(resolution))
@@ -528,8 +528,8 @@ class CAD:
         for i in range(len(part)):
             shape = part[i].Shape.copy(False)
             shape.Placement = part[i].getGlobalPlacement()
-            print('Meshing part ' + part[i].Label)
-            log.info('Meshing part ' + part[i].Label)
+            # print('Meshing part ' + part[i].Label)
+            # log.info('Meshing part ' + part[i].Label)
             mesh = MeshPart.meshFromShape(Shape=shape,
                                           LinearDeflection=surfDev,
                                           AngularDeflection=angDev,

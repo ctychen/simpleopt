@@ -98,9 +98,9 @@ class RunSetup_3DBox:
         #self.box.loadSTEP()
         # mesh = self.box.load1Mesh(stlPath)
 
-        self.Nx = 10
-        self.Ny = 10
-        self.Nz = 10
+        self.Nx = 100
+        self.Ny = 100
+        self.Nz = 100
 
         self.xRot = np.linspace(-45.0, 45.0, self.Nx)
         self.yRot = np.linspace(-45.0, 45.0, self.Ny)
@@ -116,7 +116,7 @@ class RunSetup_3DBox:
         self.fwd.processCADModel()
         q_mesh_all = self.fwd.calcQMesh()
         qPeak = max(q_mesh_all)
-        print(f"Calculated Peak Q: {qPeak}")
+        # print(f"Calculated Peak Q: {qPeak}")
         return qPeak
 
 
@@ -132,7 +132,8 @@ class RunSetup_3DBox:
 
         while (noVals or (np.amin(all_q_found) > threshold)): 
 
-            resultFromStep = self.opt.gradientDescent(self.box, self.calcPeakQWithRotation)
+            resultFromStep = self.opt.gradientDescent(self.box, self.calcPeakQWithRotation, 2) #eventually, this could be something completely different - look into pymoo
+
             #apply this rotation and repeat
             min_q_result = resultFromStep[1]
             rotation_result = resultFromStep[0] #format: [x, y, z]
@@ -172,7 +173,7 @@ class RunSetup_3DBox:
 
     def plotRotations(self):
 
-        print(f"Total number of points: {len(self.xAng) * len(self.yAng) * len(self.zAng)}")
+        # print(f"Total number of points: {len(self.xAng) * len(self.yAng) * len(self.zAng)}")
         total = len(self.xAng) * len(self.yAng) * len(self.zAng)
         count = total
         qPeak_all = np.zeros((self.Nx, self.Ny, self.Nz))
@@ -199,7 +200,7 @@ class RunSetup_3DBox:
         yFlat=self.yAng.flatten(),
         zFlat=self.zAng.flatten(),
 
-        print(qPeak_all)
+        # print(qPeak_all)
 
         xMin= xFlat[0][idxMin]
         yMin= yFlat[0][idxMin]
@@ -258,7 +259,7 @@ class RunSetup_3DBox:
         fig_4d.show()
         # fig_z.show()
 
-        output_file_4d = 'plot_attempt_4d.html'
+        output_file_4d = 'plot_attempt_4d_2.html'
         pio.write_html(fig_4d, output_file_4d)
 
         # pio.write_html(fig_z, 'plot_z.html')
@@ -275,10 +276,10 @@ if __name__ == '__main__':
 
     # setup = RunSetup_1DBox()
     setup = RunSetup_3DBox()
-    all_q_found = setup.runModel(threshold=5.88)
-    # setup.plotRotations()
+    # all_q_found = setup.runModel(threshold=5.88)
+    setup.plotRotations()
 
-    print(f"Initial heat flux: {all_q_found[0][0]}, best heat flux: {min(all_q_found[0])}")
+    # print(f"Initial heat flux: {all_q_found[0][0]}, best heat flux: {min(all_q_found[0])}")
 
     print(f"Time elapsed: {time.time() - t0}")
 

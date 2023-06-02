@@ -58,9 +58,9 @@ class OptModel_3DRot:
         self.del_e = del_e
         return
 
-    def gradientDescent(self, cadModel, calcQVal):
+    def gradientDescent(self, cadModel, calcQVal, angleRange):
 
-        angleRange = 2
+        # angleRange = 2 #could be user input
 
         currentAng = cadModel.getCurrentRotationAngles()
         currentXAng = currentAng[0]

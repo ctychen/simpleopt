@@ -26,7 +26,7 @@ class Box(CADClass.CAD):
 
     def createMesh(self, res=1000): 
         self.meshes = self.part2mesh(self.CADparts, res)
-        print("Meshed")
+        # print("Meshed")
         return self.meshes
 
     def processModel(self, res=1000):
