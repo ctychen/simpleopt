@@ -58,11 +58,14 @@ class OptModel_3DRot:
         self.del_e = del_e
         return
 
-    def gradientDescent(self, cadModel, calcQVal, angleRange):
+    def gradientDescent(self, cadModel, currentAng, calcQVal, angleRange):
+
+        # velocity = momentum * velocity + learning_rate * gradient
+        # next point = point - velocity
 
         # angleRange = 2 #could be user input
 
-        currentAng = cadModel.getCurrentRotationAngles()
+        # currentAng = cadModel.getCurrentRotationAngles() #this was from using the solid
         currentXAng = currentAng[0]
         currentYAng = currentAng[1]
         currentZAng = currentAng[2]
@@ -97,12 +100,7 @@ class OptModel_3DRot:
         yNew = Y.flatten()[idxMin]
         zNew = Z.flatten()[idxMin]
 
-        return [[xNew, yNew, zNew], min_q]    
-
-
-
-
-    
+        return [[xNew, yNew, zNew], min_q]        
 
 
 class OptModel_Template:

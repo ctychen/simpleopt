@@ -15,80 +15,12 @@ class Box(CADClass.CAD):
     #     self.STPfile = stpfile #want to be able to use as many HEAT cadclass fcns as possible, is this how to do it?
     #     return
 
-    def __init__(self, stlfile="", stpfile="", meshres=100):
+    def __init__(self, stlfile, stpfile=""):
         super(CADClass.CAD, self).__init__()
         self.STLfile = stlfile
         self.STPfile = stpfile
         self.parts = self.loadSTEP()
-        # self.allmeshes = self.part2mesh(self.CADparts, meshres) #this returns a list of meshes - replaced self.meshes but name confusion
-        # self.mesh = self.allmeshes[0] #this is a meshobject
-        # self.meshVertices = np.array(self.mesh.Points)
         return
-    
-
-    def calculateRotationOnMesh(self, vertices, xAng, yAng, zAng):
-        xAngRad = np.radians(xAng)
-        yAngRad = np.radians(yAng)
-        zAngRad = np.radians(zAng)
-
-        #calculating the rotation matrix
-        rotationMatrix = np.eye(3)
-        rotationMatrix = np.dot(rotationMatrix, np.array([
-            [1, 0, 0],
-            [0, np.cos(xAngRad), -np.sin(xAngRad)],
-            [0, np.sin(xAngRad), np.cos(xAngRad)]
-        ]))
-        rotationMatrix = np.dot(rotationMatrix, np.array([
-            [np.cos(yAngRad), 0, np.sin(yAngRad)],
-            [0, 1, 0],
-            [-np.sin(yAngRad), 0, np.cos(yAngRad)]
-        ]))
-        rotationMatrix = np.dot(rotationMatrix, np.array([
-            [np.cos(zAngRad), -np.sin(zAngRad), 0],
-            [np.sin(zAngRad), np.cos(zAngRad), 0],
-            [0, 0, 1]
-        ]))
-
-        #applying the rotation to the mesh coordinates
-        rotatedVertices = np.dot(vertices, rotationMatrix.T)        
-
-        return [rotationMatrix, rotatedVertices]
-    #should we return the calculated rotation matrix, or the resulting list of points once the thing is applied? or should this do the rotation - maybe not
-
-    #calculating norm, center, area if we start with mesh vertices
-    def calculateNorms(self, vertices):
-        return np.linalg.norm(vertices, axis=1)
-    
-    def calculateCenters(self, vertices):
-        return np.mean(vertices, axis=1)
-    
-    def calculateAreas(self, vertices):
-        v0 = vertices[:, 0, :]
-        v1 = vertices[:, 1, :]
-        v2 = vertices[:, 2, :]
-        return 0.5 * np.linalg.norm(np.cross(v1 - v0, v2 - v0), axis=1)
-
-    def setVertices(self, newVertices):
-        self.meshVertices = newVertices
-        return 
-    
-    def updateMesh(self, newVertices):
-        points = [FreeCAD.ActiveDocument.Vector(x, y, z) for x, y, z in newVertices]
-        newMesh = FreeCAD.Mesh.Mesh()
-        newMesh.addPoints(points)
-        return
-    
-    def processModel(self): 
-        #no need to re-mesh if we're doing vertices 
-        self.norms = self.calculateNorms(self.meshVertices)
-        self.centers = self.calculateCenters(self.meshVertices)
-        self.areas = self.calculateAreas(self.meshVertices)
-        print("Found norms, centers, areas for vectorized setup")
-        return
-
-    # def updateMeshVertices(self, newVertices):
-    #     # self.
-    #     return
 
     #todo: maybe can replace some stuff wiht objFromPartnum from CADClass directly
 
@@ -209,3 +141,137 @@ class Box(CADClass.CAD):
         print("\nWrote meshes to files")
         return
     
+
+class Box_Vector(CADClass.CAD): 
+    
+    def __init__(self, stlfile="", stpfile="", meshres=100):
+        super(CADClass.CAD, self).__init__()
+        self.STLfile = stlfile
+        self.STPfile = stpfile
+        self.parts = self.loadSTEP()
+        self.allmeshes = self.part2mesh(self.CADparts, meshres) #this returns a list of meshes - replaced self.meshes but name confusion
+        self.mesh = self.allmeshes[0] #this is a meshobject
+        self.meshVertices = np.array(self.mesh.Points)
+        return
+    
+
+    def calculateRotationOnMesh(self, vertices, xAng, yAng, zAng): #is representing with angles even the way that makes the most sense???
+        xAngRad = np.radians(xAng)
+        yAngRad = np.radians(yAng)
+        zAngRad = np.radians(zAng)
+
+        #calculating the rotation matrix
+        rotationMatrix = np.eye(3)
+        rotationMatrix = np.dot(rotationMatrix, np.array([
+            [1, 0, 0],
+            [0, np.cos(xAngRad), -np.sin(xAngRad)],
+            [0, np.sin(xAngRad), np.cos(xAngRad)]
+        ]))
+        rotationMatrix = np.dot(rotationMatrix, np.array([
+            [np.cos(yAngRad), 0, np.sin(yAngRad)],
+            [0, 1, 0],
+            [-np.sin(yAngRad), 0, np.cos(yAngRad)]
+        ]))
+        rotationMatrix = np.dot(rotationMatrix, np.array([
+            [np.cos(zAngRad), -np.sin(zAngRad), 0],
+            [np.sin(zAngRad), np.cos(zAngRad), 0],
+            [0, 0, 1]
+        ]))
+
+        #applying the rotation to the mesh coordinates
+        rotatedVertices = np.dot(vertices, rotationMatrix.T)        
+
+        return [rotationMatrix, rotatedVertices]
+    #should we return the calculated rotation matrix, or the resulting list of points once the thing is applied? or should this do the rotation - maybe not
+
+    #calculating norm, center, area if we start with mesh vertices
+    def calculateNorms(self, vertices):
+        return np.linalg.norm(vertices, axis=1)
+    
+    def calculateCenters(self, vertices):
+        return np.mean(vertices, axis=1)
+    
+    def calculateAreas(self, vertices):
+        v0 = vertices[:, 0, :]
+        v1 = vertices[:, 1, :]
+        v2 = vertices[:, 2, :]
+        return 0.5 * np.linalg.norm(np.cross(v1 - v0, v2 - v0), axis=1)
+
+    def setVertices(self, newVertices):
+        self.meshVertices = newVertices
+        return 
+    
+    def updateMesh(self, newVertices):
+        self.meshVertices = newVertices
+        points = [FreeCAD.ActiveDocument.Vector(x, y, z) for x, y, z in newVertices]
+        newMesh = FreeCAD.Mesh.Mesh()
+        newMesh.addPoints(points)
+        self.allmeshes[0] = newMesh
+        return newMesh
+    
+    def normsCenterAreas_Vector(self, vertices):
+        norms = self.calculateNorms(vertices)
+        centers = self.calculateCenters(vertices)
+        areas = self.calculateAreas(vertices)       
+        return norms, centers, areas
+    
+    def normsCenterAreas_Vector(self):
+        return self.normsCenterAreas_Vector(self.meshVertices)
+    
+    def processModel(self): 
+        #no need to re-mesh if we're doing vertices 
+        # self.norms = self.calculateNorms(self.meshVertices)
+        # self.centers = self.calculateCenters(self.meshVertices)
+        # self.areas = self.calculateAreas(self.meshVertices)
+        self.norms, self.centers, self.areas = self.normsCenterAreas_Vector()
+        print("Found norms, centers, areas for vectorized setup")
+        return
+
+    def getCurrentRotation(self):
+        return FreeCAD.ActiveDocument.Objects[0].Placement.Rotation #axis, angle
+
+    def getCurrentRotationAngles(self):
+        return self.getCurrentRotation().toEuler() #to access components, do (output)[0], etc. from 0-2
+
+    def saveMeshSTL(self, mesh, label, resolution, path='./'):
+        """
+        Writes a mesh object to STL file named by part number.
+        If mesh is a list of mesh objects, then write a separate file for
+        each mesh object in the list.  Clobbers if overWriteMask is True
+        """
+        #Check if this is a single file or list and make it a list
+        if type(mesh) != list:
+            mesh = [mesh]
+        if type(label)!= np.ndarray:
+            if type(label) != list:
+                label = [label]
+        if type(resolution) != list:
+            resolution=[resolution]*len(mesh)
+
+        #Recursively make dirs for STLs
+        print("making STL directory")
+        tools.makeDir(path, clobberFlag=False, mode=0o774, UID=-1, GID=-1)
+
+        for i in range(len(mesh)):
+            # ___ (3 underdashes) is the str we use to separate mesh name from resolution
+            # this MATTERS when we read back in a mesh (see self.loadROIMesh and self.loadIntersectMesh)
+
+            #standard meshing algorithm
+            stdList = ['standard', 'Standard', 'STANDARD']
+            if resolution[i] in stdList:
+                filename = path + label[i] + "___"+resolution[i]+".stl"
+            #mefisto meshing algorithm
+            else:
+                filename = path + label[i] + "___{:.2f}mm.stl".format(float(resolution[i]))
+            if os.path.exists(filename): # and self.overWriteMask == False:
+                print("Not clobbering mesh file...")
+            else:
+                print("Writing mesh file: " + filename)
+                mesh[i].write(filename)
+                os.chmod(filename, 0o774)
+                # os.chown(filename, self.UID, self.GID)
+
+        print("\nWrote meshes to files")
+        return
+    
+
