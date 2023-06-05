@@ -1,6 +1,8 @@
 import CADClass
 import FreeCAD 
 import Part
+import Mesh
+import MeshPart
 import os
 import numpy as np
 import toolsClass
@@ -151,7 +153,17 @@ class Box_Vector(CADClass.CAD):
         self.parts = self.loadSTEP()
         self.allmeshes = self.part2mesh(self.CADparts, meshres) #this returns a list of meshes - replaced self.meshes but name confusion
         self.mesh = self.allmeshes[0] #this is a meshobject
-        self.meshVertices = np.array(self.mesh.Points)
+        print(f"Mesh: {self.mesh}")
+        self.meshPoints = np.array(self.mesh.Points)
+        print(f"Vertices: {self.meshPoints}")
+        self.meshVertices = []
+
+        for i in range(len(self.meshPoints)):
+            point_i = self.meshPoints[i]
+            self.meshVertices.append([point_i.x, point_i.y, point_i.z])
+
+        print(f"Vertices processed: {self.meshVertices}")
+
         return
     
 
@@ -178,24 +190,34 @@ class Box_Vector(CADClass.CAD):
             [0, 0, 1]
         ]))
 
+        print(f"Rotation matrix: {rotationMatrix}")
+
         #applying the rotation to the mesh coordinates
-        rotatedVertices = np.dot(vertices, rotationMatrix.T)        
+        rotatedVertices = np.dot(vertices, rotationMatrix.T)   
+
+        print(f"Rotated vertices: {rotatedVertices}")     
 
         return [rotationMatrix, rotatedVertices]
     #should we return the calculated rotation matrix, or the resulting list of points once the thing is applied? or should this do the rotation - maybe not
 
     #calculating norm, center, area if we start with mesh vertices
-    def calculateNorms(self, vertices):
-        return np.linalg.norm(vertices, axis=1)
+    # def calculateNorms(self, vertices):
+    #     return np.linalg.norm(vertices, axis=1)
     
-    def calculateCenters(self, vertices):
-        return np.mean(vertices, axis=1)
+    # def calculateCenters(self, vertices):
+    #     return np.mean(vertices, axis=1)
     
-    def calculateAreas(self, vertices):
-        v0 = vertices[:, 0, :]
-        v1 = vertices[:, 1, :]
-        v2 = vertices[:, 2, :]
-        return 0.5 * np.linalg.norm(np.cross(v1 - v0, v2 - v0), axis=1)
+    # def calculateAreas(self, vertices):
+    #     # N = len(vertices) // 3  # Number of mesh elements
+    #     # vertices = np.array(vertices).reshape(N, 3, 3)  # Reshape vertices to (N, 3, 3)
+
+    #     # v0 = vertices[:, 0, :]
+    #     # v1 = vertices[:, 1, :]
+    #     # v2 = vertices[:, 2, :]
+    #     # cross_product = np.cross(v1 - v0, v2 - v0)
+    #     # return 0.5 * np.linalg.norm(cross_product, axis=1)     
+           
+    #     return [] #buggy, need to fix, but i don't use areas anywhere (yet)
 
     def setVertices(self, newVertices):
         self.meshVertices = newVertices
@@ -203,20 +225,71 @@ class Box_Vector(CADClass.CAD):
     
     def updateMesh(self, newVertices):
         self.meshVertices = newVertices
-        points = [FreeCAD.ActiveDocument.Vector(x, y, z) for x, y, z in newVertices]
-        newMesh = FreeCAD.Mesh.Mesh()
+        points = [FreeCAD.Vector(x, y, z) for x, y, z in newVertices]
+        newMesh = Mesh.Mesh()
         newMesh.addPoints(points)
         self.allmeshes[0] = newMesh
         return newMesh
     
-    def normsCenterAreas_Vector(self, vertices):
-        norms = self.calculateNorms(vertices)
-        centers = self.calculateCenters(vertices)
-        areas = self.calculateAreas(vertices)       
+    def makeMesh(self, vertices):
+        points = [FreeCAD.Vector(x, y, z) for x, y, z in vertices]
+        newMesh = Mesh.Mesh()
+        newMesh.addPoints(points)
+        return newMesh
+    
+    def faceNormals(self, mesh):
+        """
+        returns normal vectors for single freecad mesh object in cartesian
+        coordinates
+        """
+        #face normals
+        normals = []
+        for i, facet in enumerate(mesh.Facets):
+            vec = np.zeros((3))
+            for j in range(3):
+                vec[j] = facet.Normal[j]
+            normals.append(vec)
+        return np.asarray(normals)
+
+    def faceAreas(self, mesh):
+        """
+        returns face areas for mesh element
+        """
+        #face area
+        areas = []
+        for i, facet in enumerate(mesh.Facets):
+            areas.append(facet.Area)
+        return np.asarray(areas)
+
+
+    def faceCenters(self, x, y, z):
+        """
+        returns centers of freecad mesh triangle in cartesian coordinates
+        """
+        #face centers
+        centers = np.zeros((len(x), 3))
+        centers[:,0] = np.sum(x,axis=1)/3.0
+        centers[:,1] = np.sum(y,axis=1)/3.0
+        centers[:,2] = np.sum(z,axis=1)/3.0
+        return centers
+    
+    def calculateNormals(self, vertices):
+        mesh = self.makeMesh(vertices)
+        return self.faceNormals(mesh)
+    
+    def normsCentersAreas_VectorAny(self, vertices):
+        # norms = self.calculateNorms(vertices)
+        # norms = self.calculateNormals(vertices)
+        # centers = self.calculateCenters(vertices)
+        # areas = self.calculateAreas(vertices)    
+        mesh = self.makeMesh(vertices)
+        norms = self.faceNormals(mesh)
+        centers = self.faceCenters(mesh)
+        areas = self.faceAreas(mesh)   
         return norms, centers, areas
     
-    def normsCenterAreas_Vector(self):
-        return self.normsCenterAreas_Vector(self.meshVertices)
+    def normsCentersAreas_Vector(self):
+        return self.normsCentersAreas_VectorAny(self.meshVertices)
     
     def processModel(self): 
         #no need to re-mesh if we're doing vertices 

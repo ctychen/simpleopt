@@ -58,7 +58,7 @@ class OptModel_3DRot:
         self.del_e = del_e
         return
 
-    def gradientDescent(self, cadModel, currentAng, calcQVal, angleRange):
+    def gradientDescent(self, cadModel, currentAng, calcQVal, angleRange, numSamples = 10):
 
         # velocity = momentum * velocity + learning_rate * gradient
         # next point = point - velocity
@@ -70,15 +70,20 @@ class OptModel_3DRot:
         currentYAng = currentAng[1]
         currentZAng = currentAng[2]
 
-        xRot = np.linspace(currentXAng - angleRange, currentXAng + angleRange, angleRange*2)
-        yRot = np.linspace(currentYAng - angleRange, currentYAng + angleRange, angleRange*2)
-        zRot = np.linspace(currentZAng - angleRange, currentZAng + angleRange, angleRange*2)
+        # xRot = np.linspace(currentXAng - angleRange, currentXAng + angleRange, angleRange*2)
+        # yRot = np.linspace(currentYAng - angleRange, currentYAng + angleRange, angleRange*2)
+        # zRot = np.linspace(currentZAng - angleRange, currentZAng + angleRange, angleRange*2)
+
+        xRot = np.linspace(currentXAng - angleRange, currentXAng + angleRange, numSamples)
+        yRot = np.linspace(currentYAng - angleRange, currentYAng + angleRange, numSamples)
+        zRot = np.linspace(currentZAng - angleRange, currentZAng + angleRange, numSamples)
 
         X, Y, Z = np.meshgrid(xRot, yRot, zRot)
 
-        q_inGrid = np.zeros((angleRange*2, angleRange*2, angleRange*2))
+        # q_inGrid = np.zeros((angleRange*2, angleRange*2, angleRange*2))
+        q_inGrid = np.zeros((numSamples, numSamples, numSamples))
 
-        count = (angleRange*2)**3
+        count = (numSamples)**3
 
         for i in range(len(xRot)):
                     for j in range(len(yRot)):

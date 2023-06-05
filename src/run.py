@@ -115,7 +115,7 @@ class RunSetup_3DBox:
         self.box.rotateTo(xR, yR, zR) #use this rotate fcn
         self.fwd.processCADModel()
         q_mesh_all = self.fwd.calcQMesh()
-        qPeak = max(q_mesh_all)
+        qPeak = np.max(q_mesh_all)
         # print(f"Calculated Peak Q: {qPeak}")
         return qPeak
     
@@ -129,7 +129,8 @@ class RunSetup_3DBox:
         rotatedVertices = rotationResults[1]
         #self.fwd.process() -> technically don't need this here since not updating the mesh until we find a minimum
         q_mesh_all = self.fwd.calcQMesh_Vector(rotatedVertices)
-        qPeak = max(q_mesh_all)
+        print(f"Q mesh all: {q_mesh_all}")
+        qPeak = np.max(q_mesh_all)
         return qPeak
 
 
@@ -201,7 +202,7 @@ class RunSetup_3DBox:
 
         #once that condition reached, should mean that we're done optimizing, and so we can export a final file
         self.box.CADdoc.recompute()
-        
+
         if stlEn:
                 #self.box.saveMeshSTL(self.box.meshes, f"outputs/boxmesh_final", 500)
                 self.box.saveMeshSTL(self.box.allmeshes, f"outputs/boxmesh_final", 500)
@@ -319,8 +320,10 @@ if __name__ == '__main__':
 
     # setup = RunSetup_1DBox()
     setup = RunSetup_3DBox()
+    # def runModel(self, momentum, epsilon_q = 0.01, epsilon_vel = 0.01, angleRange = 2, startingAngles = [0, 0, 0], stlEn = True, plotEn = True)
+    all_q_found = setup.runModel(momentum = 0.5)
     # all_q_found = setup.runModel(threshold=5.88)
-    setup.plotRotations()
+    # setup.plotRotations()
 
     # print(f"Initial heat flux: {all_q_found[0][0]}, best heat flux: {min(all_q_found[0])}")
 

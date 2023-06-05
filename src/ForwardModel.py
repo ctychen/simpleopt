@@ -49,12 +49,14 @@ class ForwardModel_Box:
     
     def calcQMesh_Vector(self, vertices):
         q_mesh_all = []
-        norms = self.solid.normsCenterAreas(vertices)[0]
+        norms = self.solid.normsCentersAreas_VectorAny(vertices)[0]
         for i in range(len(norms)): 
             norm = norms[i]
-            # print(norm)
+            print(f"Norm: {norm}")
             q_i = np.dot(self.q_dir, norm) * self.q_mag
+            print(f"q_i: {q_i}")
             q_mesh_all.append(q_i)        
+        print(f"Q mesh all: {q_mesh_all}")
         return q_mesh_all
     
     def calcObjective(self, q_mesh_all): 
