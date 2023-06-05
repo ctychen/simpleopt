@@ -225,16 +225,22 @@ class Box_Vector(CADClass.CAD):
     
     def updateMesh(self, newVertices):
         self.meshVertices = newVertices
-        points = [FreeCAD.Vector(x, y, z) for x, y, z in newVertices]
-        newMesh = Mesh.Mesh()
-        newMesh.addPoints(points)
+        # points = [FreeCAD.Vector(x, y, z) for x, y, z in newVertices]
+        # points = np.array(vertices)
+        newMesh = Mesh.Mesh(newVertices)
+        # newMesh.addPoints(points)
         self.allmeshes[0] = newMesh
         return newMesh
     
     def makeMesh(self, vertices):
-        points = [FreeCAD.Vector(x, y, z) for x, y, z in vertices]
-        newMesh = Mesh.Mesh()
-        newMesh.addPoints(points)
+        # points = [FreeCAD.Vector(x, y, z) for x, y, z in vertices]
+        # points = np.array(vertices)
+        print(type(vertices))
+        # print(vertices.tolist())
+        triangles = vertices.tolist()
+        print(len(triangles))
+        newMesh = Mesh.Mesh(triangles)
+        # newMesh.addPoints(points)
         return newMesh
     
     def faceNormals(self, mesh):
