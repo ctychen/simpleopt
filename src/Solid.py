@@ -15,12 +15,80 @@ class Box(CADClass.CAD):
     #     self.STPfile = stpfile #want to be able to use as many HEAT cadclass fcns as possible, is this how to do it?
     #     return
 
-    def __init__(self, stlfile, stpfile=""):
+    def __init__(self, stlfile="", stpfile="", meshres=100):
         super(CADClass.CAD, self).__init__()
         self.STLfile = stlfile
         self.STPfile = stpfile
         self.parts = self.loadSTEP()
+        # self.allmeshes = self.part2mesh(self.CADparts, meshres) #this returns a list of meshes - replaced self.meshes but name confusion
+        # self.mesh = self.allmeshes[0] #this is a meshobject
+        # self.meshVertices = np.array(self.mesh.Points)
         return
+    
+
+    def calculateRotationOnMesh(self, vertices, xAng, yAng, zAng):
+        xAngRad = np.radians(xAng)
+        yAngRad = np.radians(yAng)
+        zAngRad = np.radians(zAng)
+
+        #calculating the rotation matrix
+        rotationMatrix = np.eye(3)
+        rotationMatrix = np.dot(rotationMatrix, np.array([
+            [1, 0, 0],
+            [0, np.cos(xAngRad), -np.sin(xAngRad)],
+            [0, np.sin(xAngRad), np.cos(xAngRad)]
+        ]))
+        rotationMatrix = np.dot(rotationMatrix, np.array([
+            [np.cos(yAngRad), 0, np.sin(yAngRad)],
+            [0, 1, 0],
+            [-np.sin(yAngRad), 0, np.cos(yAngRad)]
+        ]))
+        rotationMatrix = np.dot(rotationMatrix, np.array([
+            [np.cos(zAngRad), -np.sin(zAngRad), 0],
+            [np.sin(zAngRad), np.cos(zAngRad), 0],
+            [0, 0, 1]
+        ]))
+
+        #applying the rotation to the mesh coordinates
+        rotatedVertices = np.dot(vertices, rotationMatrix.T)        
+
+        return [rotationMatrix, rotatedVertices]
+    #should we return the calculated rotation matrix, or the resulting list of points once the thing is applied? or should this do the rotation - maybe not
+
+    #calculating norm, center, area if we start with mesh vertices
+    def calculateNorms(self, vertices):
+        return np.linalg.norm(vertices, axis=1)
+    
+    def calculateCenters(self, vertices):
+        return np.mean(vertices, axis=1)
+    
+    def calculateAreas(self, vertices):
+        v0 = vertices[:, 0, :]
+        v1 = vertices[:, 1, :]
+        v2 = vertices[:, 2, :]
+        return 0.5 * np.linalg.norm(np.cross(v1 - v0, v2 - v0), axis=1)
+
+    def setVertices(self, newVertices):
+        self.meshVertices = newVertices
+        return 
+    
+    def updateMesh(self, newVertices):
+        points = [FreeCAD.ActiveDocument.Vector(x, y, z) for x, y, z in newVertices]
+        newMesh = FreeCAD.Mesh.Mesh()
+        newMesh.addPoints(points)
+        return
+    
+    def processModel(self): 
+        #no need to re-mesh if we're doing vertices 
+        self.norms = self.calculateNorms(self.meshVertices)
+        self.centers = self.calculateCenters(self.meshVertices)
+        self.areas = self.calculateAreas(self.meshVertices)
+        print("Found norms, centers, areas for vectorized setup")
+        return
+
+    # def updateMeshVertices(self, newVertices):
+    #     # self.
+    #     return
 
     #todo: maybe can replace some stuff wiht objFromPartnum from CADClass directly
 
