@@ -144,6 +144,8 @@ class Box(CADClass.CAD):
         return
     
 
+from scipy.spatial.transform import Rotation
+
 class Box_Vector(CADClass.CAD): 
     
     def __init__(self, stlfile="", stpfile="", meshres=100):
