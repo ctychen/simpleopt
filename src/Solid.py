@@ -153,18 +153,40 @@ class Box_Vector(CADClass.CAD):
         self.STLfile = stlfile
         self.STPfile = stpfile
         self.parts = self.loadSTEP()
+
         self.allmeshes = self.part2mesh(self.CADparts, meshres) #this returns a list of meshes - replaced self.meshes but name confusion
-        self.mesh = self.allmeshes[0] #this is a meshobject
-        print(f"Mesh: {self.mesh}")
-        self.meshPoints = np.array(self.mesh.Points)
-        print(f"Vertices: {self.meshPoints}")
-        self.meshVertices = []
+        # self.mesh = self.allmeshes[0] #this is a meshobject
+        #print(f"Mesh: {self.mesh}")
 
-        for i in range(len(self.meshPoints)):
-            point_i = self.meshPoints[i]
-            self.meshVertices.append([point_i.x, point_i.y, point_i.z])
+        self.meshPoints = np.array(self.allmeshes[0].Points)
 
-        print(f"Vertices processed: {self.meshVertices}")
+        # print(f"Vertices: {self.meshPoints}")
+        # self.meshVertices = []
+
+        # for i in range(len(self.meshPoints)):
+        #     point_i = self.meshPoints[i]
+        #     self.meshVertices.append([point_i.x, point_i.y, point_i.z])
+
+        # print(f"Vertices processed: {self.meshVertices}")
+
+        # print(f"Facets: {self.allmeshes[0].Facets}")
+        # print(f"Length of facets: {len(self.allmeshes[0].Facets)}")
+        # print(f"Facet 0: {self.allmeshes[0].Facets[0]}")
+        # print(f"Facet 0[0]: {self.allmeshes[0].Facets[0].__dict__}")
+        # print(f"Facet points: {self.allmeshes[0].Facets[0].Points}, 1st: {self.allmeshes[0].Facets[0].Points[0]}, type of 1st: {type(self.allmeshes[0].Facets[0].Points[0])}")
+        # print(list(self.allmeshes[0].Facets[0].Points[0]))
+
+        self.verticesFromFacets = []
+
+        for i in range(len(self.allmeshes[0].Facets)):
+            facet_points = self.allmeshes[0].Facets[i].Points
+            for point in facet_points:
+                self.verticesFromFacets.append(list(point))
+        
+        print(f"Vertices from facets: {self.verticesFromFacets}")
+        print(f"Length of vertices from points: {len(self.verticesFromFacets)}")
+
+        # self.initial_rotation = self.getCurrentRotationAngles()
 
         return
     
@@ -200,6 +222,7 @@ class Box_Vector(CADClass.CAD):
         print(f"Rotated vertices: {rotatedVertices}")     
 
         return [rotationMatrix, rotatedVertices]
+    
     #should we return the calculated rotation matrix, or the resulting list of points once the thing is applied? or should this do the rotation - maybe not
 
     #calculating norm, center, area if we start with mesh vertices
@@ -226,22 +249,35 @@ class Box_Vector(CADClass.CAD):
         return 
     
     def updateMesh(self, newVertices):
-        self.meshVertices = newVertices
+        # self.meshVertices = newVertices
+        # # points = [FreeCAD.Vector(x, y, z) for x, y, z in newVertices]
+        # # points = np.array(vertices)
+        # newMesh = Mesh.Mesh(newVertices)
+        # # newMesh.addPoints(points)
+        # self.allmeshes[0] = newMesh
+
+        if type(newVertices) != list:
+            newVertices = newVertices.tolist()
+
+        # self.verticesFromFacets = newVertices
         # points = [FreeCAD.Vector(x, y, z) for x, y, z in newVertices]
         # points = np.array(vertices)
+
         newMesh = Mesh.Mesh(newVertices)
-        # newMesh.addPoints(points)
         self.allmeshes[0] = newMesh
         return newMesh
     
     def makeMesh(self, vertices):
         # points = [FreeCAD.Vector(x, y, z) for x, y, z in vertices]
         # points = np.array(vertices)
-        print(type(vertices))
+        # print(type(vertices))
         # print(vertices.tolist())
-        triangles = vertices.tolist()
-        print(len(triangles))
-        newMesh = Mesh.Mesh(triangles)
+
+        if type(vertices) != list:
+            vertices = vertices.tolist()
+
+        # print(len(triangles))
+        newMesh = Mesh.Mesh(vertices)
         # newMesh.addPoints(points)
         return newMesh
     
@@ -290,10 +326,39 @@ class Box_Vector(CADClass.CAD):
         # norms = self.calculateNormals(vertices)
         # centers = self.calculateCenters(vertices)
         # areas = self.calculateAreas(vertices)    
+
+
+        # for mesh in meshes:
+        #     #mesh = obj.Mesh
+        #     if (mesh == None) or (mesh=='None'):
+        #         print("No Mesh for one of these objects.  Did you have a typo in input file?")
+        #         print("Check HEAT output for Mesh Not Found errors")
+        #         log.info("No Mesh for one of these objects.  Did you have a typo in input file?")
+        #         log.info("Check HEAT output for Mesh Not Found errors")
+        #     else:
+        #         N_facets = mesh.CountFacets
+        #         x = np.zeros((N_facets,3))
+        #         y = np.zeros((N_facets,3))
+        #         z = np.zeros((N_facets,3))
+
+        #         for i,facet in enumerate(mesh.Facets):
+        #             #mesh points
+        #             for j in range(3):
+        #                 x[i][j] = facet.Points[j][0]
+        #                 y[i][j] = facet.Points[j][1]
+        #                 z[i][j] = facet.Points[j][2]
+
+        #         # scale and permute if necessary
+        #         x,y,z = self.scale_and_permute(x,y,z)
+        #         # get face normals and face centers
+        #         norms.append(self.faceNormals(mesh))
+        #         centers.append(self.faceCenters(x,y,z))
+        #         areas.append(self.faceAreas(mesh))
+
         mesh = self.makeMesh(vertices)
         norms = self.faceNormals(mesh)
-        centers = self.faceCenters(mesh)
-        areas = self.faceAreas(mesh)   
+        centers = [] #self.faceCenters(mesh)
+        areas = [] #self.faceAreas(mesh)   
         return norms, centers, areas
     
     def normsCentersAreas_Vector(self):
