@@ -58,7 +58,7 @@ class ForwardModel_Box:
             q_i = np.dot(self.q_dir, norm) * self.q_mag
             # print(f"q_i: {q_i}")
             q_mesh_all.append(q_i)        
-        print(f"Q mesh all: {q_mesh_all}")
+        # print(f"Q mesh all: {q_mesh_all}")
         return q_mesh_all
     
     def calcObjective(self, q_mesh_all): 

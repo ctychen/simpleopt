@@ -214,12 +214,12 @@ class Box_Vector(CADClass.CAD):
             [0, 0, 1]
         ]))
 
-        print(f"Rotation matrix: {rotationMatrix}")
+        # print(f"Rotation matrix: {rotationMatrix}")
 
         #applying the rotation to the mesh coordinates
         rotatedVertices = np.dot(vertices, rotationMatrix.T)   
 
-        print(f"Rotated vertices: {rotatedVertices}")     
+        # print(f"Rotated vertices: {rotatedVertices}")     
 
         return [rotationMatrix, rotatedVertices]
     
@@ -370,7 +370,7 @@ class Box_Vector(CADClass.CAD):
         # self.centers = self.calculateCenters(self.meshVertices)
         # self.areas = self.calculateAreas(self.meshVertices)
         self.norms, self.centers, self.areas = self.normsCenterAreas_Vector()
-        print("Found norms, centers, areas for vectorized setup")
+        # print("Found norms, centers, areas for vectorized setup")
         return
 
     def getCurrentRotation(self):

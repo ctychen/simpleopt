@@ -132,12 +132,12 @@ class RunSetup_3DBox:
         rotatedVertices = rotationResults[1]
         #self.fwd.process() -> technically don't need this here since not updating the mesh until we find a minimum
         q_mesh_all = self.fwd.calcQMesh_Vector(rotatedVertices)
-        print(f"Q mesh all: {q_mesh_all}")
+        # print(f"Q mesh all: {q_mesh_all}")
         qPeak = np.max(q_mesh_all)
         return qPeak
 
 
-    def runModel(self, momentum, epsilon_q = 0.01, epsilon_vel = 0.01, angleRange = 2, stlEn = True, plotEn = True):
+    def runModel(self, momentum, threshold, runid, epsilon_q = 0.000000001, epsilon_vel = 0.000000001, angleRange = 2, stlEn = True, plotEn = True):
 
         all_q_found = [] #i-th index will correspond to qval calculated on i-th iteration, before the transform
         all_rotations_found = [] #i-th index will correspond to rotation found on i-th iteration, so the i-th transform
@@ -150,17 +150,22 @@ class RunSetup_3DBox:
         angles = self.box.getCurrentRotationAngles()
 
         print(f"CURRENT ANGLE FOR START: {angles}")
+
+        # outputDir = "outputs_02" 
+        outputDir = f"outputs_{momentum}_id_{runid}"
+
+        os.makedirs(outputDir)
         # below_margin_count = 0
 
         #todo add momentum and maybe add variable learning rate
         # poss new condition: while del_velocity > threshold and del_q > threshold: run gradient descent. once both conditions met, done
         #while (noVals or (np.amin(all_q_found) > threshold)): 
-        while (noVals or ((abs(prev_q - curr_q) > epsilon_q) and (abs(prev_vel - curr_vel) > epsilon_vel))):
+        while noVals or (((abs(prev_q - curr_q) > epsilon_q) and (abs(prev_vel - curr_vel) > epsilon_vel)) or (curr_q > threshold)):
 
             #picked something arbitrary for angleRange but idea would be enlarge area we're looking at each step, not sure if this is the way to do it? 
             #if difference between successive is large, take bigger steps/look at bigger area? should i even use delstep here? 
-
-            resultFromStep = self.opt.gradientDescent(self.box, angles, self.calcPeakQWithRotation_Vector, curr_vel * self.opt.delstep * angleRange) #eventually, this could be something completely different - look into pymoo
+            #returned from graddesc: [[xNew, yNew, zNew], min_q, q_inGrid, q_1D]
+            resultFromStep = self.opt.gradientDescent(self.box, angles, self.calcPeakQWithRotation_Vector, curr_vel * abs(prev_q - curr_q), savePlotsTo = outputDir) #eventually, this could be something completely different - look into pymoo
 
             #apply this rotation and repeat
             min_q_result = resultFromStep[1]
@@ -174,13 +179,13 @@ class RunSetup_3DBox:
             curr_q = min_q_result
 
             prev_vel = curr_vel 
-            curr_vel = momentum * curr_vel + self.opt.delstep * (prev_q - curr_q)
+            curr_vel = momentum * curr_vel + 0.5 * (prev_q - curr_q)
 
             #save state of box before any rotations applied, so on 1st time
 
             if stlEn and noVals:
                 #self.box.saveMeshSTL(self.box.meshes, f"outputs/boxmesh_initial", 500)
-                self.box.saveMeshSTL(self.box.allmeshes, f"outputs/boxmesh_initial", 500)
+                self.box.saveMeshSTL(self.box.allmeshes, f"{outputDir}/boxmesh_initial", 500)
 
             #result from graddesc will be list of rotated vertices
             #generate mesh from resulting vertices
@@ -200,7 +205,7 @@ class RunSetup_3DBox:
             
             if stlEn:
                 #self.box.saveMeshSTL(self.box.meshes, f"outputs/boxmesh_{count}", 500)
-                self.box.saveMeshSTL(self.box.allmeshes, f"outputs_01/boxmesh_{count}", 500)
+                self.box.saveMeshSTL(self.box.allmeshes, f"{outputDir}/boxmesh_{count}", 500)
 
             all_q_found.append(min_q_result)
             all_rotations_found.append(rotation_result)
@@ -214,9 +219,9 @@ class RunSetup_3DBox:
 
         if stlEn:
                 #self.box.saveMeshSTL(self.box.meshes, f"outputs/boxmesh_final", 500)
-                self.box.saveMeshSTL(self.box.allmeshes, f"outputs_01/boxmesh_final", 500)
+                self.box.saveMeshSTL(self.box.allmeshes, f"{outputDir}/boxmesh_final", 500)
 
-        self.box.saveSTEP("outputs/final_box_3drot.step", self.box.CADobjs)
+        self.box.saveSTEP(f"{outputDir}/final_box_3drot.step", self.box.CADobjs)
 
         print(f"Reached below threshold in {count} iterations, minimum q is {all_q_found[len(all_q_found) - 1]}")
         print(f"Initial rotation: {all_rotations_found[0]}, found best rotation: {all_rotations_found[len(all_rotations_found) - 1]}")
@@ -330,7 +335,7 @@ if __name__ == '__main__':
     # setup = RunSetup_1DBox()
     setup = RunSetup_3DBox()
     # def runModel(self, momentum, epsilon_q = 0.01, epsilon_vel = 0.01, angleRange = 2, startingAngles = [0, 0, 0], stlEn = True, plotEn = True)
-    all_q_found = setup.runModel(momentum = 0.75)
+    all_q_found = setup.runModel(momentum = 0.5, threshold = 6.5, runid = 2)
     # all_q_found = setup.runModel(threshold=5.88)
     # setup.plotRotations()
 
@@ -345,4 +350,4 @@ if __name__ == '__main__':
         
 
 
-    
+
