@@ -86,7 +86,7 @@ class RunSetup_3DBox:
 
         stpPath = "test_box.step" 
         stlPath = " " #"box.stl"
-        qDirIn = [0.0, -1.0, 0] #[m]
+        qDirIn = [0.0, -1.0, 0.0] #[m]
         qMagIn = 10.0 #[W/m^2]
 
         self.box = Solid.Box_Vector(stlPath, stpPath) 
@@ -325,13 +325,107 @@ class RunSetup_3DBox:
         print(f"Plotted Rotations Space")
         return globalMinQ
 
-    def findGlobal(self, numSamples = 100):
+    def findGlobalMin(self, numSamples = 30):
         initial_face_normals = self.box.getStandardMeshNorms()
         print(f"Normals found for initial: {initial_face_normals}")
         print(f"Normal 0: {initial_face_normals[0]}")
+        xAngles = np.linspace(-45.0, 45.0, numSamples)
+        yAngles = np.linspace(-45.0, 45.0, numSamples)
+        zAngles = np.linspace(-45.0, 45.0, numSamples)
+
         q_values_all = np.zeros((numSamples, numSamples, numSamples)) #create space
-        return 
-        #return [globalMin, [minX, minY, minZ]]
+        q_all_with_angles = []
+
+        # self.box.calculateRotationOnVector(self, vector, angles)
+        # for normal in initial_face_normals:
+        #     for i in range(len(xAngles)):
+        #         for j in range(len(yAngles)):
+        #             for k in range(len(zAngles)):
+        #                 angles = [xAngles[i], yAngles[i], zAngles[i]]
+        #                 rotatedVector = self.box.calculateRotationOnVector(normal, angles)
+        #                 #calculate q with this vector
+        #                 q_new = np.dot(self.fwd.q_dir, rotatedVector) * self.fwd.q_mag
+        #                 # print(f"q_new: {q_new}")
+        #                 q_values_all[i, j, k] = q_new
+        #                 q_all_with_angles.append([normal, angles, q_new])
+
+        #                 if (zcount >= len(zAngles)): 
+        #                     fig = go.Figure(data = go.Surface(x = xAngles, y = yAngles, z = q_values_all[:, :, k]))
+        #                     fig.update_layout(title_text=f"q-values at x_{xcount}_y_{ycount}_z_{zcount}")
+        #                     fig.show()            
+        #                     output_file = f"full_grid/step_x_{xcount}_y_{ycount}_z_{zcount}.html"
+        #                     pio.write_html(fig, output_file)
+        #                     print(f"Plotted this iteration, saved file: {output_file}")
+        #                     zcount = 0
+
+        #                 zcount += 1
+        #             ycount += 1
+        #         xcount += 1
+        #         print(f"Iterations: {xcount}, {ycount}, {zcount}")
+
+        for k in range(len(zAngles)):
+            for j in range(len(yAngles)):
+                for i in range(len(xAngles)):
+                    angles = [xAngles[i], yAngles[j], zAngles[k]]
+
+                    q_all_normals = []
+
+                    for normal in initial_face_normals: 
+                        rotatedVector = self.box.calculateRotationOnVector(normal, angles)
+                        #calculate q with this vector
+                        q_calc = np.dot(self.fwd.q_dir, rotatedVector) * self.fwd.q_mag
+                        q_all_normals.append(q_calc)
+                    
+                    q_new = np.max(q_all_normals)
+                    q_values_all[i, j, k] = q_new                        
+                    q_all_with_angles.append([normal, angles, q_new])
+                
+                #     xcount += 1
+                # ycount += 1
+
+            if (k % 5 == 0):
+                fig = go.Figure(data = go.Surface(x = xAngles, y = yAngles, z = q_values_all[:, :, k]))
+                fig.update_layout(title_text=f"q-values at z_index {k} and z angle {zAngles[k]}")
+                fig.show()            
+                output_file = f"full_grid/step_z_index_{k}_zval_{zAngles[k]}.html"
+                pio.write_html(fig, output_file)
+                print(f"Plotted this iteration, saved file: {output_file}")
+
+            print(f"Iterations: {k}")
+
+
+            #if (zcount >= len(zAngles) - 1): 
+                # fig = go.Figure(data = go.Surface(x = xAngles, y = yAngles, z = q_values_all[:, :, k]))
+                # fig.update_layout(title_text=f"q-values at z_index {k} and z angle {zAngles[k]}")
+                # fig.show()            
+                # output_file = f"full_grid/step_z_index_{k}_zval_{zAngles[k]}.html"
+                # pio.write_html(fig, output_file)
+                # print(f"Plotted this iteration, saved file: {output_file}")
+                # zcount = 0
+                # ycount = 0
+                # xcount = 0
+
+            # zcount += 1
+
+            # print(f"Iterations: {zcount}")
+
+        print(f"Iterated all")
+
+        min_q = np.min(q_values_all)
+        min_indices = np.unravel_index(np.argmin(q_values_all), q_values_all.shape)
+        xMin= xAngles[min_indices[0]]
+        yMin = yAngles[min_indices[1]]
+        zMin = zAngles[min_indices[2]]
+
+        fig = go.Figure(data = go.Surface(x = xAngles, y = yAngles, z = q_values_all[:, :, k]))
+        fig.update_layout(title_text=f"Min q value: {min_q} at x = {xMin} , y = {yMin} , z = {zMin}")
+        fig.show()            
+        output_file = f"full_grid/minimum_q_{min_q}.html"
+        pio.write_html(fig, output_file)
+        print(f"Plotted this iteration, saved file: {output_file}")
+
+        #return 
+        return [min_q, [xMin, yMin, zMin]]
 
         
 
@@ -346,7 +440,7 @@ if __name__ == '__main__':
     #use this one for running opt
     #all_q_found = setup.runModel(momentum = 0.5, threshold = 6.5, runid = 2)
 
-    setup.findGlobal()
+    setup.findGlobalMin()
    
     # all_q_found = setup.runModel(threshold=5.88)
     # setup.plotRotations()

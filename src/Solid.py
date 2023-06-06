@@ -160,22 +160,6 @@ class Box_Vector(CADClass.CAD):
 
         self.meshPoints = np.array(self.allmeshes[0].Points)
 
-        # print(f"Vertices: {self.meshPoints}")
-        # self.meshVertices = []
-
-        # for i in range(len(self.meshPoints)):
-        #     point_i = self.meshPoints[i]
-        #     self.meshVertices.append([point_i.x, point_i.y, point_i.z])
-
-        # print(f"Vertices processed: {self.meshVertices}")
-
-        # print(f"Facets: {self.allmeshes[0].Facets}")
-        # print(f"Length of facets: {len(self.allmeshes[0].Facets)}")
-        # print(f"Facet 0: {self.allmeshes[0].Facets[0]}")
-        # print(f"Facet 0[0]: {self.allmeshes[0].Facets[0].__dict__}")
-        # print(f"Facet points: {self.allmeshes[0].Facets[0].Points}, 1st: {self.allmeshes[0].Facets[0].Points[0]}, type of 1st: {type(self.allmeshes[0].Facets[0].Points[0])}")
-        # print(list(self.allmeshes[0].Facets[0].Points[0]))
-
         self.verticesFromFacets = []
 
         for i in range(len(self.allmeshes[0].Facets)):
@@ -183,8 +167,8 @@ class Box_Vector(CADClass.CAD):
             for point in facet_points:
                 self.verticesFromFacets.append(list(point))
         
-        print(f"Vertices from facets: {self.verticesFromFacets}")
-        print(f"Length of vertices from points: {len(self.verticesFromFacets)}")
+        # print(f"Vertices from facets: {self.verticesFromFacets}")
+        # print(f"Length of vertices from points: {len(self.verticesFromFacets)}")
 
         # self.initial_rotation = self.getCurrentRotationAngles()
 
@@ -223,6 +207,13 @@ class Box_Vector(CADClass.CAD):
 
         return [rotationMatrix, rotatedVertices]
     
+    def calculateRotationOnVector(self, vector, angles):
+        #angles should be the target angle: rotate the vector to (angles), not by (angles)
+        angles = np.radians(angles)
+        r = Rotation.from_euler('xyz', angles)
+        rotatedVector = r.apply(vector)        
+        return rotatedVector
+    
     #should we return the calculated rotation matrix, or the resulting list of points once the thing is applied? or should this do the rotation - maybe not
 
     #calculating norm, center, area if we start with mesh vertices
@@ -247,6 +238,7 @@ class Box_Vector(CADClass.CAD):
     def setVertices(self, newVertices):
         self.meshVertices = newVertices
         return 
+    
     
     def updateMesh(self, newVertices):
         # self.meshVertices = newVertices

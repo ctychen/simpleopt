@@ -61,6 +61,9 @@ class ForwardModel_Box:
         # print(f"Q mesh all: {q_mesh_all}")
         return q_mesh_all
     
+    def calcQMesh_Vec(self, vector):
+        return np.dot(self.fwd.q_dir, vector) * self.fwd.q_mag
+    
     def calcObjective(self, q_mesh_all): 
         #takes in objective function
         return self.g_x(q_mesh_all)
