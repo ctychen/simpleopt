@@ -7,20 +7,6 @@ class ForwardModel_Box:
         self.q_dir = q_dir #direction of applied q, [x,y,z] [m]
         self.g_x = g_x #objective function, can swap out
         return
-    
-    # todo: maybe this shouldn't stay here. and instead be in solid.py - toberevised
-    # def processCADModel(self):
-    #     #meshing the thing
-    #     meshes = self.solid.createMesh(res=500)
-    #     if type(meshes) != list:
-    #         meshes = [self.meshes]        
-    #     #calc centers, normals, areas for meshed
-    #     normcenterarea = self.solid.normsCentersAreas(meshes)
-    #     self.norms = normcenterarea[0] #norm[i] = [xi, yi, zi]
-    #     self.centers = normcenterarea[1]
-    #     self.areas = normcenterarea[2]
-    #     # print("Model processed")
-    #     return
 
     #right now it's simple but ultimately this fcn could have whatever in it - formerly processCADModel()
     def process(self):

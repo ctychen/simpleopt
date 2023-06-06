@@ -154,7 +154,7 @@ class Box_Vector(CADClass.CAD):
         self.STPfile = stpfile
         self.parts = self.loadSTEP()
 
-        self.allmeshes = self.part2mesh(self.CADparts, meshres) #this returns a list of meshes - replaced self.meshes but name confusion
+        self.allmeshes = self.part2meshStandard(self.CADparts) #self.part2mesh(self.CADparts, meshres) #this returns a list of meshes - replaced self.meshes but name confusion
         self.mesh = self.allmeshes[0] #this is a meshobject
         #print(f"Mesh: {self.mesh}")
 
@@ -350,7 +350,7 @@ class Box_Vector(CADClass.CAD):
         norms = self.faceNormals(mesh)
         centers = [] #self.faceCenters(mesh)
         areas = [] #self.faceAreas(mesh) 
-        print(f"Norms: {norms}")  #figure out how to process these things 
+        # print(f"Norms: {norms}")  #figure out how to process these things 
         return norms, centers, areas
     
     def getStandardMeshNorms(self): #use this for starting point

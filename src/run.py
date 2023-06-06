@@ -137,7 +137,7 @@ class RunSetup_3DBox:
         return qPeak
 
 
-    def runModel(self, momentum, threshold, runid, epsilon_q = 0.000000001, epsilon_vel = 0.000000001, angleRange = 2, stlEn = True, plotEn = True):
+    def runModel(self, momentum, threshold, runid, stepSize = 0.5, epsilon_q = 0.000000001, epsilon_vel = 0.000000001, angleRange = 2, stlEn = True, plotEn = True):
 
         all_q_found = [] #i-th index will correspond to qval calculated on i-th iteration, before the transform
         all_rotations_found = [] #i-th index will correspond to rotation found on i-th iteration, so the i-th transform
@@ -151,16 +151,14 @@ class RunSetup_3DBox:
 
         print(f"CURRENT ANGLE FOR START: {angles}")
 
-        # outputDir = "outputs_02" 
         outputDir = f"outputs_{momentum}_id_{runid}"
 
         os.makedirs(outputDir)
-        # below_margin_count = 0
 
         #todo add momentum and maybe add variable learning rate
         # poss new condition: while del_velocity > threshold and del_q > threshold: run gradient descent. once both conditions met, done
         #while (noVals or (np.amin(all_q_found) > threshold)): 
-        while noVals or (((abs(prev_q - curr_q) > epsilon_q) and (abs(prev_vel - curr_vel) > epsilon_vel)) or (curr_q > threshold)):
+        while noVals or (((abs(prev_q - curr_q) > epsilon_q) and (abs(prev_vel - curr_vel) > epsilon_vel))):
 
             #picked something arbitrary for angleRange but idea would be enlarge area we're looking at each step, not sure if this is the way to do it? 
             #if difference between successive is large, take bigger steps/look at bigger area? should i even use delstep here? 
@@ -179,25 +177,14 @@ class RunSetup_3DBox:
             curr_q = min_q_result
 
             prev_vel = curr_vel 
-            curr_vel = momentum * curr_vel + 0.5 * (prev_q - curr_q)
+            curr_vel = momentum * curr_vel + stepSize * (prev_q - curr_q)
 
             #save state of box before any rotations applied, so on 1st time
 
             if stlEn and noVals:
                 #self.box.saveMeshSTL(self.box.meshes, f"outputs/boxmesh_initial", 500)
-                self.box.saveMeshSTL(self.box.allmeshes, f"{outputDir}/boxmesh_initial", 500)
+                self.box.saveMeshSTL(self.box.allmeshes, f"{outputDir}/boxmesh_initial", "standard")
 
-            #result from graddesc will be list of rotated vertices
-            #generate mesh from resulting vertices
-            #feed this into next 
-
-            #self.box.rotateTo(rotation_result[0], rotation_result[1], rotation_result[2])
-            #self.fwd.processCADModel()
-
-            #apply rotation and save updated model 
-            # [rotationMatrix, rotatedVertices] returned from  def calculateRotationOnMesh(self, vertices, xAng, yAng, zAng):
-
-            # rotationResults = self.box.calculateRotationOnMesh(self.box.meshVertices, angles[0], angles[1], angles[2])
             rotationResults = self.box.calculateRotationOnMesh(self.box.verticesFromFacets, angles[0], angles[1], angles[2])
             verticesRotated = rotationResults[1]
             print(f"Results from rotation: {verticesRotated}, angles: {angles}")
@@ -205,12 +192,16 @@ class RunSetup_3DBox:
             
             if stlEn:
                 #self.box.saveMeshSTL(self.box.meshes, f"outputs/boxmesh_{count}", 500)
-                self.box.saveMeshSTL(self.box.allmeshes, f"{outputDir}/boxmesh_{count}", 500)
+                self.box.saveMeshSTL(self.box.allmeshes, f"{outputDir}/boxmesh_{count}", "standard")
 
             all_q_found.append(min_q_result)
             all_rotations_found.append(rotation_result)
 
             if noVals: noVals = False
+
+            if ((abs(prev_q - curr_q) > epsilon_q) or (abs(prev_vel - curr_vel) > epsilon_vel)):
+                stepSize *= momentum
+                angleRange += stepSize
 
             count += 1
 
@@ -219,7 +210,7 @@ class RunSetup_3DBox:
 
         if stlEn:
                 #self.box.saveMeshSTL(self.box.meshes, f"outputs/boxmesh_final", 500)
-                self.box.saveMeshSTL(self.box.allmeshes, f"{outputDir}/boxmesh_final", 500)
+                self.box.saveMeshSTL(self.box.allmeshes, f"{outputDir}/boxmesh_final", "standard")
 
         self.box.saveSTEP(f"{outputDir}/final_box_3drot.step", self.box.CADobjs)
 
@@ -358,8 +349,6 @@ class RunSetup_3DBox:
 
                     # Calculate dot products
                     rotatedNormals = self.box.calculateRotationOnVector(init_normals_all, angles)
-                    # print(rotatedNormals)
-                    # dirs = [self.fwd.q_dir for i in range(len(rotatedNormals))]
                     q_vals = (rotatedNormals @ self.fwd.q_dir) * self.fwd.q_mag
                     #dot_product = np.dot(rotatedNormals, self.fwd.q_dir.T)
                     # print(dot_product)
@@ -368,19 +357,6 @@ class RunSetup_3DBox:
                     q_new = np.max(q_vals)
                     q_values_all[i, j, k] = q_new  
 
-                    # rotatedNormals = self.box.calculateRotationOnVector(initial_face_normals, angles)
-                    # dot = np.dot(self.fwd.q_dir, rotatedNormals)
-                    # rotatedNormals = rotatedNormals[np.where(dot >= 0.0)]
-                    # q_calc = dot * self.fwd.q_mag
-                    # q_all_normals.append(q_calc)
-                    
-                    # q_new = np.max(q_all_normals)
-                    # q_values_all[i, j, k] = q_new                        
-                    #q_all_with_angles.append([normal, angles, q_new])
-                
-                #     xcount += 1
-                # ycount += 1
-
             if (k % 5 == 0):
                 fig = go.Figure(data = go.Surface(x = xAngles, y = yAngles, z = q_values_all[:, :, k], colorscale="spectral"))
                 qvals_here = q_values_all[:,:,k]
@@ -388,27 +364,6 @@ class RunSetup_3DBox:
                 fig.update_layout(title_text=f"q-values at z_index {k} and z angle {zAngles[k]}. Minimum: {min_qhere}")
                 fig.show() 
                 # the above works for surface plot!
-
-                # qvals_here = q_values_all[:,:,k]
-                # min_qhere = np.min(qvals_here)
-
-                # trace = go.Scatter3d(
-                # x = xAngles, y = yAngles, z = qvals_here, mode = 'markers', marker = dict(
-                #     size = 8,
-                #     color = qvals_here, # set color to an array/list of desired values
-                #     colorscale = 'spectral'
-                #     )
-                # )
-
-                #layout = go.Layout(title = f"q-values at z_index {k} and z angle {zAngles[k]}. Minimum: {min_qhere}")
-                # fig = go.Figure(data = go.Scatter3d(
-                #         x = xAngles, y = yAngles, z = qvals_here, mode = 'markers', marker = dict(
-                #         size = 8,
-                #         color = qvals_here, # set color to an array/list of desired values
-                #         colorscale = 'spectral'
-                #         )
-                #     ))
-                # fig.update_layout(title_text=f"q-values at z_index {k} and z angle {zAngles[k]}. Minimum: {min_qhere}")
 
                 output_file = f"full_grid/step_z_index_{k}_zval_{zAngles[k]}_minq_{min_qhere}.html"
                 pio.write_html(fig, output_file)
@@ -419,10 +374,6 @@ class RunSetup_3DBox:
         print(f"Iterated all")
 
         min_q = np.min(q_values_all)
-        # min_indices = np.unravel_index(np.argmin(q_values_all), q_values_all.shape)
-        # xMin= xAngles[min_indices[0]]
-        # yMin = yAngles[min_indices[1]]
-        # zMin = zAngles[min_indices[2]]
 
         min_indices = np.unravel_index(q_values_all.argmin(), q_values_all.shape)
 
@@ -461,9 +412,9 @@ if __name__ == '__main__':
     # def runModel(self, momentum, epsilon_q = 0.01, epsilon_vel = 0.01, angleRange = 2, startingAngles = [0, 0, 0], stlEn = True, plotEn = True)
     
     #use this one for running opt
-    #all_q_found = setup.runModel(momentum = 0.5, threshold = 6.5, runid = 2)
+    all_q_found = setup.runModel(momentum = 0.5, threshold = 6.5, runid = 7)
 
-    setup.findGlobalMin()
+    # setup.findGlobalMin()
    
     # all_q_found = setup.runModel(threshold=5.88)
     # setup.plotRotations()
