@@ -325,6 +325,13 @@ class RunSetup_3DBox:
         print(f"Plotted Rotations Space")
         return globalMinQ
 
+    def findGlobal(self, numSamples = 100):
+        initial_face_normals = self.box.getStandardMeshNorms()
+        print(f"Normals found for initial: {initial_face_normals}")
+        print(f"Normal 0: {initial_face_normals[0]}")
+        q_values_all = np.zeros((numSamples, numSamples, numSamples)) #create space
+        return 
+        #return [globalMin, [minX, minY, minZ]]
 
         
 
@@ -335,7 +342,12 @@ if __name__ == '__main__':
     # setup = RunSetup_1DBox()
     setup = RunSetup_3DBox()
     # def runModel(self, momentum, epsilon_q = 0.01, epsilon_vel = 0.01, angleRange = 2, startingAngles = [0, 0, 0], stlEn = True, plotEn = True)
-    all_q_found = setup.runModel(momentum = 0.5, threshold = 6.5, runid = 2)
+    
+    #use this one for running opt
+    #all_q_found = setup.runModel(momentum = 0.5, threshold = 6.5, runid = 2)
+
+    setup.findGlobal()
+   
     # all_q_found = setup.runModel(threshold=5.88)
     # setup.plotRotations()
 

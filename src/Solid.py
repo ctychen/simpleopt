@@ -243,7 +243,7 @@ class Box_Vector(CADClass.CAD):
     #     # return 0.5 * np.linalg.norm(cross_product, axis=1)     
            
     #     return [] #buggy, need to fix, but i don't use areas anywhere (yet)
-
+    
     def setVertices(self, newVertices):
         self.meshVertices = newVertices
         return 
@@ -358,8 +358,14 @@ class Box_Vector(CADClass.CAD):
         mesh = self.makeMesh(vertices)
         norms = self.faceNormals(mesh)
         centers = [] #self.faceCenters(mesh)
-        areas = [] #self.faceAreas(mesh)   
+        areas = [] #self.faceAreas(mesh) 
+        print(f"Norms: {norms}")  #figure out how to process these things 
         return norms, centers, areas
+    
+    def getStandardMeshNorms(self): #use this for starting point
+        standardMesh = self.part2meshStandard(self.CADparts)[0]
+        normals = self.faceNormals(standardMesh)
+        return normals
     
     def normsCentersAreas_Vector(self):
         return self.normsCentersAreas_VectorAny(self.meshVertices)
