@@ -325,7 +325,7 @@ class RunSetup_3DBox:
         print(f"Plotted Rotations Space")
         return globalMinQ
 
-    def findGlobalMin(self, numSamples = 30):
+    def findGlobalMin(self, numSamples = 90):
         initial_face_normals = self.box.getStandardMeshNorms()
         print(f"Normals found for initial: {initial_face_normals}")
         print(f"Normal 0: {initial_face_normals[0]}")
@@ -336,32 +336,9 @@ class RunSetup_3DBox:
         q_values_all = np.zeros((numSamples, numSamples, numSamples)) #create space
         q_all_with_angles = []
 
-        # self.box.calculateRotationOnVector(self, vector, angles)
-        # for normal in initial_face_normals:
-        #     for i in range(len(xAngles)):
-        #         for j in range(len(yAngles)):
-        #             for k in range(len(zAngles)):
-        #                 angles = [xAngles[i], yAngles[i], zAngles[i]]
-        #                 rotatedVector = self.box.calculateRotationOnVector(normal, angles)
-        #                 #calculate q with this vector
-        #                 q_new = np.dot(self.fwd.q_dir, rotatedVector) * self.fwd.q_mag
-        #                 # print(f"q_new: {q_new}")
-        #                 q_values_all[i, j, k] = q_new
-        #                 q_all_with_angles.append([normal, angles, q_new])
+        self.box.saveMeshSTL(self.box.allmeshes, f"full_grid/initial_rotation", 'standard')
 
-        #                 if (zcount >= len(zAngles)): 
-        #                     fig = go.Figure(data = go.Surface(x = xAngles, y = yAngles, z = q_values_all[:, :, k]))
-        #                     fig.update_layout(title_text=f"q-values at x_{xcount}_y_{ycount}_z_{zcount}")
-        #                     fig.show()            
-        #                     output_file = f"full_grid/step_x_{xcount}_y_{ycount}_z_{zcount}.html"
-        #                     pio.write_html(fig, output_file)
-        #                     print(f"Plotted this iteration, saved file: {output_file}")
-        #                     zcount = 0
-
-        #                 zcount += 1
-        #             ycount += 1
-        #         xcount += 1
-        #         print(f"Iterations: {xcount}, {ycount}, {zcount}")
+        init_normals_all = np.array(initial_face_normals)
 
         for k in range(len(zAngles)):
             for j in range(len(yAngles)):
@@ -370,52 +347,91 @@ class RunSetup_3DBox:
 
                     q_all_normals = []
 
-                    for normal in initial_face_normals: 
-                        rotatedVector = self.box.calculateRotationOnVector(normal, angles)
-                        #calculate q with this vector
-                        q_calc = np.dot(self.fwd.q_dir, rotatedVector) * self.fwd.q_mag
-                        q_all_normals.append(q_calc)
+                    # for normal in initial_face_normals: #this works for sure but is slower. 
+                    # everything in this commented block should work as is!
+                    #     rotatedVector = self.box.calculateRotationOnVector_Fast(normal, angles)
+                    #     #calculate q with this vector
+                    #     q_calc = np.dot(self.fwd.q_dir, rotatedVector) * self.fwd.q_mag
+                    #     q_all_normals.append(q_calc)
+                    #     q_new = np.max(q_all_normals)
+                    #     q_values_all[i, j, k] = q_new  
+
+                    # Calculate dot products
+                    rotatedNormals = self.box.calculateRotationOnVector(init_normals_all, angles)
+                    # print(rotatedNormals)
+                    # dirs = [self.fwd.q_dir for i in range(len(rotatedNormals))]
+                    q_vals = (rotatedNormals @ self.fwd.q_dir) * self.fwd.q_mag
+                    #dot_product = np.dot(rotatedNormals, self.fwd.q_dir.T)
+                    # print(dot_product)
+                    # rotatedNormals = rotatedNormals[np.where(dot_product < 1.0)]
+                    #q_new = np.max(dot_product * self.fwd.q_mag)
+                    q_new = np.max(q_vals)
+                    q_values_all[i, j, k] = q_new  
+
+                    # rotatedNormals = self.box.calculateRotationOnVector(initial_face_normals, angles)
+                    # dot = np.dot(self.fwd.q_dir, rotatedNormals)
+                    # rotatedNormals = rotatedNormals[np.where(dot >= 0.0)]
+                    # q_calc = dot * self.fwd.q_mag
+                    # q_all_normals.append(q_calc)
                     
-                    q_new = np.max(q_all_normals)
-                    q_values_all[i, j, k] = q_new                        
-                    q_all_with_angles.append([normal, angles, q_new])
+                    # q_new = np.max(q_all_normals)
+                    # q_values_all[i, j, k] = q_new                        
+                    #q_all_with_angles.append([normal, angles, q_new])
                 
                 #     xcount += 1
                 # ycount += 1
 
             if (k % 5 == 0):
-                fig = go.Figure(data = go.Surface(x = xAngles, y = yAngles, z = q_values_all[:, :, k]))
-                fig.update_layout(title_text=f"q-values at z_index {k} and z angle {zAngles[k]}")
-                fig.show()            
-                output_file = f"full_grid/step_z_index_{k}_zval_{zAngles[k]}.html"
+                fig = go.Figure(data = go.Surface(x = xAngles, y = yAngles, z = q_values_all[:, :, k], colorscale="spectral"))
+                qvals_here = q_values_all[:,:,k]
+                min_qhere = np.min(qvals_here)
+                fig.update_layout(title_text=f"q-values at z_index {k} and z angle {zAngles[k]}. Minimum: {min_qhere}")
+                fig.show() 
+                # the above works for surface plot!
+
+                # qvals_here = q_values_all[:,:,k]
+                # min_qhere = np.min(qvals_here)
+
+                # trace = go.Scatter3d(
+                # x = xAngles, y = yAngles, z = qvals_here, mode = 'markers', marker = dict(
+                #     size = 8,
+                #     color = qvals_here, # set color to an array/list of desired values
+                #     colorscale = 'spectral'
+                #     )
+                # )
+
+                #layout = go.Layout(title = f"q-values at z_index {k} and z angle {zAngles[k]}. Minimum: {min_qhere}")
+                # fig = go.Figure(data = go.Scatter3d(
+                #         x = xAngles, y = yAngles, z = qvals_here, mode = 'markers', marker = dict(
+                #         size = 8,
+                #         color = qvals_here, # set color to an array/list of desired values
+                #         colorscale = 'spectral'
+                #         )
+                #     ))
+                # fig.update_layout(title_text=f"q-values at z_index {k} and z angle {zAngles[k]}. Minimum: {min_qhere}")
+
+                output_file = f"full_grid/step_z_index_{k}_zval_{zAngles[k]}_minq_{min_qhere}.html"
                 pio.write_html(fig, output_file)
                 print(f"Plotted this iteration, saved file: {output_file}")
 
             print(f"Iterations: {k}")
 
-
-            #if (zcount >= len(zAngles) - 1): 
-                # fig = go.Figure(data = go.Surface(x = xAngles, y = yAngles, z = q_values_all[:, :, k]))
-                # fig.update_layout(title_text=f"q-values at z_index {k} and z angle {zAngles[k]}")
-                # fig.show()            
-                # output_file = f"full_grid/step_z_index_{k}_zval_{zAngles[k]}.html"
-                # pio.write_html(fig, output_file)
-                # print(f"Plotted this iteration, saved file: {output_file}")
-                # zcount = 0
-                # ycount = 0
-                # xcount = 0
-
-            # zcount += 1
-
-            # print(f"Iterations: {zcount}")
-
         print(f"Iterated all")
 
         min_q = np.min(q_values_all)
-        min_indices = np.unravel_index(np.argmin(q_values_all), q_values_all.shape)
-        xMin= xAngles[min_indices[0]]
+        # min_indices = np.unravel_index(np.argmin(q_values_all), q_values_all.shape)
+        # xMin= xAngles[min_indices[0]]
+        # yMin = yAngles[min_indices[1]]
+        # zMin = zAngles[min_indices[2]]
+
+        min_indices = np.unravel_index(q_values_all.argmin(), q_values_all.shape)
+
+        print(min_indices)
+
+        xMin = xAngles[min_indices[0]]
         yMin = yAngles[min_indices[1]]
         zMin = zAngles[min_indices[2]]
+
 
         fig = go.Figure(data = go.Surface(x = xAngles, y = yAngles, z = q_values_all[:, :, k]))
         fig.update_layout(title_text=f"Min q value: {min_q} at x = {xMin} , y = {yMin} , z = {zMin}")
@@ -423,6 +439,13 @@ class RunSetup_3DBox:
         output_file = f"full_grid/minimum_q_{min_q}.html"
         pio.write_html(fig, output_file)
         print(f"Plotted this iteration, saved file: {output_file}")
+
+        rotationResults = self.box.calculateRotationOnMesh(self.box.verticesFromFacets, xMin, yMin, zMin)
+        verticesRotated = rotationResults[1]
+        print(f"Results from rotation: {verticesRotated}, angles: {xMin}, {yMin}, {zMin}")
+        self.box.updateMesh(verticesRotated)
+            
+        self.box.saveMeshSTL(self.box.allmeshes, f"full_grid/final_rotation_{min_q}", 'standard')
 
         #return 
         return [min_q, [xMin, yMin, zMin]]

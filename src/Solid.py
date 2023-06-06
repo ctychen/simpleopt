@@ -155,7 +155,7 @@ class Box_Vector(CADClass.CAD):
         self.parts = self.loadSTEP()
 
         self.allmeshes = self.part2mesh(self.CADparts, meshres) #this returns a list of meshes - replaced self.meshes but name confusion
-        # self.mesh = self.allmeshes[0] #this is a meshobject
+        self.mesh = self.allmeshes[0] #this is a meshobject
         #print(f"Mesh: {self.mesh}")
 
         self.meshPoints = np.array(self.allmeshes[0].Points)
@@ -170,7 +170,7 @@ class Box_Vector(CADClass.CAD):
         # print(f"Vertices from facets: {self.verticesFromFacets}")
         # print(f"Length of vertices from points: {len(self.verticesFromFacets)}")
 
-        # self.initial_rotation = self.getCurrentRotationAngles()
+        self.initial_rotation = self.getCurrentRotationAngles()
 
         return
     
@@ -214,26 +214,25 @@ class Box_Vector(CADClass.CAD):
         rotatedVector = r.apply(vector)        
         return rotatedVector
     
-    #should we return the calculated rotation matrix, or the resulting list of points once the thing is applied? or should this do the rotation - maybe not
+    # def calculateRotationOnVector_Fast(self, vector, angles):
+    #     angles = np.radians(angles)
 
-    #calculating norm, center, area if we start with mesh vertices
-    # def calculateNorms(self, vertices):
-    #     return np.linalg.norm(vertices, axis=1)
-    
-    # def calculateCenters(self, vertices):
-    #     return np.mean(vertices, axis=1)
-    
-    # def calculateAreas(self, vertices):
-    #     # N = len(vertices) // 3  # Number of mesh elements
-    #     # vertices = np.array(vertices).reshape(N, 3, 3)  # Reshape vertices to (N, 3, 3)
+    #     theta_x, theta_y, theta_z = angles
 
-    #     # v0 = vertices[:, 0, :]
-    #     # v1 = vertices[:, 1, :]
-    #     # v2 = vertices[:, 2, :]
-    #     # cross_product = np.cross(v1 - v0, v2 - v0)
-    #     # return 0.5 * np.linalg.norm(cross_product, axis=1)     
-           
-    #     return [] #buggy, need to fix, but i don't use areas anywhere (yet)
+    #     rotation_x = np.array([[1, 0, 0],
+    #                         [0, np.cos(theta_x), -np.sin(theta_x)],
+    #                         [0, np.sin(theta_x), np.cos(theta_x)]])
+
+    #     rotation_y = np.array([[np.cos(theta_y), 0, np.sin(theta_y)],
+    #                         [0, 1, 0],
+    #                         [-np.sin(theta_y), 0, np.cos(theta_y)]])
+
+    #     rotation_z = np.array([[np.cos(theta_z), -np.sin(theta_z), 0],
+    #                         [np.sin(theta_z), np.cos(theta_z), 0],
+    #                         [0, 0, 1]])
+
+    #     rotatedVector = rotation_z @ (rotation_y @ (rotation_x @ vector))
+    #     return rotatedVector
     
     def setVertices(self, newVertices):
         self.meshVertices = newVertices
