@@ -368,7 +368,7 @@ class RunSetup_3DBox:
         print(f"Plotted Rotations Space")
         return globalMinQ
     
-    def findGlobalMin(self, numSamples = 180):
+    def findGlobalMin(self, numSamples = 18):
         initial_face_normals = self.box.getStandardMeshNorms()
         print(f"Normals found for initial: {initial_face_normals}")
         print(f"Normal 0: {initial_face_normals[0]}")
@@ -389,7 +389,7 @@ class RunSetup_3DBox:
 
         q_all = []
 
-        outputDir = f"2D_XZ_{numSamples}_resolution"
+        outputDir = f"2D_XZ_{numSamples}_resolution_2"
 
         os.makedirs(outputDir)
 
@@ -397,9 +397,9 @@ class RunSetup_3DBox:
 
         init_normals_all = np.array(initial_face_normals)
 
-        for k in range(len(zAngles)):
+        for i in range(len(xAngles)):
             for j in range(len(yAngles)):
-                for i in range(len(xAngles)):
+                for k in range(len(zAngles)):
                     angles = [xAngles[i], yAngles[j], zAngles[k]]
 
                     # for normal in initial_face_normals: #this works for sure but is slower. 
@@ -542,13 +542,13 @@ if __name__ == '__main__':
     #use this one for running opt
     # all_q_found = setup.runModel(momentum = 0.5, threshold = 6.5, runid = 17)
 
-    q0 = setup.calcPeakQWithRotation_Vector(-45.0, 0, -34.94413407821229)
-    q1 = setup.calcPeakQWithRotation_Vector(-45.0, 0, -45.0)
+    # q0 = setup.calcPeakQWithRotation_Vector(-45.0, 0, -34.94413407821229)
+    # q1 = setup.calcPeakQWithRotation_Vector(-45.0, 0, -45.0)
 
-    print(f"with x=-45.0, z=-34.94413407821229: q value is {q0}")
-    print(f"with x=-45.0, z=-45.0: q value is {q1}")
+    # print(f"with x=-45.0, z=-34.94413407821229: q value is {q0}")
+    # print(f"with x=-45.0, z=-45.0: q value is {q1}")
 
-    #setup.findGlobalMin()
+    setup.findGlobalMin()
    
     # all_q_found = setup.runModel(threshold=5.88)
     # setup.plotRotations()
