@@ -61,7 +61,7 @@ class OptModel_3DRot:
         self.del_e = del_e
         return
 
-    def gradientDescent(self, cadModel, currentAng, calcQVal, angleRange, plotEnable = True, savePlotsTo = '', numSamples = 10):
+    def gradientDescent(self, cadModel, currentAng, calcQVal, angleRange, plotEnable = False, savePlotsTo = '', numSamples = 24):
 
         # velocity = momentum * velocity + learning_rate * gradient
         # next point = point - velocity
@@ -69,35 +69,35 @@ class OptModel_3DRot:
         # angleRange = 2 #could be user input
 
         # currentAng = cadModel.getCurrentRotationAngles() #this was from using the solid
+        
         currentXAng = currentAng[0]
-        currentYAng = currentAng[1]
-        currentZAng = currentAng[2]
+        # currentYAng = currentAng[1]
+        # currentZAng = currentAng[2]
 
-        # xRot = np.linspace(currentXAng - angleRange, currentXAng + angleRange, angleRange*2)
-        # yRot = np.linspace(currentYAng - angleRange, currentYAng + angleRange, angleRange*2)
-        # zRot = np.linspace(currentZAng - angleRange, currentZAng + angleRange, angleRange*2)
 
+        # xRot = np.linspace(currentXAng - angleRange, currentXAng + angleRange, numSamples)
+        # yRot = np.linspace(currentYAng - angleRange, currentYAng + angleRange, numSamples)
+        # zRot = np.linspace(currentZAng - angleRange, currentZAng + angleRange, numSamples)
+
+        yRot = np.zeros(numSamples)
         xRot = np.linspace(currentXAng - angleRange, currentXAng + angleRange, numSamples)
-        yRot = np.linspace(currentYAng - angleRange, currentYAng + angleRange, numSamples)
-        zRot = np.linspace(currentZAng - angleRange, currentZAng + angleRange, numSamples)
+        zRot = np.zeros(numSamples)
 
-        X, Y, Z = np.meshgrid(xRot, yRot, zRot)
+        # X, Y, Z = np.meshgrid(xRot, yRot, zRot)
 
         # q_inGrid = np.zeros((angleRange*2, angleRange*2, angleRange*2))
         q_inGrid = np.zeros((numSamples, numSamples, numSamples))
 
         count = (numSamples)**3
 
-        for i in range(len(xRot)):
+        for k in range(len(zRot)):
                     for j in range(len(yRot)):
-                        for k in range(len(zRot)):
+                        for i in range(len(xRot)):
                             xVal = xRot[i]
                             yVal = yRot[j]
                             zVal = zRot[k]
                             q_inGrid[i, j, k] = calcQVal(xVal, yVal, zVal)
-                            # print(f"Point done: {xVal}, {yVal}, {zVal}")
-                            count -= 1
-                            # print(f"Points left: {count}")        
+                            count -= 1            
 
         q_1D = q_inGrid.flatten()
 
@@ -119,8 +119,10 @@ class OptModel_3DRot:
             # print(f"XRot: {xRot}")
             # print(f"zVal: {q_inGrid[:, :, min_indices[2]]}")
             print(f"Min q value: {min_q}")
-            fig = go.Figure(data = go.Surface(x = xRot, y = yRot, z = q_inGrid[:, :, min_indices[2]]))
-            fig.update_layout(title_text=f"Min q value: {min_q}, at Z = {min_indices[2]}")
+            #fig = go.Figure(data = go.Surface(x = xRot, y = yRot, z = q_inGrid[:, :, min_indices[2]]))
+            
+            fig = go.Figure(data=[go.Scatter3d(x=xRot, y=yRot, z=q_inGrid[:, :, min_indices[2]].flatten(), mode='markers')])
+            fig.update_layout(title_text=f"Min q value: {min_q}, at Z = {zRot[min_indices[2]]}")
             # print(f"zVal: {q_1D[:, :, idxMin]}")
             # fig = go.Figure(data = go.Surface(x = xRot, y = yRot, z = q_inGrid[:, :, idxMin]))
             
@@ -130,11 +132,11 @@ class OptModel_3DRot:
             #     project_z=True))
             
             fig.show()            
-            output_file = f"{savePlotsTo}/step_qmin_{min_q}_at_z_{min_indices[2]}.html"
+            output_file = f"{savePlotsTo}/step_qmin_{min_q}_at_z_{zRot[min_indices[2]]}.html"
             pio.write_html(fig, output_file)
             print(f"Plotted this iteration, saved file: {output_file}")
 
-        return [[xNew, yNew, zNew], min_q, q_inGrid, q_1D]
+        return [[xNew, yNew, zNew], min_q, q_inGrid, q_1D, xRot, yRot, zRot]
 
                  
 

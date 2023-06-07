@@ -38,12 +38,12 @@ class ForwardModel_Box:
         norms = self.solid.normsCentersAreas_VectorAny(vertices)[0]
         #want to calculate norms of the generated mesh... 
 
-        for i in range(len(norms)): 
-            norm = norms[i]
-            # print(f"Norm: {norm}")
-            q_i = np.dot(self.q_dir, norm) * self.q_mag
-            # print(f"q_i: {q_i}")
-            q_mesh_all.append(q_i)        
+        for norm in norms:
+            dotprod = np.dot(self.q_dir, norm)
+            if dotprod >= 0.0 and dotprod <= 1.0:
+                q_i = dotprod * self.q_mag
+                q_mesh_all.append(q_i) 
+
         # print(f"Q mesh all: {q_mesh_all}")
         return q_mesh_all
     

@@ -176,36 +176,36 @@ class Box_Vector(CADClass.CAD):
     
 
     def calculateRotationOnMesh(self, vertices, xAng, yAng, zAng): #is representing with angles even the way that makes the most sense???
-        xAngRad = np.radians(xAng)
-        yAngRad = np.radians(yAng)
-        zAngRad = np.radians(zAng)
 
         #calculating the rotation matrix
-        rotationMatrix = np.eye(3)
-        rotationMatrix = np.dot(rotationMatrix, np.array([
-            [1, 0, 0],
-            [0, np.cos(xAngRad), -np.sin(xAngRad)],
-            [0, np.sin(xAngRad), np.cos(xAngRad)]
-        ]))
-        rotationMatrix = np.dot(rotationMatrix, np.array([
-            [np.cos(yAngRad), 0, np.sin(yAngRad)],
-            [0, 1, 0],
-            [-np.sin(yAngRad), 0, np.cos(yAngRad)]
-        ]))
-        rotationMatrix = np.dot(rotationMatrix, np.array([
-            [np.cos(zAngRad), -np.sin(zAngRad), 0],
-            [np.sin(zAngRad), np.cos(zAngRad), 0],
-            [0, 0, 1]
-        ]))
+        # rotationMatrix = np.eye(3)
+        # rotationMatrix = np.dot(rotationMatrix, np.array([
+        #     [1, 0, 0],
+        #     [0, np.cos(xAngRad), -np.sin(xAngRad)],
+        #     [0, np.sin(xAngRad), np.cos(xAngRad)]
+        # ]))
+        # rotationMatrix = np.dot(rotationMatrix, np.array([
+        #     [np.cos(yAngRad), 0, np.sin(yAngRad)],
+        #     [0, 1, 0],
+        #     [-np.sin(yAngRad), 0, np.cos(yAngRad)]
+        # ]))
+        # rotationMatrix = np.dot(rotationMatrix, np.array([
+        #     [np.cos(zAngRad), -np.sin(zAngRad), 0],
+        #     [np.sin(zAngRad), np.cos(zAngRad), 0],
+        #     [0, 0, 1]
+        # ]))
 
         # print(f"Rotation matrix: {rotationMatrix}")
 
         #applying the rotation to the mesh coordinates
-        rotatedVertices = np.dot(vertices, rotationMatrix.T)   
+        # rotatedVertices = np.dot(vertices, rotationMatrix.T)   
 
-        # print(f"Rotated vertices: {rotatedVertices}")     
+        # print(f"Rotated vertices: {rotatedVertices}")   
+        # 
+        rotation = Rotation.from_euler('xyz', np.radians([xAng, yAng, zAng]), degrees=False)
+        rotatedVertices = rotation.apply(vertices)
 
-        return [rotationMatrix, rotatedVertices]
+        return [rotation, rotatedVertices]
     
     def calculateRotationOnVector(self, vector, angles):
         #angles should be the target angle: rotate the vector to (angles), not by (angles)

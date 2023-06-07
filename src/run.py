@@ -120,15 +120,8 @@ class RunSetup_3DBox:
         return qPeak
     
     def calcPeakQWithRotation_Vector(self, xR, yR, zR):
-        #vector rotation math
-        #process vectors/mesh to get the norms, centers, areas
-        #calc mesh from there with lists of each
-        #returned: [rotationMatrix, rotatedVertices]
-
-        # rotationResults = self.box.calculateRotationOnMesh(self.box.meshVertices, xR, yR, zR)
         rotationResults = self.box.calculateRotationOnMesh(self.box.verticesFromFacets, xR, yR, zR)
 
-        #rotationMatrix = rotationResults[0]
         rotatedVertices = rotationResults[1]
         #self.fwd.process() -> technically don't need this here since not updating the mesh until we find a minimum
         q_mesh_all = self.fwd.calcQMesh_Vector(rotatedVertices)
@@ -137,7 +130,7 @@ class RunSetup_3DBox:
         return qPeak
 
 
-    def runModel(self, momentum, threshold, runid, stepSize = 0.5, epsilon_q = 0.000000001, epsilon_vel = 0.000000001, angleRange = 2, stlEn = True, plotEn = True):
+    def runModel(self, momentum, threshold, runid, stepSize = 0.5, epsilon_q = 0.000000001, epsilon_vel = 0.000000001, angleRange = 1.0, stlEn = True, plotEn = True):
 
         all_q_found = [] #i-th index will correspond to qval calculated on i-th iteration, before the transform
         all_rotations_found = [] #i-th index will correspond to rotation found on i-th iteration, so the i-th transform
@@ -154,6 +147,8 @@ class RunSetup_3DBox:
         outputDir = f"outputs_{momentum}_id_{runid}"
 
         os.makedirs(outputDir)
+        all_x_angles = []
+        all_q_tried = []
 
         #todo add momentum and maybe add variable learning rate
         # poss new condition: while del_velocity > threshold and del_q > threshold: run gradient descent. once both conditions met, done
@@ -187,10 +182,10 @@ class RunSetup_3DBox:
 
             rotationResults = self.box.calculateRotationOnMesh(self.box.verticesFromFacets, angles[0], angles[1], angles[2])
             verticesRotated = rotationResults[1]
-            print(f"Results from rotation: {verticesRotated}, angles: {angles}")
+            # print(f"Results from rotation: {verticesRotated}, angles: {angles}")
             self.box.updateMesh(verticesRotated)
             
-            if stlEn:
+            if stlEn and (count % 3 == 0):
                 #self.box.saveMeshSTL(self.box.meshes, f"outputs/boxmesh_{count}", 500)
                 self.box.saveMeshSTL(self.box.allmeshes, f"{outputDir}/boxmesh_{count}", "standard")
 
@@ -200,8 +195,17 @@ class RunSetup_3DBox:
             if noVals: noVals = False
 
             if ((abs(prev_q - curr_q) > epsilon_q) or (abs(prev_vel - curr_vel) > epsilon_vel)):
-                stepSize *= momentum
+                # stepSize *= momentum
+                stepSize += momentum
                 angleRange += stepSize
+
+            x_range = resultFromStep[4][:][0]
+            q_found = resultFromStep[2][:, 0, 0][0]
+            all_x_angles.append(x_range)
+            all_q_tried.append(q_found)
+
+            # print(f"Angles so far: {all_x_angles}")
+            # print(f"Q so far: {all_q_tried}")
 
             count += 1
 
@@ -214,8 +218,28 @@ class RunSetup_3DBox:
 
         self.box.saveSTEP(f"{outputDir}/final_box_3drot.step", self.box.CADobjs)
 
-        print(f"Reached below threshold in {count} iterations, minimum q is {all_q_found[len(all_q_found) - 1]}")
-        print(f"Initial rotation: {all_rotations_found[0]}, found best rotation: {all_rotations_found[len(all_rotations_found) - 1]}")
+        minimum_q = np.min(all_q_found)
+        idxminq = np.argmin(all_q_found)
+
+        print(f"Reached below threshold in {count} iterations, minimum q is {minimum_q}")
+        print(f"Initial rotation: {all_rotations_found[0]}, found best rotation: {all_rotations_found[idxminq]}")
+
+        #[[xNew, yNew, zNew], min_q, q_inGrid, q_1D, xRot, yRot, zRot]
+        all_x_angles = []
+        for rot in all_rotations_found:
+            all_x_angles.append(rot[0]) #x angle tried
+
+        if plotEn:
+            #plot results over space, only rotating in 1 dof tho
+            import plotly.express as px
+            fig = px.scatter(x = all_x_angles, y = all_q_found)
+            #fig = px.scatter(x = all_x_angles, y = all_q_tried)
+            fig.update_layout(title_text=f"Min q value: {minimum_q} at {idxminq} , x = {all_rotations_found[idxminq]}")
+            fig.update_xaxes(title_text='x-angle')
+            fig.update_yaxes(title_text='q')
+            fig.show()            
+            output_file = f"{outputDir}/minimum_q_{minimum_q}.html"
+            pio.write_html(fig, output_file)
         
         return [all_q_found, all_rotations_found]
 
@@ -412,7 +436,7 @@ if __name__ == '__main__':
     # def runModel(self, momentum, epsilon_q = 0.01, epsilon_vel = 0.01, angleRange = 2, startingAngles = [0, 0, 0], stlEn = True, plotEn = True)
     
     #use this one for running opt
-    all_q_found = setup.runModel(momentum = 0.5, threshold = 6.5, runid = 7)
+    all_q_found = setup.runModel(momentum = 0.5, threshold = 6.5, runid = 16)
 
     # setup.findGlobalMin()
    
