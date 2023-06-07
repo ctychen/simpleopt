@@ -238,6 +238,10 @@ class Box_Vector(CADClass.CAD):
         self.meshVertices = newVertices
         return 
     
+    def findMeshCenter(self, mesh):
+        center = mesh.BoundBox.Center
+        return center
+    
     
     def updateMesh(self, newVertices):
         # self.meshVertices = newVertices

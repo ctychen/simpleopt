@@ -61,7 +61,7 @@ class OptModel_3DRot:
         self.del_e = del_e
         return
 
-    def gradientDescent(self, cadModel, currentAng, calcQVal, angleRange, plotEnable = False, savePlotsTo = '', numSamples = 24):
+    def gradientDescent(self, cadModel, currentAng, calcQVal, angleRange, plotEnable = True, savePlotsTo = '', ct = 0, numSamples = 24):
 
         # velocity = momentum * velocity + learning_rate * gradient
         # next point = point - velocity
@@ -75,9 +75,9 @@ class OptModel_3DRot:
         currentZAng = currentAng[2]
 
 
-        # xRot = np.linspace(currentXAng - angleRange, currentXAng + angleRange, numSamples)
-        # yRot = np.linspace(currentYAng - angleRange, currentYAng + angleRange, numSamples)
-        # zRot = np.linspace(currentZAng - angleRange, currentZAng + angleRange, numSamples)
+        xRot = np.linspace(currentXAng - angleRange, currentXAng + angleRange, numSamples)
+        yRot = np.linspace(currentYAng - angleRange, currentYAng + angleRange, numSamples)
+        zRot = np.linspace(currentZAng - angleRange, currentZAng + angleRange, numSamples)
 
         # yRot = np.zeros(numSamples)
         # xRot = np.linspace(currentXAng - angleRange, currentXAng + angleRange, numSamples)
@@ -87,9 +87,9 @@ class OptModel_3DRot:
         # zRot = np.linspace(currentZAng - angleRange, currentZAng + angleRange, numSamples)
         # xRot = np.zeros(numSamples) 
         # 
-        yRot = np.zeros(numSamples)
-        zRot = np.linspace(currentZAng - angleRange, currentZAng + angleRange, numSamples)
-        xRot = np.linspace(currentXAng - angleRange, currentXAng + angleRange, numSamples)
+        # yRot = np.zeros(numSamples)
+        # zRot = np.linspace(currentZAng - angleRange, currentZAng + angleRange, numSamples)
+        # xRot = np.linspace(currentXAng - angleRange, currentXAng + angleRange, numSamples)
 
         # X, Y, Z = np.meshgrid(xRot, yRot, zRot)
 
@@ -127,9 +127,9 @@ class OptModel_3DRot:
             # print(f"XRot: {xRot}")
             # print(f"zVal: {q_inGrid[:, :, min_indices[2]]}")
             print(f"Min q value: {min_q}")
-            #fig = go.Figure(data = go.Surface(x = xRot, y = yRot, z = q_inGrid[:, :, min_indices[2]]))
+            fig = go.Figure(data = go.Surface(x = xRot, y = yRot, z = q_inGrid[:, :, min_indices[2]]))
             
-            fig = go.Figure(data=[go.Scatter3d(x=xRot, y=yRot, z=q_inGrid[:, :, min_indices[2]].flatten(), mode='markers')])
+            #fig = go.Figure(data=[go.Scatter3d(x=xRot, y=yRot, z=q_inGrid[:, :, min_indices[2]].flatten(), mode='markers')])
             fig.update_layout(title_text=f"Min q value: {min_q}, at Z = {zRot[min_indices[2]]}")
             # print(f"zVal: {q_1D[:, :, idxMin]}")
             # fig = go.Figure(data = go.Surface(x = xRot, y = yRot, z = q_inGrid[:, :, idxMin]))
@@ -140,7 +140,7 @@ class OptModel_3DRot:
             #     project_z=True))
             
             fig.show()            
-            output_file = f"{savePlotsTo}/step_qmin_{min_q}_at_z_{zRot[min_indices[2]]}.html"
+            output_file = f"{savePlotsTo}/{ct}_step_qmin_{min_q}_at_z_{zRot[min_indices[2]]}.html"
             pio.write_html(fig, output_file)
             print(f"Plotted this iteration, saved file: {output_file}")
 

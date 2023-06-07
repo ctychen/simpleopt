@@ -129,7 +129,7 @@ class RunSetup_3DBox:
         return qPeak
 
 
-    def runModel(self, momentum, threshold, runid, stepSize = 0.5, epsilon_q = 0.000000001, epsilon_vel = 0.000000001, angleRange = 1.0, stlEn = True, plotEn = True):
+    def runModel(self, momentum, runid, stepSize = 0.5, epsilon_q = 0.000000001, epsilon_vel = 0.000000001, angleRange = 1.0, stlEn = True, plotEn = True):
 
         all_q_found = [] #i-th index will correspond to qval calculated on i-th iteration, before the transform
         all_rotations_found = [] #i-th index will correspond to rotation found on i-th iteration, so the i-th transform
@@ -143,10 +143,12 @@ class RunSetup_3DBox:
 
         print(f"CURRENT ANGLE FOR START: {angles}")
 
-        outputDir = f"outputs_{momentum}_id_{runid}_2d_xz"
+        outputDir = f"outputs_{momentum}_id_{runid}_3D"
 
         os.makedirs(outputDir)
         all_x_angles = []
+        all_y_angles = []
+        all_z_angles = []
         all_q_tried = []
 
         #todo add momentum and maybe add variable learning rate
@@ -157,11 +159,15 @@ class RunSetup_3DBox:
             #picked something arbitrary for angleRange but idea would be enlarge area we're looking at each step, not sure if this is the way to do it? 
             #if difference between successive is large, take bigger steps/look at bigger area? should i even use delstep here? 
             #returned from graddesc: [[xNew, yNew, zNew], min_q, q_inGrid, q_1D]
-            resultFromStep = self.opt.gradientDescent(self.box, angles, self.calcPeakQWithRotation_Vector, curr_vel * abs(prev_q - curr_q), savePlotsTo = outputDir) #eventually, this could be something completely different - look into pymoo
+            resultFromStep = self.opt.gradientDescent(self.box, angles, self.calcPeakQWithRotation_Vector, curr_vel * abs(prev_q - curr_q), savePlotsTo = outputDir, ct=count) #eventually, this could be something completely different - look into pymoo
 
             #apply this rotation and repeat
             min_q_result = resultFromStep[1]
             rotation_result = resultFromStep[0] #format: [x, y, z]
+
+            all_x_angles.append(rotation_result[0])
+            all_y_angles.append(rotation_result[1])
+            all_z_angles.append(rotation_result[2])
 
             angles = rotation_result #since we can't get Rotation object easily from list of vertices
 
@@ -184,7 +190,7 @@ class RunSetup_3DBox:
             # print(f"Results from rotation: {verticesRotated}, angles: {angles}")
             self.box.updateMesh(verticesRotated)
             
-            if stlEn and (count % 3 == 0):
+            if stlEn and (count % 2 == 0):
                 #self.box.saveMeshSTL(self.box.meshes, f"outputs/boxmesh_{count}", 500)
                 self.box.saveMeshSTL(self.box.allmeshes, f"{outputDir}/boxmesh_{count}", "standard")
 
@@ -197,16 +203,6 @@ class RunSetup_3DBox:
                 # stepSize *= momentum
                 stepSize += momentum
                 angleRange += stepSize
-
-            # x_range = resultFromStep[4][:][0]
-            # y_range = resultFromStep[5][:][0]
-            # z_range = resultFromStep[6][:][0]
-            # q_found = resultFromStep[2][:, 0, 0][0]
-            # all_x_angles.append(x_range)
-            # all_q_tried.append(q_found)
-
-            # print(f"Angles so far: {all_x_angles}")
-            # print(f"Q so far: {all_q_tried}")
 
             count += 1
 
@@ -240,13 +236,37 @@ class RunSetup_3DBox:
 
         if plotEn:
 
-            # #plot results over space, only rotating in 1 dof tho
+            """plot results over space, only rotating in 1 dof tho"""
+
             # import plotly.express as px
             # # fig = px.scatter(x = all_x_angles, y = all_q_found)
             # fig = px.scatter(x = all_z_angles, y = all_q_found)
             # #fig = px.scatter(x = all_x_angles, y = all_q_tried)
 
-            #plot results over space, but for 2 dof
+            """plot results over space, but for 2 dof"""
+
+            # print(f"X angles: {all_x_angles}")
+            # print(f"Z angles all: {all_z_angles}")
+            # print(f"All q's found: {all_q_found}")
+
+            # print(f"Length of X: {len(all_x_angles)}, Z: {len(all_z_angles)}, q: {len(all_q_found)}")
+
+            # fig = go.Figure(data=[go.Scatter3d(x=all_x_angles, y=all_z_angles, z=all_q_found, mode='markers')])
+            
+            # fig.update_layout(title_text=f"Min q value: {minimum_q} at {idxminq} , angle = {all_rotations_found[idxminq]}")
+            # # fig.update_xaxes(title_text='z-angle')
+            # # fig.update_yaxes(title_text='q')
+
+            # fig.update_layout(scene = dict(
+            #         xaxis_title='x angles',
+            #         yaxis_title='z angles',
+            #         zaxis_title='q'))
+            
+            # fig.show()            
+            # output_file = f"{outputDir}/minimum_q_{minimum_q}.html"
+            # pio.write_html(fig, output_file)
+
+            """plot results for 3D - need to figure out how this works"""
 
             print(f"X angles: {all_x_angles}")
             print(f"Z angles all: {all_z_angles}")
@@ -254,20 +274,48 @@ class RunSetup_3DBox:
 
             print(f"Length of X: {len(all_x_angles)}, Z: {len(all_z_angles)}, q: {len(all_q_found)}")
 
-            fig = go.Figure(data=[go.Scatter3d(x=all_x_angles, y=all_z_angles, z=all_q_found, mode='markers')])
+            fig = go.Figure(data=[go.Scatter3d(x=all_x_angles, y=all_y_angles, z=all_q_found, mode='markers')])
             
-            fig.update_layout(title_text=f"Min q value: {minimum_q} at {idxminq} , angle = {all_rotations_found[idxminq]}")
+            fig.update_layout(title_text=f"Min q value: {minimum_q} at {idxminq} , angle for minimum = {all_rotations_found[idxminq]}")
             # fig.update_xaxes(title_text='z-angle')
             # fig.update_yaxes(title_text='q')
 
             fig.update_layout(scene = dict(
                     xaxis_title='x angles',
-                    yaxis_title='z angles',
+                    yaxis_title='y angles',
                     zaxis_title='q'))
             
             fig.show()            
             output_file = f"{outputDir}/minimum_q_{minimum_q}.html"
-            pio.write_html(fig, output_file)
+            pio.write_html(fig, output_file)    
+
+            import plotly.express as px 
+
+            fig = px.scatter(x = all_x_angles, y = all_q_found)
+            fig.update_layout(title_text=f"Min q value: {minimum_q} at {idxminq} , angles = {all_rotations_found[idxminq]}")
+            fig.update_xaxes(title_text='X angle')
+            fig.update_yaxes(title_text='q')
+            fig.show()
+            output_file = f"{outputDir}/x_axis_minimum_q_{minimum_q}.html"
+            pio.write_html(fig, output_file) 
+
+
+            fig = px.scatter(x = all_y_angles, y = all_q_found)
+            fig.update_layout(title_text=f"Min q value: {minimum_q} at {idxminq} , angles = {all_rotations_found[idxminq]}")
+            fig.update_xaxes(title_text='Y angle')
+            fig.update_yaxes(title_text='q')
+            fig.show()
+            output_file = f"{outputDir}/y_axis_minimum_q_{minimum_q}.html"
+            pio.write_html(fig, output_file) 
+
+            fig = px.scatter(x = all_z_angles, y = all_q_found)  
+            fig.update_layout(title_text=f"Min q value: {minimum_q} at {idxminq} , angles = {all_rotations_found[idxminq]}")
+            fig.update_xaxes(title_text='Z angle')
+            fig.update_yaxes(title_text='q')
+            fig.update_xaxes(range=[-60.0, 1.0])
+            fig.show()
+            output_file = f"{outputDir}/z_axis_minimum_q_{minimum_q}.html"
+            pio.write_html(fig, output_file) 
         
         return [all_q_found, all_rotations_found]
 
@@ -418,7 +466,7 @@ class RunSetup_3DBox:
                     q_values_all[i, j, k] = q_new  
                     if (j == 0): q_all.append(q_new)
 
-            if (k % 9 == 0):
+            if (k % 27 == 0):
                 fig = go.Figure(data = go.Surface(x = xAngles, y = yAngles, z = q_values_all[:, :, k], colorscale="spectral"))
                 qvals_here = q_values_all[:,:,k]
                 min_qhere = np.min(qvals_here)
@@ -496,8 +544,44 @@ if __name__ == '__main__':
     setup = RunSetup_3DBox()
     # def runModel(self, momentum, epsilon_q = 0.01, epsilon_vel = 0.01, angleRange = 2, startingAngles = [0, 0, 0], stlEn = True, plotEn = True)
     
-    #use this one for running opt
-    # all_q_found = setup.runModel(momentum = 0.5, threshold = 6.5, runid = 17)
+    """
+    Run gradient descent optimizer
+    """
+    all_q_found = setup.runModel(momentum = 0.5, runid = 19)
+
+    """
+    Find global minimum
+    """    
+    # setup.findGlobalMin()
+
+    """
+    VERIFYING NORMAL VECTORS, CENTERS, OVERALL CENTER FOR APPLYING FOUND ROTATION - CHECK FOR NO OFFSETS & ETC
+    """
+
+    # norms,centers,areas = setup.box.normsCentersAreas(setup.box.allmeshes)
+    # boxcenter = setup.box.findMeshCenter(setup.box.mesh)
+    # print(f"Normals before rotation: {norms}")
+    # print(f"Centers before rotation: {centers}")
+    # print(f"Center of box before rotation: {boxcenter}")
+
+    # setup.box.saveMeshSTL(setup.box.allmeshes, f"box_before_rotation", 'standard')
+
+    # angles: -31.424581005586592, 18.35195530726257, 37.458100558659225 
+    # rotated = setup.box.calculateRotationOnMesh(setup.box.verticesFromFacets, -31.424581005586592, 18.35195530726257, 37.458100558659225)
+    # rotatedVertices = rotated[1]
+    # rotatedMesh = setup.box.makeMesh(rotatedVertices)
+    # norms,centers,areas = setup.box.normsCentersAreas(rotatedMesh)
+    # boxcenter = setup.box.findMeshCenter(rotatedMesh)
+
+    # print(f"Normals after rotation: {norms}")
+    # print(f"Centers of mesh elements after rotation: {centers}")
+    # print(f"Center of box after rotation: {boxcenter}")
+
+    # setup.box.saveMeshSTL(rotatedMesh, f"box_after_rotation", 'standard')
+
+    """
+    Other old stuff
+    """
 
     # q0 = setup.calcPeakQWithRotation_Vector(-45.0, 0, -34.94413407821229)
     # q1 = setup.calcPeakQWithRotation_Vector(-45.0, 0, -45.0)
@@ -505,8 +589,7 @@ if __name__ == '__main__':
     # print(f"with x=-45.0, z=-34.94413407821229: q value is {q0}")
     # print(f"with x=-45.0, z=-45.0: q value is {q1}")
 
-    setup.findGlobalMin()
-   
+
     # all_q_found = setup.runModel(threshold=5.88)
     # setup.plotRotations()
 
