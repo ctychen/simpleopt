@@ -121,7 +121,6 @@ class RunSetup_3DBox:
     
     def calcPeakQWithRotation_Vector(self, xR, yR, zR):
         rotationResults = self.box.calculateRotationOnMesh(self.box.verticesFromFacets, xR, yR, zR)
-
         rotatedVertices = rotationResults[1]
         #self.fwd.process() -> technically don't need this here since not updating the mesh until we find a minimum
         q_mesh_all = self.fwd.calcQMesh_Vector(rotatedVertices)
@@ -240,14 +239,32 @@ class RunSetup_3DBox:
             all_z_angles.append(rot[2]) #z angle tried        
 
         if plotEn:
-            #plot results over space, only rotating in 1 dof tho
-            import plotly.express as px
-            # fig = px.scatter(x = all_x_angles, y = all_q_found)
-            fig = px.scatter(x = all_z_angles, y = all_q_found)
-            #fig = px.scatter(x = all_x_angles, y = all_q_tried)
-            fig.update_layout(title_text=f"Min q value: {minimum_q} at {idxminq} , z = {all_rotations_found[idxminq]}")
-            fig.update_xaxes(title_text='z-angle')
-            fig.update_yaxes(title_text='q')
+
+            # #plot results over space, only rotating in 1 dof tho
+            # import plotly.express as px
+            # # fig = px.scatter(x = all_x_angles, y = all_q_found)
+            # fig = px.scatter(x = all_z_angles, y = all_q_found)
+            # #fig = px.scatter(x = all_x_angles, y = all_q_tried)
+
+            #plot results over space, but for 2 dof
+
+            print(f"X angles: {all_x_angles}")
+            print(f"Z angles all: {all_z_angles}")
+            print(f"All q's found: {all_q_found}")
+
+            print(f"Length of X: {len(all_x_angles)}, Z: {len(all_z_angles)}, q: {len(all_q_found)}")
+
+            fig = go.Figure(data=[go.Scatter3d(x=all_x_angles, y=all_z_angles, z=all_q_found, mode='markers')])
+            
+            fig.update_layout(title_text=f"Min q value: {minimum_q} at {idxminq} , angle = {all_rotations_found[idxminq]}")
+            # fig.update_xaxes(title_text='z-angle')
+            # fig.update_yaxes(title_text='q')
+
+            fig.update_layout(scene = dict(
+                    xaxis_title='x angles',
+                    yaxis_title='z angles',
+                    zaxis_title='q'))
+            
             fig.show()            
             output_file = f"{outputDir}/minimum_q_{minimum_q}.html"
             pio.write_html(fig, output_file)
@@ -350,19 +367,33 @@ class RunSetup_3DBox:
 
         print(f"Plotted Rotations Space")
         return globalMinQ
-
-    def findGlobalMin(self, numSamples = 90):
+    
+    def findGlobalMin(self, numSamples = 180):
         initial_face_normals = self.box.getStandardMeshNorms()
         print(f"Normals found for initial: {initial_face_normals}")
         print(f"Normal 0: {initial_face_normals[0]}")
+        # xAngles = np.linspace(-45.0, 45.0, numSamples)
+        # yAngles = np.linspace(-45.0, 45.0, numSamples)
+        # zAngles = np.linspace(-45.0, 45.0, numSamples)
+
+        # xAngles = np.linspace(-45.0, 45.0, numSamples)
+        # yAngles = np.zeros(numSamples)
+        # zAngles = np.zeros(numSamples)
+
         xAngles = np.linspace(-45.0, 45.0, numSamples)
-        yAngles = np.linspace(-45.0, 45.0, numSamples)
+        yAngles = np.zeros(numSamples)
         zAngles = np.linspace(-45.0, 45.0, numSamples)
 
         q_values_all = np.zeros((numSamples, numSamples, numSamples)) #create space
         q_all_with_angles = []
 
-        self.box.saveMeshSTL(self.box.allmeshes, f"full_grid/initial_rotation", 'standard')
+        q_all = []
+
+        outputDir = f"2D_XZ_{numSamples}_resolution"
+
+        os.makedirs(outputDir)
+
+        self.box.saveMeshSTL(self.box.allmeshes, f"{outputDir}/initial_rotation", 'standard')
 
         init_normals_all = np.array(initial_face_normals)
 
@@ -370,8 +401,6 @@ class RunSetup_3DBox:
             for j in range(len(yAngles)):
                 for i in range(len(xAngles)):
                     angles = [xAngles[i], yAngles[j], zAngles[k]]
-
-                    q_all_normals = []
 
                     # for normal in initial_face_normals: #this works for sure but is slower. 
                     # everything in this commented block should work as is!
@@ -391,18 +420,19 @@ class RunSetup_3DBox:
                     #q_new = np.max(dot_product * self.fwd.q_mag)
                     q_new = np.max(q_vals)
                     q_values_all[i, j, k] = q_new  
+                    if (j == 0): q_all.append(q_new)
 
-            if (k % 5 == 0):
-                fig = go.Figure(data = go.Surface(x = xAngles, y = yAngles, z = q_values_all[:, :, k], colorscale="spectral"))
-                qvals_here = q_values_all[:,:,k]
-                min_qhere = np.min(qvals_here)
-                fig.update_layout(title_text=f"q-values at z_index {k} and z angle {zAngles[k]}. Minimum: {min_qhere}")
-                fig.show() 
-                # the above works for surface plot!
+            # if (k % 5 == 0):
+            #     fig = go.Figure(data = go.Surface(x = xAngles, y = yAngles, z = q_values_all[:, :, k], colorscale="spectral"))
+            #     qvals_here = q_values_all[:,:,k]
+            #     min_qhere = np.min(qvals_here)
+            #     fig.update_layout(title_text=f"q-values at z_index {k} and z angle {zAngles[k]}. Minimum: {min_qhere}")
+            #     fig.show() 
+            #     # the above works for surface plot!
 
-                output_file = f"full_grid/step_z_index_{k}_zval_{zAngles[k]}_minq_{min_qhere}.html"
-                pio.write_html(fig, output_file)
-                print(f"Plotted this iteration, saved file: {output_file}")
+            #     output_file = f"{outputDir}/step_z_index_{k}_zval_{zAngles[k]}_minq_{min_qhere}.html"
+            #     pio.write_html(fig, output_file)
+            #     print(f"Plotted this iteration, saved file: {output_file}")
 
             print(f"Iterations: {k}")
 
@@ -418,20 +448,83 @@ class RunSetup_3DBox:
         yMin = yAngles[min_indices[1]]
         zMin = zAngles[min_indices[2]]
 
+        # #plot results over space, only rotating in 1 dof tho
+        import plotly.express as px
+        # fig = px.scatter(x = xAngles, y = q_values_all)
+        # fig = px.scatter(x = xAngles, y = q_values_all[:, 0, 0])
+        # fig = px.scatter(x = all_z_angles, y = all_q_found)
+        # #fig = px.scatter(x = all_x_angles, y = all_q_tried)
 
-        fig = go.Figure(data = go.Surface(x = xAngles, y = yAngles, z = q_values_all[:, :, k]))
-        fig.update_layout(title_text=f"Min q value: {min_q} at x = {xMin} , y = {yMin} , z = {zMin}")
+        #plot results over space, but for 2 dof
+        #fig = go.Figure(data=[go.Scatter3d(x=all_x_angles, y=all_z_angles, z=all_q_found, mode='markers')])
+            
+        # fig = px.scatter(x = xAngles, y = q_values_all[:, 0, 0])
+        # fig.update_layout(title_text=f"Min q value: {min_q} at {min_indices} , at x = {xMin} , y = {yMin} , z = {zMin}")
+        # fig.update_xaxes(title_text='z-angle')
+        # fig.update_yaxes(title_text='q')
+
+        # fig.update_layout(scene = dict(
+        #             xaxis_title='x angles',
+        #             yaxis_title='z angles',
+        #             zaxis_title='q'))
+            
+        # fig.show()            
+        # output_file = f"{outputDir}/minimum_q_scatter{min_q}.html"
+        # pio.write_html(fig, output_file)
+
+        # print(f"All: {q_values_all[:, 0, :]}")
+        # print(f"All but no proc: {q_values_all}")
+        # print(f"q_all on only y=0: {q_all}")
+
+        # fig = go.Figure(data=[go.Scatter3d(x=xAngles, y=yAngles, z=q_values_all[:, 0, 0], mode='markers')])
+
+        # print(f"X angles: {xAngles}")
+        # print(f"Z angles all: {zAngles}")
+        # print(f"All q's found, 3D, but no y: {q_values_all[:, 0, :]}")
+        # print(f"All q's, 3D, with all: {q_values_all}")
+        # print(f"All q found, 1d: {q_all}")
+
+        #problem with this: ends up only plotting for where x = z?
+        # min_q_y0 = np.min(q_values_all[:, 0, :][0]) 
+        # idxminq_y0 = np.argmin(q_values_all[:, 0, :][0])
+
+        print(f"Length of X: {len(xAngles)}, Z: {len(zAngles)}, q: {len(q_all)}, q3d: {len(q_values_all)}, q3d no y: {len(q_values_all[:, 0, :])}, shape of q3d no y: {q_values_all[:, 0, :].shape}")
+
+    
+
+        # fig = go.Figure(data=[go.Scatter3d(x=xAngles, y=zAngles, z=q_values_all[:, 0, :][0], mode='markers')])
+        fig = go.Figure(data = go.Surface(x = xAngles, y = zAngles, z = q_values_all[:, 0, :]))
+        fig.update_layout(title_text=f"Min q value: {min_q} at {min_indices} ,  at x = {xMin} , y = {yMin} , z = {zMin}")
+
+        # fig = go.Figure(data=[go.Scatter3d(x=xAngles, y=zAngles, z=q_values_all[:, 0, :][0], mode='markers')])
+        # fig.update_layout(title_text=f"Min q value: {min_q} at {idxminq_y0} ,  at x = {xAngles[idxminq_y0]} , y = {yAngles[idxminq_y0]} , z = {zAngles[idxminq_y0]}")
+
+        # fig.update_xaxes(title_text='z-angle')
+        # fig.update_yaxes(title_text='q')
+
+        fig.update_layout(scene = dict(
+                    xaxis_title='x angles',
+                    yaxis_title='z angles',
+                    zaxis_title='q'))
+            
         fig.show()            
-        output_file = f"full_grid/minimum_q_{min_q}.html"
-        pio.write_html(fig, output_file)
-        print(f"Plotted this iteration, saved file: {output_file}")
+        output_file = f"{outputDir}/minimum_q_scatter_3D_{min_q}.html"
+        pio.write_html(fig, output_file)        
+
+
+        # fig = go.Figure(data = go.Surface(x = xAngles, y = yAngles, z = q_values_all[:, :, k]))
+        # fig.update_layout(title_text=f"Min q value: {min_q} at x = {xMin} , y = {yMin} , z = {zMin}")
+        # fig.show()            
+        # output_file = f"{outputDir}/minimum_q_surface_{min_q}.html"
+        # pio.write_html(fig, output_file)
+        # print(f"Plotted this iteration, saved file: {output_file}")
 
         rotationResults = self.box.calculateRotationOnMesh(self.box.verticesFromFacets, xMin, yMin, zMin)
         verticesRotated = rotationResults[1]
         print(f"Results from rotation: {verticesRotated}, angles: {xMin}, {yMin}, {zMin}")
         self.box.updateMesh(verticesRotated)
             
-        self.box.saveMeshSTL(self.box.allmeshes, f"full_grid/final_rotation_{min_q}", 'standard')
+        self.box.saveMeshSTL(self.box.allmeshes, f"{outputDir}/final_rotation_{min_q}", 'standard')
 
         #return 
         return [min_q, [xMin, yMin, zMin]]
@@ -447,9 +540,15 @@ if __name__ == '__main__':
     # def runModel(self, momentum, epsilon_q = 0.01, epsilon_vel = 0.01, angleRange = 2, startingAngles = [0, 0, 0], stlEn = True, plotEn = True)
     
     #use this one for running opt
-    all_q_found = setup.runModel(momentum = 0.5, threshold = 6.5, runid = 16)
+    # all_q_found = setup.runModel(momentum = 0.5, threshold = 6.5, runid = 17)
 
-    # setup.findGlobalMin()
+    q0 = setup.calcPeakQWithRotation_Vector(-45.0, 0, -34.94413407821229)
+    q1 = setup.calcPeakQWithRotation_Vector(-45.0, 0, -45.0)
+
+    print(f"with x=-45.0, z=-34.94413407821229: q value is {q0}")
+    print(f"with x=-45.0, z=-45.0: q value is {q1}")
+
+    #setup.findGlobalMin()
    
     # all_q_found = setup.runModel(threshold=5.88)
     # setup.plotRotations()
