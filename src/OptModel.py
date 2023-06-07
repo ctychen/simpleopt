@@ -71,17 +71,25 @@ class OptModel_3DRot:
         # currentAng = cadModel.getCurrentRotationAngles() #this was from using the solid
         
         currentXAng = currentAng[0]
-        # currentYAng = currentAng[1]
-        # currentZAng = currentAng[2]
+        currentYAng = currentAng[1]
+        currentZAng = currentAng[2]
 
 
         # xRot = np.linspace(currentXAng - angleRange, currentXAng + angleRange, numSamples)
         # yRot = np.linspace(currentYAng - angleRange, currentYAng + angleRange, numSamples)
         # zRot = np.linspace(currentZAng - angleRange, currentZAng + angleRange, numSamples)
 
+        # yRot = np.zeros(numSamples)
+        # xRot = np.linspace(currentXAng - angleRange, currentXAng + angleRange, numSamples)
+        # zRot = np.zeros(numSamples)
+
+        # yRot = np.zeros(numSamples)
+        # zRot = np.linspace(currentZAng - angleRange, currentZAng + angleRange, numSamples)
+        # xRot = np.zeros(numSamples) 
+        # 
         yRot = np.zeros(numSamples)
+        zRot = np.linspace(currentZAng - angleRange, currentZAng + angleRange, numSamples)
         xRot = np.linspace(currentXAng - angleRange, currentXAng + angleRange, numSamples)
-        zRot = np.zeros(numSamples)
 
         # X, Y, Z = np.meshgrid(xRot, yRot, zRot)
 

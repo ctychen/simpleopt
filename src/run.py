@@ -144,7 +144,7 @@ class RunSetup_3DBox:
 
         print(f"CURRENT ANGLE FOR START: {angles}")
 
-        outputDir = f"outputs_{momentum}_id_{runid}"
+        outputDir = f"outputs_{momentum}_id_{runid}_2d_xz"
 
         os.makedirs(outputDir)
         all_x_angles = []
@@ -199,10 +199,12 @@ class RunSetup_3DBox:
                 stepSize += momentum
                 angleRange += stepSize
 
-            x_range = resultFromStep[4][:][0]
-            q_found = resultFromStep[2][:, 0, 0][0]
-            all_x_angles.append(x_range)
-            all_q_tried.append(q_found)
+            # x_range = resultFromStep[4][:][0]
+            # y_range = resultFromStep[5][:][0]
+            # z_range = resultFromStep[6][:][0]
+            # q_found = resultFromStep[2][:, 0, 0][0]
+            # all_x_angles.append(x_range)
+            # all_q_tried.append(q_found)
 
             # print(f"Angles so far: {all_x_angles}")
             # print(f"Q so far: {all_q_tried}")
@@ -229,13 +231,22 @@ class RunSetup_3DBox:
         for rot in all_rotations_found:
             all_x_angles.append(rot[0]) #x angle tried
 
+        all_y_angles = []
+        for rot in all_rotations_found:
+            all_y_angles.append(rot[1]) #y angle tried
+
+        all_z_angles = []
+        for rot in all_rotations_found:
+            all_z_angles.append(rot[2]) #z angle tried        
+
         if plotEn:
             #plot results over space, only rotating in 1 dof tho
             import plotly.express as px
-            fig = px.scatter(x = all_x_angles, y = all_q_found)
+            # fig = px.scatter(x = all_x_angles, y = all_q_found)
+            fig = px.scatter(x = all_z_angles, y = all_q_found)
             #fig = px.scatter(x = all_x_angles, y = all_q_tried)
-            fig.update_layout(title_text=f"Min q value: {minimum_q} at {idxminq} , x = {all_rotations_found[idxminq]}")
-            fig.update_xaxes(title_text='x-angle')
+            fig.update_layout(title_text=f"Min q value: {minimum_q} at {idxminq} , z = {all_rotations_found[idxminq]}")
+            fig.update_xaxes(title_text='z-angle')
             fig.update_yaxes(title_text='q')
             fig.show()            
             output_file = f"{outputDir}/minimum_q_{minimum_q}.html"
