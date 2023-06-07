@@ -46,6 +46,9 @@ class OptModel_Box:
         self.g_curr = g_new
         return
 
+import plotly.graph_objects as go
+import plotly.io as pio
+from plotly.subplots import make_subplots
 
 class OptModel_3DRot:
     def __init__(self, objective, threshold = 0.1, gprev = 10000, gcurr = 5, delstep = 0.1, del_e = 1):
@@ -58,24 +61,32 @@ class OptModel_3DRot:
         self.del_e = del_e
         return
 
-    def gradientDescent(self, cadModel, calcQVal, angleRange):
+    def gradientDescent(self, cadModel, currentAng, calcQVal, angleRange, plotEnable = True, savePlotsTo = '', numSamples = 10):
+
+        # velocity = momentum * velocity + learning_rate * gradient
+        # next point = point - velocity
 
         # angleRange = 2 #could be user input
 
-        currentAng = cadModel.getCurrentRotationAngles()
+        # currentAng = cadModel.getCurrentRotationAngles() #this was from using the solid
         currentXAng = currentAng[0]
         currentYAng = currentAng[1]
         currentZAng = currentAng[2]
 
-        xRot = np.linspace(currentXAng - angleRange, currentXAng + angleRange, angleRange*2)
-        yRot = np.linspace(currentYAng - angleRange, currentYAng + angleRange, angleRange*2)
-        zRot = np.linspace(currentZAng - angleRange, currentZAng + angleRange, angleRange*2)
+        # xRot = np.linspace(currentXAng - angleRange, currentXAng + angleRange, angleRange*2)
+        # yRot = np.linspace(currentYAng - angleRange, currentYAng + angleRange, angleRange*2)
+        # zRot = np.linspace(currentZAng - angleRange, currentZAng + angleRange, angleRange*2)
+
+        xRot = np.linspace(currentXAng - angleRange, currentXAng + angleRange, numSamples)
+        yRot = np.linspace(currentYAng - angleRange, currentYAng + angleRange, numSamples)
+        zRot = np.linspace(currentZAng - angleRange, currentZAng + angleRange, numSamples)
 
         X, Y, Z = np.meshgrid(xRot, yRot, zRot)
 
-        q_inGrid = np.zeros((angleRange*2, angleRange*2, angleRange*2))
+        # q_inGrid = np.zeros((angleRange*2, angleRange*2, angleRange*2))
+        q_inGrid = np.zeros((numSamples, numSamples, numSamples))
 
-        count = (angleRange*2)**3
+        count = (numSamples)**3
 
         for i in range(len(xRot)):
                     for j in range(len(yRot)):
@@ -84,25 +95,48 @@ class OptModel_3DRot:
                             yVal = yRot[j]
                             zVal = zRot[k]
                             q_inGrid[i, j, k] = calcQVal(xVal, yVal, zVal)
-                            print(f"Point done: {xVal}, {yVal}, {zVal}")
+                            # print(f"Point done: {xVal}, {yVal}, {zVal}")
                             count -= 1
-                            print(f"Points left: {count}")        
+                            # print(f"Points left: {count}")        
 
         q_1D = q_inGrid.flatten()
 
-        min_q = np.amin(q_1D)
-        idxMin = np.argmin(q_1D)
+        # min_q = np.amin(q_1D)
+        # idxMin = np.argmin(q_1D)
 
-        xNew = X.flatten()[idxMin]
-        yNew = Y.flatten()[idxMin]
-        zNew = Z.flatten()[idxMin]
+        # xNew = X.flatten()[idxMin]
+        # yNew = Y.flatten()[idxMin]
+        # zNew = Z.flatten()[idxMin]
 
-        return [[xNew, yNew, zNew], min_q]    
+        min_q = np.min(q_inGrid)
+        min_indices = np.unravel_index(np.argmin(q_inGrid), q_inGrid.shape)
+        xNew = xRot[min_indices[0]]
+        yNew = yRot[min_indices[1]]
+        zNew = zRot[min_indices[2]]
+        
 
+        if plotEnable:
+            # print(f"XRot: {xRot}")
+            # print(f"zVal: {q_inGrid[:, :, min_indices[2]]}")
+            print(f"Min q value: {min_q}")
+            fig = go.Figure(data = go.Surface(x = xRot, y = yRot, z = q_inGrid[:, :, min_indices[2]]))
+            fig.update_layout(title_text=f"Min q value: {min_q}, at Z = {min_indices[2]}")
+            # print(f"zVal: {q_1D[:, :, idxMin]}")
+            # fig = go.Figure(data = go.Surface(x = xRot, y = yRot, z = q_inGrid[:, :, idxMin]))
+            
+            # fig.update_traces(contours_z=dict(
+            #     show=True, usecolormap=True,
+            #     highlightcolor="limegreen",
+            #     project_z=True))
+            
+            fig.show()            
+            output_file = f"{savePlotsTo}/step_qmin_{min_q}_at_z_{min_indices[2]}.html"
+            pio.write_html(fig, output_file)
+            print(f"Plotted this iteration, saved file: {output_file}")
 
+        return [[xNew, yNew, zNew], min_q, q_inGrid, q_1D]
 
-
-    
+                 
 
 
 class OptModel_Template:
