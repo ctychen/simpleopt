@@ -36,7 +36,8 @@ class RunSetup_1DBox:
     def __init__(self):
         g_obj = lambda qvals: max(qvals) #+ qvals.count(max(qvals)) #maybe changing obj function helps??
 
-        stpPath = "test_box.step" 
+        # stpPath = "test_box.step" 
+        stpPath = "test_box_6.step" 
         stlPath = " " #"box.stl"
         qDirIn = [0.0, -1.0, 0] #[m]
         qMagIn = 10.0 #[W/m^2]
@@ -84,8 +85,8 @@ class RunSetup_3DBox:
     def __init__(self):
         g_obj = lambda qvals: max(qvals) #+ qvals.count(max(qvals)) #maybe changing obj function helps??
 
-        stpPath = "test_box_3.step" #not rotated, starting at 0,0,0
-        #stpPath = "0_notrotated.step"
+        # stpPath = "standard_test_box.step" #not rotated, starting at 0,0,0
+        stpPath = "test_box_2.step" #test_box_7.step"
 
         stlPath = " " #"box.stl"
         qDirIn = [0.0, -1.0, 0.0] #[m]
@@ -201,10 +202,10 @@ class RunSetup_3DBox:
 
             if noVals: noVals = False
 
-            if ((abs(prev_q - curr_q) > epsilon_q) or (abs(prev_vel - curr_vel) > epsilon_vel)):
-                # stepSize *= momentum
-                stepSize += momentum
-                angleRange += stepSize
+            # if ((abs(prev_q - curr_q) > epsilon_q) or (abs(prev_vel - curr_vel) > epsilon_vel)):
+            #     # stepSize *= momentum
+            #     stepSize += momentum
+            #     angleRange += stepSize
 
             count += 1
 
@@ -418,16 +419,17 @@ class RunSetup_3DBox:
         print(f"Plotted Rotations Space")
         return globalMinQ
     
-    def findGlobalMin(self, numSamples = 36):
+    def findGlobalMin(self, numSamples = 60):
         initial_face_normals = self.box.getStandardMeshNorms()
         print(f"Normals found for initial: {initial_face_normals}")
         print(f"Normal 0: {initial_face_normals[0]}")
 
         xAngles = np.linspace(-45.0, 45.0, numSamples)
         yAngles = np.linspace(-45.0, 45.0, numSamples)
-        #zAngles = np.linspace(-45.0, 45.0, numSamples)
-        zAngles = np.empty(numSamples)
-        zAngles.fill(-53.412947030027894)
+        zAngles = np.linspace(-45.0, 45.0, numSamples)
+
+        # zAngles = np.empty(numSamples)
+        # zAngles.fill(-53.412947030027894)
 
         # xAngles = np.linspace(-45.0, 45.0, numSamples)
         # yAngles = np.zeros(numSamples)
@@ -563,7 +565,7 @@ if __name__ == '__main__':
     """
     Run gradient descent optimizer
     """
-    all_q_found = setup.runModel(momentum = 0.5, runid = 27)
+    all_q_found = setup.runModel(momentum = 0.5, runid = 36)
 
     """
     Find global minimum
