@@ -551,7 +551,6 @@ class RunSetup_3DBox:
 
         #return 
         return [min_q, [xMin, yMin, zMin]]
-
         
 
 if __name__ == '__main__':
@@ -565,12 +564,19 @@ if __name__ == '__main__':
     """
     Run gradient descent optimizer
     """
-    all_q_found = setup.runModel(momentum = 0.5, runid = 36)
+    #all_q_found = setup.runModel(momentum = 0.5, runid = 36)
 
     """
     Find global minimum
     """    
     # setup.findGlobalMin()
+
+    """
+    Run cube mesh operation test
+    """
+
+    #TODO
+    
 
     """
     VERIFYING NORMAL VECTORS, CENTERS, OVERALL CENTER FOR APPLYING FOUND ROTATION - CHECK FOR NO OFFSETS & ETC
