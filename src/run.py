@@ -85,7 +85,8 @@ class RunSetup_3DBox:
     def __init__(self):
         g_obj = lambda qvals: max(qvals) #+ qvals.count(max(qvals)) #maybe changing obj function helps??
 
-        stpPath = "standard_test_box.step" #not rotated, starting at 0,0,0
+        #stpPath = "standard_test_box.step" #not rotated, starting at 0,0,0
+        stpPath = "unit_test_cube.step"
         #stpPath = "test_box_2.step" #test_box_7.step"
 
         stlPath = " " #"box.stl"
