@@ -553,6 +553,14 @@ class RunSetup_3DBox:
         return [min_q, [xMin, yMin, zMin]]
 
         
+class RunSetup_pymoo:
+    def __init__(self):
+        return
+    
+    def runModel(self):
+        return 
+    
+    
 
 if __name__ == '__main__':
 
@@ -571,52 +579,6 @@ if __name__ == '__main__':
     Find global minimum
     """    
     # setup.findGlobalMin()
-
-    """
-    VERIFYING NORMAL VECTORS, CENTERS, OVERALL CENTER FOR APPLYING FOUND ROTATION - CHECK FOR NO OFFSETS & ETC
-    """
-
-    # norms,centers,areas = setup.box.normsCentersAreas(setup.box.allmeshes)
-    # boxcenter = setup.box.findMeshCenter(setup.box.mesh)
-    # print(f"Normals before rotation: {norms}")
-    # print(f"Centers before rotation: {centers}")
-    # print(f"Center of box before rotation: {boxcenter}")
-
-    # setup.box.saveMeshSTL(setup.box.allmeshes, f"box_before_rotation", 'standard')
-
-    # angles = [-31.424581005586592, 18.35195530726257, 37.458100558659225] 
-    #angles = [1.8794837529640014, 44.03875981171882, -53.412947030027894]
-    #angles = [-1.75977, -43.9944, -53.412947030027894] #first result from plotting surface at x=-53.412
-    # angles = [-43.9944, -1.75977, -53.412947030027894] #first result from plotting surface at x=-53.412
-    # rotated = setup.box.calculateRotationOnMesh(setup.box.verticesFromFacets, angles[0], angles[1], angles[2])
-    # rotatedVertices = rotated[1]
-    # rotatedMesh = setup.box.makeMesh(rotatedVertices)
-    # norms,centers,areas = setup.box.normsCentersAreas(rotatedMesh)
-    # boxcenter = setup.box.findMeshCenter(rotatedMesh)
-
-    # print(f"Normals after rotation: {norms}")
-    # print(f"Centers of mesh elements after rotation: {centers}")
-    # print(f"Center of box after rotation: {boxcenter}")
-
-    # setup.box.saveMeshSTL(rotatedMesh, f"box_after_rotation_{angles[0]}_{angles[1]}_{angles[2]}", 'standard')
-
-    """
-    Other old stuff
-    """
-
-    # angles0 = [-31.424581005586592, 18.35195530726257, 37.458100558659225] 
-    # angles1 = [1.8794837529640014, 44.03875981171882, -53.412947030027894]
-    # q0 = setup.calcPeakQWithRotation_Vector(angles0[0], angles0[1], angles0[2])
-    # q1 = setup.calcPeakQWithRotation_Vector(angles1[0], angles1[1], angles1[2])
-
-    # print(f"with 'global min': {angles0[0]}, {angles0[1]}, {angles0[2]}, q value is {q0}")
-    # print(f"with 'opt rotation': {angles1[0]}, {angles1[1]}, {angles1[2]}, q value is {q1}")
-
-
-    # all_q_found = setup.runModel(threshold=5.88)
-    # setup.plotRotations()
-
-    # print(f"Initial heat flux: {all_q_found[0][0]}, best heat flux: {min(all_q_found[0])}")
 
     print(f"Time elapsed: {time.time() - t0}")
 

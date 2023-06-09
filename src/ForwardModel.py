@@ -54,3 +54,38 @@ class ForwardModel_Box:
         #takes in objective function
         return self.g_x(q_mesh_all)
     
+from pymoo.model.problem import Problem
+
+class ForwardModel_MeshOptimization(Problem):
+    
+    def __init__(self, vertices, solid, n_vars):
+        super().__init__(n_var=n_vars, n_obj=1, n_constr=0, xl=-1, xu=1)  # Set variable bounds and other details
+        self.vertices = vertices #maybe don't set this here, and get from property of Solid???
+        self.solid = solid
+
+    """
+    Evaluate HF on entire modified mesh
+    """
+    def _evaluate(self, x, out, *args, **kwargs):
+        #this should return a set of solutions though - min(q_mesh_all) would be just 1?
+        #calculate HF on entire modified mesh - eval quality
+        modifiedVertices = self.solid.modifyMesh(self.vertices, x)
+        q_mesh_all = self.calculateQMeshAll(modifiedVertices)
+        out["F"] = q_mesh_all
+
+    """
+    q_mag: [W/m^2]
+    q_dir: [m], (x,y,z)
+    """
+    def calculateQMeshAll(self, vertices, q_mag, q_dir):
+        q_mesh_all = []
+
+        norms = self.solid.normsCentersAreas_VectorAny(vertices)[0]
+
+        for norm in norms:
+            dotprod = np.dot(q_dir, norm)
+            if dotprod >= 0.0 and dotprod <= 1.0:
+                q_i = dotprod * q_mag
+                q_mesh_all.append(q_i) 
+        
+        return q_mesh_all

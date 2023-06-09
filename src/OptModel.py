@@ -146,7 +146,33 @@ class OptModel_3DRot:
 
         return [[xNew, yNew, zNew], min_q, q_inGrid, q_1D, xRot, yRot, zRot]
 
-                 
+from pymoo.model.problem import Problem
+from pymoo.algorithms.nsga2 import NSGA2 #example algorithm, we could pick something else 
+from pymoo.factory import get_termination
+
+class OptModel_Pymoo:
+    def __init__(self):
+        return
+
+    def runOptimizationAlgorithm(self, problem):
+        """
+        Returns result of running optimization algorithm
+        result.X[0] -> best solution found
+        result.F[0] -> objective function value of best solution
+        """
+
+        # Choose an algorithm
+        algorithm = NSGA2()
+
+        # Configure the algorithm
+        termination = get_termination("n_gen", 100)  # Set termination criteria
+
+        # Run opt
+        optResult = algorithm.solve(problem, termination=termination)
+
+        return optResult
+    
+    
 
 
 class OptModel_Template:
