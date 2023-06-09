@@ -401,7 +401,7 @@ class Box_Vector_Mesh(CADClass.CAD):
         # base_facets = np.array(base_facets)
 
         # Identify the bottom face of the cube
-        bottom_face_indices = np.where(np.isclose(vertices[:, 2], 0.0))[0] #it's -127.0 right now bc that's the cube placement, but that should be standardized
+        bottom_face_indices = np.where(np.isclose(vertices[:, 2], 0))[0] #it's -127.0 right now bc that's the cube placement, but that should be standardized
         bottom_face = faces[np.isin(faces[:, 0], bottom_face_indices)]
 
         # Calculate the center of the bottom face
@@ -465,6 +465,62 @@ class Box_Vector_Mesh(CADClass.CAD):
 
         return vertices, faces, meshUpdated
     
+    def compute_weights(self, vertices, control_points):
+        distances = np.linalg.norm(vertices[:, np.newaxis] - control_points, axis=2)
+        inv_distances = np.reciprocal(distances, where=distances != 0)
+        weights = inv_distances / np.sum(inv_distances, axis=1, keepdims=True)
+        return weights
+
+    def pyramidFromCube(self, id=10):
+
+        print(f"Starting pyramid attempt")
+
+        vertices = []
+
+        for i in range(len(self.allmeshes[0].Facets)):
+            facet_points = self.allmeshes[0].Facets[i].Points
+            for point in facet_points:
+                vertices.append(list(point))      
+
+        vertices = np.array(vertices)
+
+        print(f"Vertices: {vertices}")  
+        print(type(vertices))
+
+        os.makedirs(f"pyramidtest{id}")
+        meshUpdated = self.makeMesh(vertices)
+        self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/before_pyramid", 100)
+
+        faces = np.array([[facet.PointIndices[i] for i in range(3)] for facet in self.faces])
+        print(f"Faces: {faces}")        
+
+        control_points = np.array([
+            [0, 10.0, 0],  # Corner 1
+            [10.0, 10.0, 0],   # Corner 2
+            [10.0, 0, 0],    # Corner 3
+            [0, 0, 0],   # Corner 4
+            [0, 0, 10.0]      # Top Vertex
+        ])
+
+        weights = self.compute_weights(vertices, control_points)
+
+        # Deform the mesh by updating vertex positions based on control point weights
+        deformed_vertices = np.zeros_like(vertices)
+        for i in range(len(vertices)):
+            deformed_vertices[i] = np.dot(weights[i], control_points)  
+
+            meshUpdated = self.makeMesh(deformed_vertices)
+            self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/pyramid_test_{i}", 100)
+
+        meshUpdated = self.makeMesh(deformed_vertices)
+        print(f"Making new mesh: {meshUpdated}")
+
+        print(f"New vertices: {deformed_vertices}")
+        print(f"New faces: {faces}")
+
+        self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/pyramid_test_final", 100)
+
+        return deformed_vertices, faces
     
     def saveMeshSTL(self, mesh, label, resolution, path='./'):
         """
