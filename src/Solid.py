@@ -395,53 +395,14 @@ class Box_Vector_Mesh(CADClass.CAD):
         faces = np.array([[facet.PointIndices[i] for i in range(3)] for facet in self.faces])
         print(f"Faces: {faces}")
 
-        for i in range(len(vertices)):
-            vertex = vertices[i]
-
-            # Adjust the vertex positions to form a pyramid
-            vertex[2] = vertex[2] * (1 - vertex[0]) * (1 - vertex[1])
-
-            print(f"Vertices: {vertices}")
+        # Adjust the vertices to form a pyramid
+        vertices[:-1, :] = vertices[:-1, :] * (1 - vertices[:-1, 2:])
+        vertices[-1, :] = [0.5, 0.5, 1]
 
             # meshUpdated = self.makeMesh(vertices)
             # print(f"Making new mesh: {meshUpdated}")
 
             # self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/pyramid_test_{i}", "standard")
-
-        new_faces = []
-        for face in faces:
-            v1, v2, v3 = face
-            if v3 == 3:  # Skip the top face
-                continue
-            new_faces.append([v1, v2, v3])
-
-        faces = new_faces
-
-
-        # bottom_face_indices = np.where(np.isclose(vertices[:, 2], -127.0))[0]
-        # bottom_face = faces[np.isin(faces[:, 0], bottom_face_indices)]
-        # print(f"Bottom face: {bottom_face}")
-
-        # # Calculate the center of the bottom face
-        # center = np.mean(vertices[bottom_face[:, 1:]], axis=0)
-        
-
-        # # Modify the vertices to form a pyramid
-        # for i in range(bottom_face.shape[0]):
-        #     face_index = bottom_face[i, 0]
-        #     vertex_indices = bottom_face[i, 1:]
-        #     vertices[vertex_indices] = center
-
-        #     # Update the face with the modified vertex indices
-        #     faces[face_index, 1:] = vertex_indices
-
-        #     print(f"New vertices: {vertices}")
-        #     print(f"New faces: {faces}")
-
-        #     meshUpdated = self.makeMesh(vertices)
-        #     print(f"Making new mesh: {meshUpdated}")
-
-        #     self.saveMeshSTL(meshUpdated, f"pyramid_test_{i}", "standard")
 
         meshUpdated = self.makeMesh(vertices)
         print(f"Making new mesh: {meshUpdated}")
