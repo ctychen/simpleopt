@@ -323,6 +323,8 @@ class Box_Vector(CADClass.CAD):
         print("\nWrote meshes to files")
         return
     
+
+
 class Box_Vector_Mesh(CADClass.CAD):
 
     def __init__(self, stlfile="", stpfile="", meshres=100):
@@ -369,29 +371,87 @@ class Box_Vector_Mesh(CADClass.CAD):
         newMesh = Mesh.Mesh(vertices)
         return newMesh
    
-    def makePyramidFromCube(self):
+    def makePyramidFromCube(self, id=4):
 
         print(f"Starting pyramid attempt")
 
-        # bottom face of cube is where z-coordinate of point is 0
-        bottom_face_indices = np.where(np.isclose(self.vertices[:, 2], 0))[0]
-        bottom_face = self.faces[np.isin(self.faces[:, 0], bottom_face_indices)]
+        vertices = []
 
-        print(f"Found bottom face: {bottom_face}")
+        for i in range(len(self.allmeshes[0].Facets)):
+            facet_points = self.allmeshes[0].Facets[i].Points
+            for point in facet_points:
+                vertices.append(list(point))      
 
-        center = np.mean(self.vertices[bottom_face[:, 1:]], axis=0)
+        vertices = np.array(vertices)
 
-        self.vertices[bottom_face[:, 0]] = center  # Set the center vertex
+        print(f"Vertices: {vertices}")  
+        print(type(vertices))
 
-        meshUpdated = self.makeMesh(self.vertices)
+        meshUpdated = self.makeMesh(vertices)
+
+        os.makedirs(f"pyramidtest{id}")
+        self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/before_pyramid", "standard")
+
+        faces = np.array([[facet.PointIndices[i] for i in range(3)] for facet in self.faces])
+        print(f"Faces: {faces}")
+
+        for i in range(len(vertices)):
+            vertex = vertices[i]
+
+            # Adjust the vertex positions to form a pyramid
+            vertex[2] = vertex[2] * (1 - vertex[0]) * (1 - vertex[1])
+
+            print(f"Vertices: {vertices}")
+
+            # meshUpdated = self.makeMesh(vertices)
+            # print(f"Making new mesh: {meshUpdated}")
+
+            # self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/pyramid_test_{i}", "standard")
+
+        new_faces = []
+        for face in faces:
+            v1, v2, v3 = face
+            if v3 == 3:  # Skip the top face
+                continue
+            new_faces.append([v1, v2, v3])
+
+        faces = new_faces
+
+
+        # bottom_face_indices = np.where(np.isclose(vertices[:, 2], -127.0))[0]
+        # bottom_face = faces[np.isin(faces[:, 0], bottom_face_indices)]
+        # print(f"Bottom face: {bottom_face}")
+
+        # # Calculate the center of the bottom face
+        # center = np.mean(vertices[bottom_face[:, 1:]], axis=0)
+        
+
+        # # Modify the vertices to form a pyramid
+        # for i in range(bottom_face.shape[0]):
+        #     face_index = bottom_face[i, 0]
+        #     vertex_indices = bottom_face[i, 1:]
+        #     vertices[vertex_indices] = center
+
+        #     # Update the face with the modified vertex indices
+        #     faces[face_index, 1:] = vertex_indices
+
+        #     print(f"New vertices: {vertices}")
+        #     print(f"New faces: {faces}")
+
+        #     meshUpdated = self.makeMesh(vertices)
+        #     print(f"Making new mesh: {meshUpdated}")
+
+        #     self.saveMeshSTL(meshUpdated, f"pyramid_test_{i}", "standard")
+
+        meshUpdated = self.makeMesh(vertices)
         print(f"Making new mesh: {meshUpdated}")
 
         print(f"New vertices: {self.vertices}")
         print(f"New faces: {self.faces}")
 
-        self.saveMeshSTL(meshUpdated, f"pyramid_test", "standard")
+        self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/pyramid_test_final", "standard")
 
-        return self.vertices, self.faces, meshUpdated
+        return vertices, faces, meshUpdated
     
     
     def saveMeshSTL(self, mesh, label, resolution, path='./'):

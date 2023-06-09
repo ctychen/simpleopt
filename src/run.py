@@ -85,14 +85,15 @@ class RunSetup_3DBox:
     def __init__(self):
         g_obj = lambda qvals: max(qvals) #+ qvals.count(max(qvals)) #maybe changing obj function helps??
 
-        # stpPath = "standard_test_box.step" #not rotated, starting at 0,0,0
-        stpPath = "test_box_2.step" #test_box_7.step"
+        stpPath = "standard_test_box.step" #not rotated, starting at 0,0,0
+        #stpPath = "test_box_2.step" #test_box_7.step"
 
         stlPath = " " #"box.stl"
         qDirIn = [0.0, -1.0, 0.0] #[m]
         qMagIn = 10.0 #[W/m^2]
 
-        self.box = Solid.Box_Vector(stlPath, stpPath) 
+        self.box = Solid.Box_Vector_Mesh(stlPath, stpPath)
+        #self.box = Solid.Box_Vector(stlPath, stpPath) #normally, use this one!
         self.fwd = ForwardModel.ForwardModel_Box(g_obj, self.box, qMagIn, qDirIn) 
         self.opt = OptModel.OptModel_3DRot(g_obj)
 
@@ -576,7 +577,7 @@ if __name__ == '__main__':
     """
 
     #TODO
-    
+    setup.box.makePyramidFromCube()
 
     """
     VERIFYING NORMAL VECTORS, CENTERS, OVERALL CENTER FOR APPLYING FOUND ROTATION - CHECK FOR NO OFFSETS & ETC
