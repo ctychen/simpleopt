@@ -327,7 +327,7 @@ class Box_Vector(CADClass.CAD):
 
 class Box_Vector_Mesh(CADClass.CAD):
 
-    def __init__(self, stlfile="", stpfile="", meshres=100):
+    def __init__(self, stlfile="", stpfile="", meshres=2):
         super(CADClass.CAD, self).__init__()
         self.STLfile = stlfile
         self.STPfile = stpfile
@@ -474,7 +474,7 @@ class Box_Vector_Mesh(CADClass.CAD):
         return weights
 
     #use this one for now
-    def pyramidFromCube(self, id=11):
+    def pyramidFromCube(self, id=16):
 
         print(f"Starting pyramid attempt")
 
@@ -492,7 +492,7 @@ class Box_Vector_Mesh(CADClass.CAD):
 
         os.makedirs(f"pyramidtest{id}")
         meshUpdated = self.makeMesh(vertices)
-        self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/before_pyramid", 100)
+        self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/before_pyramid", 2)
 
         faces = np.array([[facet.PointIndices[i] for i in range(3)] for facet in self.faces])
         print(f"Original faces: {faces}")    
@@ -504,7 +504,14 @@ class Box_Vector_Mesh(CADClass.CAD):
             [10.0, 0, 0],    #corner
             [0, 0, 0],   #corner
             #[0, 0, 10.0]      # Top Vertex
-            [5.0, 5.0, 10] #top vertex
+            [5.0, 5.0, 10], #top vertex
+
+            #time to define some anchors along the edges to keep the base square - midpoints of base edges
+            [5, 0, 0],
+            [10, 5, 0],
+            [5, 10, 0],
+            [0, 5, 0]
+
         ])
 
         weights = self.compute_weights(vertices, control_points)
@@ -514,7 +521,7 @@ class Box_Vector_Mesh(CADClass.CAD):
         for i in range(len(vertices)):
             deformed_vertices[i] = np.dot(weights[i], control_points)  
             meshUpdated = self.makeMesh(deformed_vertices)
-            self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/pyramid_test_{i}", 100)
+            self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/pyramid_test_{i}", 2)
 
         meshUpdated = self.makeMesh(deformed_vertices)
         print(f"Making new mesh: {meshUpdated}")
@@ -524,7 +531,7 @@ class Box_Vector_Mesh(CADClass.CAD):
         print(f"Number of new vertices: {len(deformed_vertices)}")
         #print(f"Number of new faces: {len(faces)}")
 
-        self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/pyramid_test_final", 100)
+        self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/pyramid_test_final", 2)
 
         return deformed_vertices, faces
     
