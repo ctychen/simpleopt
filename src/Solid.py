@@ -474,7 +474,7 @@ class Box_Vector_Mesh(CADClass.CAD):
         return weights
 
     #use this one for now
-    def pyramidFromCube(self, id=16):
+    def pyramidFromCube(self, id=17):
 
         print(f"Starting pyramid attempt")
 
@@ -518,10 +518,13 @@ class Box_Vector_Mesh(CADClass.CAD):
 
         # Deform the mesh by updating vertex positions based on control point weights
         deformed_vertices = np.zeros_like(vertices)
+        count = 0
         for i in range(len(vertices)):
             deformed_vertices[i] = np.dot(weights[i], control_points)  
             meshUpdated = self.makeMesh(deformed_vertices)
-            self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/pyramid_test_{i}", 2)
+            if count % 12 == 0: 
+                self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/pyramid_test_{i}", 2)
+            count += 1
 
         meshUpdated = self.makeMesh(deformed_vertices)
         print(f"Making new mesh: {meshUpdated}")
