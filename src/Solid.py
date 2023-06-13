@@ -383,7 +383,7 @@ class Box_Vector_Mesh(CADClass.CAD):
         # Add base vertices to the control points
         controlPoints = [vertices[i] for i in base_indices]
         edge_indices.update(base_indices)
-        controlPoints.append(top_vertex)
+        #controlPoints.append(top_vertex)
 
         # Iterate over all edges of the cube
         for i, vertex in enumerate(vertices):
@@ -391,6 +391,10 @@ class Box_Vector_Mesh(CADClass.CAD):
                 # Check if the edge is already considered
                 if i in edge_indices or j in edge_indices:
                     continue
+
+                # if vertex[2] == 0.0: 
+                #     if vertex[0] == 0.0 or vertex[0] == 10.0 or vertex[1] == 0.0 or vertex[1] == 10.0:
+                #         controlPoints.append(vertex)
 
                 # Check if the edge is parallel to x or y-axis (straight line)
                 if vertex[0] == vertices[j][0] or vertex[1] == vertices[j][1]:
@@ -405,17 +409,26 @@ class Box_Vector_Mesh(CADClass.CAD):
         return np.array(controlPoints)
 
     #for attempt at control-point-based process
-    def compute_weights(self, vertices, controlPoints, base_indices):
+    def compute_weights(self, vertices, controlPoints):#, base_indices):
         distances = np.linalg.norm(vertices[:, np.newaxis] - controlPoints, axis=2)
         inv_distances = np.reciprocal(distances, where=distances != 0)
         weights = inv_distances / np.sum(inv_distances, axis=1, keepdims=True)
+
         #want to force base points to stay the same for the pyramid so the weight should be 0
-        weights[base_indices] = 0.0
+
+        for i in range(len(vertices)):
+            #print(vertices[i][2])
+            if vertices[i][2] == 0.0:
+                #print(f"control point: {vertices[i]}")
+                weights[i] = 0.0
+
+        #base points need to be the same. so we have controlpoints that correspond to the points
+        #otherwise, i think it should be if z=0 then weight=0 to keep the same base, which is why ^ 
         
         return weights
 
     #use this one for now
-    def pyramidFromCube(self, id=27):
+    def pyramidFromCube(self, id=32):
 
         print(f"Starting pyramid attempt")
 
@@ -447,23 +460,31 @@ class Box_Vector_Mesh(CADClass.CAD):
             [5.0, 5.0, 10.0], #top vertex
         ])
 
-        baseIndices = self.findBaseIndices(vertices, 0.0, 0.01)
+        #baseIndices = self.findBaseIndices(vertices, 0.0, 0.01)
 
-        print(f"Base indices: {baseIndices}")
+        #baseIndices = [0] #todo: this is maybe not needed 
 
-        edgePoints = self.findEdgePoints(vertices, baseIndices, [5.0, 5.0, 10.0])
+        # print(f"Base indices: {baseIndices}")
 
-        print(f"Edge points: {edgePoints}")
-        print(f"Type of edge points: {type(edgePoints)}")
+        #edgePoints = self.findEdgePoints(vertices, baseIndices, [5.0, 5.0, 10.0])
 
-        for point in edgePoints: 
-            controlPoints = np.vstack((controlPoints, point))
+        # print(f"Edge points: {edgePoints}")
+        # print(f"Type of edge points: {type(edgePoints)}")
+
+        for vertex in vertices:
+            if vertex[2] == 0.0: 
+                    if vertex[0] == 0.0 or vertex[0] == 10.0 or vertex[1] == 0.0 or vertex[1] == 10.0:
+                        controlPoints = np.vstack((controlPoints, vertex))
+
+        # for point in edgePoints: 
+        #     controlPoints = np.vstack((controlPoints, point))
 
         print(f"Control points: {controlPoints}")
 
         #controlPoints = np.append(controlPoints, edgePoints)
 
-        weights = self.compute_weights(vertices, controlPoints, baseIndices)
+        weights = self.compute_weights(vertices, controlPoints)
+        # weights = self.compute_weights(vertices, controlPoints)
 
         #change vertex positions based on calculated control point weights iteratively, 
         deformedVertices = np.zeros_like(vertices)
@@ -473,9 +494,9 @@ class Box_Vector_Mesh(CADClass.CAD):
             vertices[i] = np.dot(weights[i], controlPoints) 
             meshUpdated = self.makeMesh(deformedVertices)
             mesh2 = self.makeMesh(vertices)
-            if count % 500== 0: 
-                self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/pyramid_test_00{count/500}", self.meshres)
-                self.saveMeshSTL(mesh2, f"pyramidtest{id}/pyramid_test_updatingvertex_00{count/500}", self.meshres)
+            if count % 200== 0: 
+                self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/pyramid_test_00{count/200}", self.meshres)
+                self.saveMeshSTL(mesh2, f"pyramidtest{id}/pyramid_test_updatingvertex_00{count/200}", self.meshres)
             count += 1
 
         meshUpdated = self.makeMesh(deformedVertices)
