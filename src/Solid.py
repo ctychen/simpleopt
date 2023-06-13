@@ -327,11 +327,13 @@ class Box_Vector(CADClass.CAD):
 
 class Box_Vector_Mesh(CADClass.CAD):
 
-    def __init__(self, stlfile="", stpfile="", meshres=2):
+    def __init__(self, stlfile="", stpfile="", meshres=1.0):
         super(CADClass.CAD, self).__init__()
         self.STLfile = stlfile
         self.STPfile = stpfile
         self.parts = self.loadSTEP()
+
+        self.meshres = meshres
 
         self.allmeshes = self.part2mesh(self.CADparts, meshres)
         # self.allmeshes = self.part2meshStandard(self.CADparts)
@@ -370,101 +372,6 @@ class Box_Vector_Mesh(CADClass.CAD):
 
         newMesh = Mesh.Mesh(vertices)
         return newMesh
-   
-   #this one was prev attempts
-    # def makePyramidFromCube(self, id=9):
-
-    #     print(f"Starting pyramid attempt")
-
-    #     vertices = []
-
-    #     for i in range(len(self.allmeshes[0].Facets)):
-    #         facet_points = self.allmeshes[0].Facets[i].Points
-    #         for point in facet_points:
-    #             vertices.append(list(point))      
-
-    #     vertices = np.array(vertices)
-
-    #     print(f"Vertices: {vertices}")  
-    #     print(type(vertices))
-
-    #     os.makedirs(f"pyramidtest{id}")
-    #     meshUpdated = self.makeMesh(vertices)
-    #     self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/before_pyramid", "standard")
-
-    #     faces = np.array([[facet.PointIndices[i] for i in range(3)] for facet in self.faces])
-    #     print(f"Faces: {faces}")
-
-    #     # base_facets = []
-    #     # for facet in faces:
-    #     #     if np.count_nonzero(np.isclose(vertices[facet][:, 2], -127.0)) == 3:
-    #     #         base_facets.append(facet)
-    #     # base_facets = np.array(base_facets)
-
-    #     # Identify the bottom face of the cube
-    #     bottom_face_indices = np.where(np.isclose(vertices[:, 2], 0))[0] #it's -127.0 right now bc that's the cube placement, but that should be standardized
-    #     bottom_face = faces[np.isin(faces[:, 0], bottom_face_indices)]
-
-    #     # Calculate the center of the bottom face
-    #     center = np.mean(vertices[bottom_face[:, 1:]], axis=0)
-
-    #     # Modify the vertices to form a pyramid
-    #     for i in range(bottom_face.shape[0]):
-    #         face_index = bottom_face[i, 0]
-    #         vertex_indices = bottom_face[i, 1:]
-    #         vertices[vertex_indices] = center
-
-    #         # Update the face with the modified vertex indices
-    #         faces[face_index, 1:] = vertex_indices
-    #         meshUpdated = self.makeMesh(vertices)
-    #         print(f"Making new mesh: {meshUpdated}")
-
-    #         print(f"New vertices: {vertices}")
-    #         print(f"New faces: {faces}")
-
-    #         self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/pyramid_test_{i}", "standard")
-
-    #     # # Calculate the center of the bottom face
-    #     # center = [sum(vertices[idx][i] for idx in bottom_face[0]) / 3 for i in range(3)]
-
-    #     # # Create a mapping of old vertices to new vertices
-    #     # vertex_map = {idx: idx for idx in range(len(vertices))}
-
-    #     # # Modify the vertices to form a pyramid
-    #     # count = 0
-    #     # for face in bottom_face:
-    #     #     for idx in face:
-    #     #         if vertices[idx][2] != 0:
-    #     #             vertices[idx] = center
-    #     #             vertex_map[idx] = len(vertices)
-            
-    #     #     meshUpdated = self.makeMesh(vertices)
-    #     #     print(f"Making new mesh: {meshUpdated}")
-
-    #     #     print(f"New vertices: {vertices}")
-    #     #     print(f"New faces: {faces}")
-
-    #     #     self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/pyramid_test_{count}", "standard")
-    #     #     count += 1
-            
-
-    #     # Create a new list of modified faces with updated vertex indices
-    #     # new_faces = []
-    #     # for face in faces:
-    #     #     new_face = [vertex_map[idx] for idx in face]
-    #     #     new_faces.append(new_face)
-
-    #     # faces = new_faces
-
-    #     meshUpdated = self.makeMesh(vertices)
-    #     print(f"Making new mesh: {meshUpdated}")
-
-    #     print(f"New vertices: {vertices}")
-    #     print(f"New faces: {faces}")
-
-    #     self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/pyramid_test_final", "standard")
-
-    #     return vertices, faces, meshUpdated
     
     #for attempt at control-point-based process
     def compute_weights(self, vertices, control_points):
@@ -474,7 +381,7 @@ class Box_Vector_Mesh(CADClass.CAD):
         return weights
 
     #use this one for now
-    def pyramidFromCube(self, id=17):
+    def pyramidFromCube(self, id=23):
 
         print(f"Starting pyramid attempt")
 
@@ -492,38 +399,97 @@ class Box_Vector_Mesh(CADClass.CAD):
 
         os.makedirs(f"pyramidtest{id}")
         meshUpdated = self.makeMesh(vertices)
-        self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/before_pyramid", 2)
+        self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/before_pyramid", self.meshres)
 
         faces = np.array([[facet.PointIndices[i] for i in range(3)] for facet in self.faces])
         print(f"Original faces: {faces}")    
         print(f"Number of faces: {faces.shape}")    
 
         control_points = np.array([
-            [0, 10.0, 0],  #corner
-            [10.0, 10.0, 0],   #corner
-            [10.0, 0, 0],    #corner
-            [0, 0, 0],   #corner
-            #[0, 0, 10.0]      # Top Vertex
-            [5.0, 5.0, 10], #top vertex
+            [0, 10.0, 0],  #corner 3
+            [10.0, 10.0, 0],   #corner 2
+            [10.0, 0, 0],    #corner 1 
+            [0, 0, 0],   #corner 0 
+            [5.0, 5.0, 10.0], #top vertex
 
-            #time to define some anchors along the edges to keep the base square - midpoints of base edges
-            [5, 0, 0],
-            [10, 5, 0],
-            [5, 10, 0],
-            [0, 5, 0]
+            #defining anchors for bottom face edges
+            # [5, 0, 0],
+            # [3, 0, 0],
+            # [8, 0, 0],
+            # [10, 5, 0],
+            # [10, 3, 0],
+            # [10, 8, 0],
+            # [5, 10, 0],
+            # [3, 10, 0],
+            # [8, 10, 0],
+            # [0, 5, 0],
+            # [0, 3, 0],
+            # [0, 8, 0],
 
+            #defining diagonals
+            #diag from (0,0,0)
+            # [5*0.2, 5*0.2, 10*0.2],
+            # [5*0.4, 5*0.4, 10*0.4],
+            # [5*0.6, 5*0.6, 10*0.6],
+            # [5*0.8, 5*0.8, 10*0.8],
+            #diag from (0,10,0)
+            # [5*0.2, 10-5*0.2, 10*0.2],
+            # [5*0.4, 10-5*0.4, 10*0.4],
+            # [5*0.6, 10-5*0.6, 10*0.6],
+            # [5*0.8, 10-5*0.8, 10*0.8],
+            #diag from (10,0,0)
+            # [10-5*0.2, 5*0.2, 10*0.2],
+            # [10-5*0.4, 5*0.4, 10*0.4],
+            # [10-5*0.6, 5*0.6, 10*0.6],
+            # [10-5*0.8, 5*0.8, 10*0.8],
+            #diag from (10, 10, 0)
+            # [10-5*0.2, 10-5*0.2, 10*0.2],
+            # [10-5*0.4, 10-5*0.4, 10*0.4],
+            # [10-5*0.6, 10-5*0.6, 10*0.6],
+            # [10-5*0.8, 10-5*0.8, 10*0.8],
+
+            #frustum centers?
+            [1.94, 8.06, 5],
+            [1.94, 1.94, 5],
+            [8.06, 8.06, 5],
+            [8.06, 1.94, 5],
+
+            #diagonals from face centers
+            # #diag0
+            # [5, 5*0.2, 10*0.2],
+            # [5, 5*0.4, 10*0.4],
+            # [5, 5*0.6, 10*0.6],
+            # [5, 5*0.8, 10*0.8],
+            # #diag1
+            # [10-5*0.2, 5, 10*0.2],
+            # [10-5*0.4, 5, 10*0.4],
+            # [10-5*0.6, 5, 10*0.6],
+            # [10-5*0.8, 5, 10*0.8],
+            # #diag2
+            # [5, 10-5*0.2, 10*0.2],
+            # [5, 10-5*0.4, 10*0.4],
+            # [5, 10-5*0.6, 10*0.6],
+            # [5, 10-5*0.8, 10*0.8],
+            # #diag3  
+            # [5*0.2, 5, 10*0.2],
+            # [5*0.4, 5, 10*0.4],
+            # [5*0.6, 5, 10*0.6],
+            # [5*0.8, 5, 10*0.8],
         ])
 
         weights = self.compute_weights(vertices, control_points)
 
         # Deform the mesh by updating vertex positions based on control point weights
         deformed_vertices = np.zeros_like(vertices)
-        count = 0
+        count = 1
         for i in range(len(vertices)):
             deformed_vertices[i] = np.dot(weights[i], control_points)  
+            vertices[i] = np.dot(weights[i], control_points) 
             meshUpdated = self.makeMesh(deformed_vertices)
-            if count % 12 == 0: 
-                self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/pyramid_test_{i}", 2)
+            mesh2 = self.makeMesh(vertices)
+            if count % 500== 0: 
+                self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/pyramid_test_00{count/500}", self.meshres)
+                self.saveMeshSTL(mesh2, f"pyramidtest{id}/pyramid_test_updatingvertex_00{count/500}", self.meshres)
             count += 1
 
         meshUpdated = self.makeMesh(deformed_vertices)
@@ -534,7 +500,7 @@ class Box_Vector_Mesh(CADClass.CAD):
         print(f"Number of new vertices: {len(deformed_vertices)}")
         #print(f"Number of new faces: {len(faces)}")
 
-        self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/pyramid_test_final", 2)
+        self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/pyramid_test_final", self.meshres)
 
         return deformed_vertices, faces
     
