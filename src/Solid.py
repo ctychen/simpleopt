@@ -327,7 +327,7 @@ class Box_Vector(CADClass.CAD):
 
 class Box_Vector_Mesh(CADClass.CAD):
 
-    def __init__(self, stlfile="", stpfile="", meshres=1.0):
+    def __init__(self, stlfile="", stpfile="", meshres=2.0):
         super(CADClass.CAD, self).__init__()
         self.STLfile = stlfile
         self.STPfile = stpfile
@@ -342,9 +342,9 @@ class Box_Vector_Mesh(CADClass.CAD):
 
         self.faces = np.array(self.allmeshes[0].Facets)
 
-        print(f"Vertices: {self.vertices}")
+        # print(f"Vertices: {self.vertices}")
 
-        print(f"Faces: {self.faces}")
+        # print(f"Faces: {self.faces}")
 
         # self.allmeshes = self.part2meshStandard(self.CADparts) #self.part2mesh(self.CADparts, meshres) #this returns a list of meshes - replaced self.meshes but name confusion
         # self.mesh = self.allmeshes[0] #this is a meshobject
@@ -373,15 +373,49 @@ class Box_Vector_Mesh(CADClass.CAD):
         newMesh = Mesh.Mesh(vertices)
         return newMesh
     
+    def findBaseIndices(self, vertices, base_plane_z, tolerance):
+        base_indices = np.where(np.abs(vertices[:, 2] - base_plane_z) < tolerance)[0]
+        return base_indices
+    
+    def findEdgePoints(self, vertices, base_indices, top_vertex):
+        edge_indices = set()
+
+        # Add base vertices to the control points
+        controlPoints = [vertices[i] for i in base_indices]
+        edge_indices.update(base_indices)
+        controlPoints.append(top_vertex)
+
+        # Iterate over all edges of the cube
+        for i, vertex in enumerate(vertices):
+            for j in range(i+1, len(vertices)):
+                # Check if the edge is already considered
+                if i in edge_indices or j in edge_indices:
+                    continue
+
+                # Check if the edge is parallel to x or y-axis (straight line)
+                if vertex[0] == vertices[j][0] or vertex[1] == vertices[j][1]:
+                    # Add control points on the edge
+                    controlPoints.append(vertex)
+                    controlPoints.append(vertices[j])
+
+                    # Mark the edge indices as considered
+                    edge_indices.add(i)
+                    edge_indices.add(j)
+
+        return np.array(controlPoints)
+
     #for attempt at control-point-based process
-    def compute_weights(self, vertices, control_points):
-        distances = np.linalg.norm(vertices[:, np.newaxis] - control_points, axis=2)
+    def compute_weights(self, vertices, controlPoints, base_indices):
+        distances = np.linalg.norm(vertices[:, np.newaxis] - controlPoints, axis=2)
         inv_distances = np.reciprocal(distances, where=distances != 0)
         weights = inv_distances / np.sum(inv_distances, axis=1, keepdims=True)
+        #want to force base points to stay the same for the pyramid so the weight should be 0
+        weights[base_indices] = 0.0
+        
         return weights
 
     #use this one for now
-    def pyramidFromCube(self, id=23):
+    def pyramidFromCube(self, id=27):
 
         print(f"Starting pyramid attempt")
 
@@ -394,7 +428,7 @@ class Box_Vector_Mesh(CADClass.CAD):
 
         vertices = np.array(vertices)
 
-        print(f"Original vertices: {vertices}")  
+        # print(f"Original vertices: {vertices}")  
         print(f"Number of vertices: {len(vertices)}")
 
         os.makedirs(f"pyramidtest{id}")
@@ -402,107 +436,59 @@ class Box_Vector_Mesh(CADClass.CAD):
         self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/before_pyramid", self.meshres)
 
         faces = np.array([[facet.PointIndices[i] for i in range(3)] for facet in self.faces])
-        print(f"Original faces: {faces}")    
+        # print(f"Original faces: {faces}")    
         print(f"Number of faces: {faces.shape}")    
 
-        control_points = np.array([
+        controlPoints = np.array([
             [0, 10.0, 0],  #corner 3
             [10.0, 10.0, 0],   #corner 2
             [10.0, 0, 0],    #corner 1 
             [0, 0, 0],   #corner 0 
             [5.0, 5.0, 10.0], #top vertex
-
-            #defining anchors for bottom face edges
-            # [5, 0, 0],
-            # [3, 0, 0],
-            # [8, 0, 0],
-            # [10, 5, 0],
-            # [10, 3, 0],
-            # [10, 8, 0],
-            # [5, 10, 0],
-            # [3, 10, 0],
-            # [8, 10, 0],
-            # [0, 5, 0],
-            # [0, 3, 0],
-            # [0, 8, 0],
-
-            #defining diagonals
-            #diag from (0,0,0)
-            # [5*0.2, 5*0.2, 10*0.2],
-            # [5*0.4, 5*0.4, 10*0.4],
-            # [5*0.6, 5*0.6, 10*0.6],
-            # [5*0.8, 5*0.8, 10*0.8],
-            #diag from (0,10,0)
-            # [5*0.2, 10-5*0.2, 10*0.2],
-            # [5*0.4, 10-5*0.4, 10*0.4],
-            # [5*0.6, 10-5*0.6, 10*0.6],
-            # [5*0.8, 10-5*0.8, 10*0.8],
-            #diag from (10,0,0)
-            # [10-5*0.2, 5*0.2, 10*0.2],
-            # [10-5*0.4, 5*0.4, 10*0.4],
-            # [10-5*0.6, 5*0.6, 10*0.6],
-            # [10-5*0.8, 5*0.8, 10*0.8],
-            #diag from (10, 10, 0)
-            # [10-5*0.2, 10-5*0.2, 10*0.2],
-            # [10-5*0.4, 10-5*0.4, 10*0.4],
-            # [10-5*0.6, 10-5*0.6, 10*0.6],
-            # [10-5*0.8, 10-5*0.8, 10*0.8],
-
-            #frustum centers?
-            [1.94, 8.06, 5],
-            [1.94, 1.94, 5],
-            [8.06, 8.06, 5],
-            [8.06, 1.94, 5],
-
-            #diagonals from face centers
-            # #diag0
-            # [5, 5*0.2, 10*0.2],
-            # [5, 5*0.4, 10*0.4],
-            # [5, 5*0.6, 10*0.6],
-            # [5, 5*0.8, 10*0.8],
-            # #diag1
-            # [10-5*0.2, 5, 10*0.2],
-            # [10-5*0.4, 5, 10*0.4],
-            # [10-5*0.6, 5, 10*0.6],
-            # [10-5*0.8, 5, 10*0.8],
-            # #diag2
-            # [5, 10-5*0.2, 10*0.2],
-            # [5, 10-5*0.4, 10*0.4],
-            # [5, 10-5*0.6, 10*0.6],
-            # [5, 10-5*0.8, 10*0.8],
-            # #diag3  
-            # [5*0.2, 5, 10*0.2],
-            # [5*0.4, 5, 10*0.4],
-            # [5*0.6, 5, 10*0.6],
-            # [5*0.8, 5, 10*0.8],
         ])
 
-        weights = self.compute_weights(vertices, control_points)
+        baseIndices = self.findBaseIndices(vertices, 0.0, 0.01)
 
-        # Deform the mesh by updating vertex positions based on control point weights
-        deformed_vertices = np.zeros_like(vertices)
+        print(f"Base indices: {baseIndices}")
+
+        edgePoints = self.findEdgePoints(vertices, baseIndices, [5.0, 5.0, 10.0])
+
+        print(f"Edge points: {edgePoints}")
+        print(f"Type of edge points: {type(edgePoints)}")
+
+        for point in edgePoints: 
+            controlPoints = np.vstack((controlPoints, point))
+
+        print(f"Control points: {controlPoints}")
+
+        #controlPoints = np.append(controlPoints, edgePoints)
+
+        weights = self.compute_weights(vertices, controlPoints, baseIndices)
+
+        #change vertex positions based on calculated control point weights iteratively, 
+        deformedVertices = np.zeros_like(vertices)
         count = 1
         for i in range(len(vertices)):
-            deformed_vertices[i] = np.dot(weights[i], control_points)  
-            vertices[i] = np.dot(weights[i], control_points) 
-            meshUpdated = self.makeMesh(deformed_vertices)
+            deformedVertices[i] = np.dot(weights[i], controlPoints)  
+            vertices[i] = np.dot(weights[i], controlPoints) 
+            meshUpdated = self.makeMesh(deformedVertices)
             mesh2 = self.makeMesh(vertices)
             if count % 500== 0: 
                 self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/pyramid_test_00{count/500}", self.meshres)
                 self.saveMeshSTL(mesh2, f"pyramidtest{id}/pyramid_test_updatingvertex_00{count/500}", self.meshres)
             count += 1
 
-        meshUpdated = self.makeMesh(deformed_vertices)
+        meshUpdated = self.makeMesh(deformedVertices)
         print(f"Making new mesh: {meshUpdated}")
 
-        print(f"New vertices: {deformed_vertices}")
+        print(f"New vertices: {deformedVertices}")
         #print(f"New faces: {faces}")
-        print(f"Number of new vertices: {len(deformed_vertices)}")
+        print(f"Number of new vertices: {len(deformedVertices)}")
         #print(f"Number of new faces: {len(faces)}")
 
         self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/pyramid_test_final", self.meshres)
 
-        return deformed_vertices, faces
+        return deformedVertices, faces
     
     def saveMeshSTL(self, mesh, label, resolution, path='./'):
         """
