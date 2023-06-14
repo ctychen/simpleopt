@@ -342,27 +342,9 @@ class Box_Vector_Mesh(CADClass.CAD):
 
         self.faces = np.array(self.allmeshes[0].Facets)
 
-        print(f"Vertices: {self.vertices}")
+        # print(f"Vertices: {self.vertices}")
 
-        print(f"Faces: {self.faces}")
-
-        # self.allmeshes = self.part2meshStandard(self.CADparts) #self.part2mesh(self.CADparts, meshres) #this returns a list of meshes - replaced self.meshes but name confusion
-        # self.mesh = self.allmeshes[0] #this is a meshobject
-        #print(f"Mesh: {self.mesh}")
-
-        # self.meshPoints = np.array(self.allmeshes[0].Points)
-
-        # self.verticesFromFacets = []
-
-        # for i in range(len(self.allmeshes[0].Facets)):
-        #     facet_points = self.allmeshes[0].Facets[i].Points
-        #     for point in facet_points:
-        #         self.verticesFromFacets.append(list(point))
-        
-        # print(f"Vertices from facets: {self.verticesFromFacets}")
-        # print(f"Length of vertices from points: {len(self.verticesFromFacets)}")
-
-        # self.initial_rotation = self.getCurrentRotationAngles()
+        # print(f"Faces: {self.faces}")
 
         return
 
@@ -411,70 +393,6 @@ class Box_Vector_Mesh(CADClass.CAD):
             [10.0, 0, 0],    #corner 1 
             [0, 0, 0],   #corner 0 
             [5.0, 5.0, 10.0], #top vertex
-
-            #defining anchors for bottom face edges
-            # [5, 0, 0],
-            # [3, 0, 0],
-            # [8, 0, 0],
-            # [10, 5, 0],
-            # [10, 3, 0],
-            # [10, 8, 0],
-            # [5, 10, 0],
-            # [3, 10, 0],
-            # [8, 10, 0],
-            # [0, 5, 0],
-            # [0, 3, 0],
-            # [0, 8, 0],
-
-            #defining diagonals
-            #diag from (0,0,0)
-            # [5*0.2, 5*0.2, 10*0.2],
-            # [5*0.4, 5*0.4, 10*0.4],
-            # [5*0.6, 5*0.6, 10*0.6],
-            # [5*0.8, 5*0.8, 10*0.8],
-            #diag from (0,10,0)
-            # [5*0.2, 10-5*0.2, 10*0.2],
-            # [5*0.4, 10-5*0.4, 10*0.4],
-            # [5*0.6, 10-5*0.6, 10*0.6],
-            # [5*0.8, 10-5*0.8, 10*0.8],
-            #diag from (10,0,0)
-            # [10-5*0.2, 5*0.2, 10*0.2],
-            # [10-5*0.4, 5*0.4, 10*0.4],
-            # [10-5*0.6, 5*0.6, 10*0.6],
-            # [10-5*0.8, 5*0.8, 10*0.8],
-            #diag from (10, 10, 0)
-            # [10-5*0.2, 10-5*0.2, 10*0.2],
-            # [10-5*0.4, 10-5*0.4, 10*0.4],
-            # [10-5*0.6, 10-5*0.6, 10*0.6],
-            # [10-5*0.8, 10-5*0.8, 10*0.8],
-
-            #frustum centers?
-            [1.94, 8.06, 5],
-            [1.94, 1.94, 5],
-            [8.06, 8.06, 5],
-            [8.06, 1.94, 5],
-
-            #diagonals from face centers
-            # #diag0
-            # [5, 5*0.2, 10*0.2],
-            # [5, 5*0.4, 10*0.4],
-            # [5, 5*0.6, 10*0.6],
-            # [5, 5*0.8, 10*0.8],
-            # #diag1
-            # [10-5*0.2, 5, 10*0.2],
-            # [10-5*0.4, 5, 10*0.4],
-            # [10-5*0.6, 5, 10*0.6],
-            # [10-5*0.8, 5, 10*0.8],
-            # #diag2
-            # [5, 10-5*0.2, 10*0.2],
-            # [5, 10-5*0.4, 10*0.4],
-            # [5, 10-5*0.6, 10*0.6],
-            # [5, 10-5*0.8, 10*0.8],
-            # #diag3  
-            # [5*0.2, 5, 10*0.2],
-            # [5*0.4, 5, 10*0.4],
-            # [5*0.6, 5, 10*0.6],
-            # [5*0.8, 5, 10*0.8],
         ])
 
         weights = self.compute_weights(vertices, control_points)
@@ -487,9 +405,9 @@ class Box_Vector_Mesh(CADClass.CAD):
             vertices[i] = np.dot(weights[i], control_points) 
             meshUpdated = self.makeMesh(deformed_vertices)
             mesh2 = self.makeMesh(vertices)
-            if count % 500== 0: 
-                self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/pyramid_test_00{count/500}", self.meshres)
-                self.saveMeshSTL(mesh2, f"pyramidtest{id}/pyramid_test_updatingvertex_00{count/500}", self.meshres)
+            if count % 200== 0: 
+                self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/pyramid_test_00{count/200}", self.meshres)
+                self.saveMeshSTL(mesh2, f"pyramidtest{id}/pyramid_test_updatingvertex_00{count/200}", self.meshres)
             count += 1
 
         meshUpdated = self.makeMesh(deformed_vertices)
