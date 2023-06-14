@@ -377,7 +377,7 @@ class Box_Vector_Mesh(CADClass.CAD):
         base_indices = np.where(np.abs(vertices[:, 2] - base_plane_z) < tolerance)[0]
         return base_indices
     
-    def findEdgePoints(self, vertices, base_indices, top_vertex):
+    def findEdgePoints(self, vertices, base_indices):
         edge_indices = set()
 
         # Add base vertices to the control points
@@ -392,15 +392,12 @@ class Box_Vector_Mesh(CADClass.CAD):
                 if i in edge_indices or j in edge_indices:
                     continue
 
-                # if vertex[2] == 0.0: 
-                #     if vertex[0] == 0.0 or vertex[0] == 10.0 or vertex[1] == 0.0 or vertex[1] == 10.0:
-                #         controlPoints.append(vertex)
-
                 # Check if the edge is parallel to x or y-axis (straight line)
-                if vertex[0] == vertices[j][0] or vertex[1] == vertices[j][1]:
+                if (vertex[0] == vertices[j][0] or vertex[1] == vertices[j][1]) and vertex[2] == 0.0 and vertex[j][2] == 0.0:
+                    if vertex[0] == 0.0 or vertex[0] == 10.0 or vertex[1] == 0.0 or vertex[1] == 10.0: 
                     # Add control points on the edge
-                    controlPoints.append(vertex)
-                    controlPoints.append(vertices[j])
+                        controlPoints.append(vertex)
+                        controlPoints.append(vertices[j])
 
                     # Mark the edge indices as considered
                     edge_indices.add(i)
@@ -416,19 +413,13 @@ class Box_Vector_Mesh(CADClass.CAD):
 
         #want to force base points to stay the same for the pyramid so the weight should be 0
 
-        for i in range(len(vertices)):
-            #print(vertices[i][2])
-            if vertices[i][2] == 0.0:
-                #print(f"control point: {vertices[i]}")
-                weights[i] = 0.0
-
         #base points need to be the same. so we have controlpoints that correspond to the points
         #otherwise, i think it should be if z=0 then weight=0 to keep the same base, which is why ^ 
         
         return weights
 
     #use this one for now
-    def pyramidFromCube(self, id=32):
+    def pyramidFromCube(self, id=34):
 
         print(f"Starting pyramid attempt")
 
@@ -453,31 +444,26 @@ class Box_Vector_Mesh(CADClass.CAD):
         print(f"Number of faces: {faces.shape}")    
 
         controlPoints = np.array([
-            [0, 10.0, 0],  #corner 3
-            [10.0, 10.0, 0],   #corner 2
-            [10.0, 0, 0],    #corner 1 
-            [0, 0, 0],   #corner 0 
+            # [0, 10.0, 0],  #corner 3
+            # [10.0, 10.0, 0],   #corner 2
+            # [10.0, 0, 0],    #corner 1 
+            # [0, 0, 0],   #corner 0 
             [5.0, 5.0, 10.0], #top vertex
         ])
 
-        #baseIndices = self.findBaseIndices(vertices, 0.0, 0.01)
+        baseIndices = self.findBaseIndices(vertices, 0.0, 0.01)
 
         #baseIndices = [0] #todo: this is maybe not needed 
 
         # print(f"Base indices: {baseIndices}")
 
-        #edgePoints = self.findEdgePoints(vertices, baseIndices, [5.0, 5.0, 10.0])
+        edgePoints = self.findEdgePoints(vertices, baseIndices)
 
         # print(f"Edge points: {edgePoints}")
         # print(f"Type of edge points: {type(edgePoints)}")
 
-        for vertex in vertices:
-            if vertex[2] == 0.0: 
-                    if vertex[0] == 0.0 or vertex[0] == 10.0 or vertex[1] == 0.0 or vertex[1] == 10.0:
-                        controlPoints = np.vstack((controlPoints, vertex))
-
-        # for point in edgePoints: 
-        #     controlPoints = np.vstack((controlPoints, point))
+        for point in edgePoints: 
+            controlPoints = np.vstack((controlPoints, point))
 
         print(f"Control points: {controlPoints}")
 
