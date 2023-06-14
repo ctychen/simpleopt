@@ -327,7 +327,7 @@ class Box_Vector(CADClass.CAD):
 
 class Box_Vector_Mesh(CADClass.CAD):
 
-    def __init__(self, stlfile="", stpfile="", meshres=2.0):
+    def __init__(self, stlfile="", stpfile="", meshres=1.0):
         super(CADClass.CAD, self).__init__()
         self.STLfile = stlfile
         self.STPfile = stpfile
@@ -363,19 +363,22 @@ class Box_Vector_Mesh(CADClass.CAD):
     
     #for attempt at control-point-based process
     def compute_weights(self, vertices, control_points):
+
         distances = np.linalg.norm(vertices[:, np.newaxis] - control_points, axis=2)
         inv_distances = np.reciprocal(distances, where=distances != 0)
         weights = inv_distances / np.sum(inv_distances, axis=1, keepdims=True)
-        #in theory this should ensure the weight is 0 for verticesthat are control points 
+
         for i in range(len(vertices)): 
             #the points shouldn't move if the vertex's z coordinate is 0 (it's on the base), or if it's the control point
             #but at the same time we don't necessarily want every base-point to be a control point bc as shown that leads to weird behaviors
-            #if self.isControlPoint(vertices[i], control_points) or (vertices[i][2] < 0.1) or (np.abs(vertices[i][1] - 5.0) < 0.1 and np.abs(vertices[i][0] - 5.0) < 0.1 and np.abs(vertices[i][2] - 10.0) < 0.1): 
-            # if vertices[i][2] == 0.0:
+            #so we set the weight to 1.0 for some vertex's weights if we don't want the corresponding control point affecting it 
             if self.isControlPoint(vertices[i], control_points) or (vertices[i][2] < 0.1):
-                print(f"Vertex {i} shouldn't move: {vertices[i]}")
+                print(f"Vertex shouldn't move: {vertices[i]}")
                 weights[i] = 1.0
         
+        #we also know we want the point closest to the top vertex that will exist, to stay near the top vertex
+        #otherwise we won't have a point that stays there, which is how we ended up with the shape changing dimensions
+        #so knowing the top vertex, we look for the closest point, and then set the weights for that corresponding point to 1.0
         top_vertex = np.array([5.0, 5.0, 10.0])
         closestToTop = np.argmin(np.linalg.norm(vertices - top_vertex, axis=1))
         weights[closestToTop] = 1.0
@@ -383,7 +386,7 @@ class Box_Vector_Mesh(CADClass.CAD):
         return weights
 
     #use this one for now
-    def pyramidFromCube(self, id='003'):
+    def pyramidFromCube(self, id='004'):
 
         print(f"Starting pyramid attempt")
 
@@ -396,8 +399,8 @@ class Box_Vector_Mesh(CADClass.CAD):
 
         vertices = np.array(vertices)
 
-        print(f"Original vertices: {vertices}")  
-        print(f"Number of vertices: {len(vertices)}")
+        # print(f"Original vertices: {vertices}")  
+        # print(f"Number of vertices: {len(vertices)}")
 
         os.makedirs(f"pyramidtest{id}")
         meshUpdated = self.makeMesh(vertices)
@@ -416,17 +419,16 @@ class Box_Vector_Mesh(CADClass.CAD):
         ])
 
         weights = self.compute_weights(vertices, control_points)
-        print(f"Weights: {weights}")
-        print(f"Weights individual: {weights[0]}")
+        # print(f"Weights: {weights}")
+        # print(f"Weights individual: {weights[0]}")
 
-        # Deform the mesh by updating vertex positions based on control point weights
-        #deformed_vertices = np.zeros_like(vertices)
         count = 1
 
         deformed_vertices = vertices.copy()
         for i in range(len(vertices)):
 
             #shouldn't move the vertex if it's close enough to a control point
+            #we previously set weights=1.0 for vertices where we don't want the corresponding control points to affect it
             if np.all(weights[i] != 1.0):
                 deformed_vertices[i] = np.dot(weights[i], control_points)
                 vertices[i] = np.dot(weights[i], control_points) 
@@ -434,24 +436,11 @@ class Box_Vector_Mesh(CADClass.CAD):
             meshUpdated = self.makeMesh(deformed_vertices)
             mesh2 = self.makeMesh(vertices)
 
-            if count % 100== 0: 
-                self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/pyramid_test_00{count/100}", self.meshres)
-                self.saveMeshSTL(mesh2, f"pyramidtest{id}/pyramid_test_updatingvertex_00{count/100}", self.meshres)
+            if count % 500== 0: 
+                self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/pyramid_test_00{count/500}", self.meshres)
+                self.saveMeshSTL(mesh2, f"pyramidtest{id}/pyramid_test_updatingvertex_00{count/500}", self.meshres)
 
             count += 1
-
-        # for i in range(len(vertices)):
-        #     if weights[i] != 1.0:
-        #         deformed_vertices[i] = np.dot(weights[i], control_points)
-                # vertices[i] = np.dot(weights[i], control_points) 
-            #deformed_vertices[i] = np.dot(weights[i], control_points)  
-            #vertices[i] = np.dot(weights[i], control_points) 
-            # meshUpdated = self.makeMesh(deformed_vertices)
-            # mesh2 = self.makeMesh(vertices)
-            # if count % 100== 0: 
-            #     self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/pyramid_test_00{count/100}", self.meshres)
-            #     self.saveMeshSTL(mesh2, f"pyramidtest{id}/pyramid_test_updatingvertex_00{count/100}", self.meshres)
-            #count += 1
 
         meshUpdated = self.makeMesh(deformed_vertices)
         print(f"Making new mesh: {meshUpdated}")
