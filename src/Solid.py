@@ -327,7 +327,7 @@ class Box_Vector(CADClass.CAD):
 
 class Box_Vector_Mesh(CADClass.CAD):
 
-    def __init__(self, stlfile="", stpfile="", meshres=1.0):
+    def __init__(self, stlfile="", stpfile="", meshres=2.0):
         super(CADClass.CAD, self).__init__()
         self.STLfile = stlfile
         self.STPfile = stpfile
@@ -355,15 +355,32 @@ class Box_Vector_Mesh(CADClass.CAD):
         newMesh = Mesh.Mesh(vertices)
         return newMesh
     
+    def isControlPoint(self, point, control_points):
+        for control_point in control_points:
+            if np.array_equal(point, control_point):
+                return True
+        return False
+    
     #for attempt at control-point-based process
     def compute_weights(self, vertices, control_points):
         distances = np.linalg.norm(vertices[:, np.newaxis] - control_points, axis=2)
         inv_distances = np.reciprocal(distances, where=distances != 0)
         weights = inv_distances / np.sum(inv_distances, axis=1, keepdims=True)
+        #in theory this should ensure the weight is 0 for verticesthat are control points 
+        for i in range(len(vertices)): 
+            #the points shouldn't move if the vertex's z coordinate is 0 (it's on the base), or if it's the control point
+            #but at the same time we don't necessarily want every base-point to be a control point bc as shown that leads to weird behaviors
+            if self.isControlPoint(vertices[i], control_points) or vertices[i][2] == 0.0: 
+            # if vertices[i][2] == 0.0:
+                print(f"Vertex {i} shouldn't move: {vertices[i]}")
+                weights[i] = 0
+            # if vertices[i] == [5.0, 5.0, 10.0]:
+            #     print(f"Vertex {i} shouldn't move: {vertices[i]}")
+                # weights[i] = 0
         return weights
 
     #use this one for now
-    def pyramidFromCube(self, id=23):
+    def pyramidFromCube(self, id='000'):
 
         print(f"Starting pyramid attempt")
 
