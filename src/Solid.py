@@ -524,6 +524,16 @@ class Box_Vector_Mesh(CADClass.CAD):
         
         return min_distance, closest_point
     
+    def gradMoveVertex(self, vertex, pyramidVertices, step_size=0.01):
+        distance, closest_point = self.pointDistanceToPyramid(vertex, pyramidVertices)
+        #calculate direction vector from the vertex to the closest point on the pyramid
+        #then normalize
+        direction_vector = closest_point - vertex
+        direction_vector /= np.linalg.norm(direction_vector)
+        #move vertex towards closest point using direction vector
+        vertex += step_size * direction_vector
+        return vertex
+    
 
     #alternative method: find boolean between mesh and target pyramid
     #then use that difference (the volume inside 1 but not the other, total) as objective fcn
@@ -575,18 +585,18 @@ class Box_Vector_Mesh(CADClass.CAD):
         #either: minimize volume outside the target volume AND/OR: minimize number of vertex points outside the target volume (ie, want it to get to 0) - could be more straightforward?
         #keep moving the vertices until the number outside the pyramid target is 0
 
-        #attempt1: iteratively moving vertices inside the pyramid if they aren't in there already
-        count = 0
-        for i in range(len(vertices)):
-            vertex = vertices[i]
-            if self.isPointOutsidePyramid(vertex, pyramidVertices):
-                distance, targetPoint = self.pointDistanceToPyramid(vertex, pyramidVertices)
-                print(f"Distance to pyramid surface: {distance}, target point: {targetPoint}")
-                vertices[i] = targetPoint
-            if count % 200 == 0: 
-                meshUpdated = self.makeMesh(vertices)
-                self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/pyramid_test_00{count/200}", self.meshres)
-            count += 1
+        ####attempt1####: iteratively moving vertices inside the pyramid if they aren't in there already
+        # count = 0
+        # for i in range(len(vertices)):
+        #     vertex = vertices[i]
+        #     if self.isPointOutsidePyramid(vertex, pyramidVertices):
+        #         distance, targetPoint = self.pointDistanceToPyramid(vertex, pyramidVertices)
+        #         print(f"Distance to pyramid surface: {distance}, target point: {targetPoint}")
+        #         vertices[i] = targetPoint
+        #     if count % 200 == 0: 
+        #         meshUpdated = self.makeMesh(vertices)
+        #         self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/pyramid_test_00{count/200}", self.meshres)
+        #     count += 1
         
         #attempt 2: calculating the intersection volume and using that
 
@@ -594,6 +604,58 @@ class Box_Vector_Mesh(CADClass.CAD):
         #     make meshcube, pyramidMesh into solid
         #     do boolean with that, and calculate volume of boolean 
         #     return volumeDiff
+
+        # def objectiveFunction(cubeVertices, pyramidVertices):
+        #     cubeShape=Part.Shape()
+        #     cubeShape.makeShapeFromMesh(self.makeMesh(cubeVertices),0.05) # the second arg is the tolerance for sewing
+        #     cubeSolid = Part.makeSolid(cubeShape)
+        #     pyramidShape=Part.Shape()
+        #     pyramidShape.makeShapeFromMesh(self.makeMesh(pyramidVertices),0.05) # the second arg is the tolerance for sewing
+        #     pyramidSolid = Part.makeSolid(pyramidShape)
+
+        #     intersection = cubeSolid.Shape.common(pyramidSolid.Shape)
+        #     volumeDiff = intersection.Volume
+
+        #     return volumeDiff
+
+        pyramidShape=Part.Shape()
+        pyramidMesh = self.makeMesh(pyramidVertices)
+        pyramidShape.makeShapeFromMesh(pyramidMesh, 0.05) # the second arg is the tolerance for sewing
+        pyramidSolid = Part.makeSolid(pyramidShape)
+        self.saveMeshSTL(pyramidMesh, f"pyramidtest{id}/pyramid_target_{id}", self.meshres)
+
+
+        def objectiveFunction(cubeVertices, pyramidSolid):
+            cubeShape=Part.Shape()
+            cubeShape.makeShapeFromMesh(self.makeMesh(cubeVertices),0.05) # the second arg is the tolerance for sewing
+            cubeSolid = Part.makeSolid(cubeShape)
+
+            intersection = cubeSolid.Shape.common(pyramidSolid.Shape)
+            volumeDiff = intersection.Volume
+
+            return volumeDiff
+        
+        cubeVertices = vertices.copy()
+        count = 0
+        
+        while objectiveFunction(cubeVertices, pyramidSolid) > 0:
+            #move mesh vertices somehow
+            #update the mesh somehow
+            
+            for i in range(len(cubeVertices)):
+                #keep step size fixed for now but move vertex a bit, according to direction/distance from pyramid
+                print(f"Original cube vertex {i}: {cubeVertices[i]}")
+
+                cubeVertices[i] = self.gradMoveVertex(cubeVertices[i], pyramidVertices)
+                
+                print(f"Modified cube vertex {i}: {cubeVertices[i]}")
+
+                if count % 200 == 0:
+                    cubeMesh = self.makeMesh(cubeVertices)
+                    self.saveMeshSTL(cubeMesh, f"pyramidtest{id}/wip_{count}", self.meshres)
+
+            count += 1
+
 
         #while objectiveFunction(meshcube, pyramidMesh) > 0:
         #   somehow move some mesh vertices 
