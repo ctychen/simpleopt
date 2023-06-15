@@ -456,60 +456,76 @@ class Box_Vector_Mesh(CADClass.CAD):
         return deformed_vertices, faces
 
     def isPointOutsidePyramid(self, point, pyramidVertices):
-        vertex0, vertex1, vertex2, vertex3, apex = pyramidVertices
-
-        # Calculate face normals
-        face0 = np.cross(vertex1 - vertex0, vertex2 - vertex0)
-        face1 = np.cross(vertex2 - vertex1, vertex3 - vertex1)
-        face2 = np.cross(vertex3 - vertex2, vertex0 - vertex2)
-        face3 = np.cross(vertex0 - vertex3, vertex1 - vertex3)
-
-        # Compute signed distances
-        distances = [
-            np.dot(point - vertex0, face0),
-            np.dot(point - vertex1, face1),
-            np.dot(point - vertex2, face2),
-            np.dot(point - vertex3, face3)
-        ]
-
-        #if all distances are positive: point is inside pyramid
-        #if any of the distances are negative: point is outside the pyramid
-        if all(distance >= 0 for distance in distances):
-            return True
-        else:
-            return False
+        base = pyramidVertices[0:4]
+        apex = pyramidVertices[4]
         
-    def pointDistanceToPyramid(self, point, pyramid_vertices):
-        closest_dist = float("inf")
-        closest_point = None
-
         for i in range(4):
-            vertex0, vertex1, vertex2 = pyramid_vertices[i], pyramid_vertices[(i+1)%4], pyramid_vertices[4]
+            #vertices for pyramid edge
+            v1, v2 = base[i], base[(i+1)%4]
+            
+            #find normal between edges
+            normal = np.cross(v2 - v1, apex - v1)
+            
+            #vector from the point to the triangle face
+            vec = v1 - point
+            
+            #if dot product is positive, the point is outside pyramid
+            if np.dot(normal, vec) > 0:
+                return False
+        
+        return True
+        
+    def pointTriangleDistance(self, P, A, B, C):
+        # Compute vectors        
+        v0 = C - A
+        v1 = B - A
+        v2 = P - A
 
-            #barycentric coordinates
-            v0 = vertex2 - vertex0
-            v1 = vertex1 - vertex0
-            v2 = point - vertex0
+        # Compute dot products
+        dot00 = np.dot(v0, v0)
+        dot01 = np.dot(v0, v1)
+        dot02 = np.dot(v0, v2)
+        dot11 = np.dot(v1, v1)
+        dot12 = np.dot(v1, v2)
 
-            dot00 = np.dot(v0, v0)
-            dot01 = np.dot(v0, v1)
-            dot02 = np.dot(v0, v2)
-            dot11 = np.dot(v1, v1)
-            dot12 = np.dot(v1, v2)
+        # Compute barycentric coordinates
+        invDenom = 1 / (dot00 * dot11 - dot01 * dot01)
+        u = (dot11 * dot02 - dot01 * dot12) * invDenom
+        v = (dot00 * dot12 - dot01 * dot02) * invDenom
 
-            inv_denom = 1 / (dot00 * dot11 - dot01 * dot01)
-            u = (dot11 * dot02 - dot01 * dot12) * inv_denom
-            v = (dot00 * dot12 - dot01 * dot02) * inv_denom
+        # Check if point is in triangle
+        if (u >= 0) and (v >= 0) and (u + v < 1):
+            return np.linalg.norm(np.cross(B - A, C - A)) / 2, A + u*v0 + v*v1
+        else:
+            # Here, compute the distance to the edge or vertex
+            dist_A = np.linalg.norm(P - A)
+            dist_B = np.linalg.norm(P - B)
+            dist_C = np.linalg.norm(P - C)
 
-            if u >= 0 and v >= 0 and u + v <= 1:
-                # Point is inside the current face
-                closest_point_on_face = vertex0 + u * v0 + v * v1
-                dist = np.linalg.norm(point - closest_point_on_face)
-                if dist < closest_dist:
-                    closest_dist = dist
-                    closest_point = closest_point_on_face
+            min_dist = min(dist_A, dist_B, dist_C)
 
-        return closest_dist, closest_point
+            if min_dist == dist_A:
+                return dist_A, A
+            elif min_dist == dist_B:
+                return dist_B, B
+            else:
+                return dist_C, C
+
+    def pointDistanceToPyramid(self, P, pyramidVertices):
+        base = pyramidVertices[:4]
+        apex = pyramidVertices[4]
+        
+        results = [
+            self.pointTriangleDistance(P, base[i], base[(i+1)%4], apex)
+            for i in range(4)
+        ]
+        
+        results.append(self.pointTriangleDistance(P, base[0], base[1], base[2]))
+        results.append(self.pointTriangleDistance(P, base[2], base[3], base[0]))
+        
+        min_distance, closest_point = min(results, key=lambda x: x[0])
+        
+        return min_distance, closest_point
     
 
     #alternative method: find boolean between mesh and target pyramid
@@ -518,7 +534,7 @@ class Box_Vector_Mesh(CADClass.CAD):
     #which is annoying
     #so let's do v1 of that first? below
     
-    def pyramidFromCubeV2(self, id='002'):
+    def pyramidFromCubeV2(self, id='003'):
 
         print(f"Starting pyramid attempt")
 
