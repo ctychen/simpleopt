@@ -470,7 +470,7 @@ class Box_Vector_Mesh(CADClass.CAD):
             vec = v1 - point
             
             #if dot product is positive, the point is outside pyramid
-            if np.dot(normal, vec) > 0:
+            if np.dot(normal, vec) >= 0:
                 return False
         
         return True
@@ -494,22 +494,19 @@ class Box_Vector_Mesh(CADClass.CAD):
         v = (dot00 * dot12 - dot01 * dot02) * invDenom
 
         # Check if point is in triangle
-        if (u >= 0) and (v >= 0) and (u + v < 1):
-            return np.linalg.norm(np.cross(B - A, C - A)) / 2, A + u*v0 + v*v1
+        if (u >= 0) and (v >= 0) and (u + v <= 1):
+            proj = A + u*v0 + v*v1
+            return np.linalg.norm(P - proj), proj
         else:
             # Here, compute the distance to the edge or vertex
-            dist_A = np.linalg.norm(P - A)
-            dist_B = np.linalg.norm(P - B)
-            dist_C = np.linalg.norm(P - C)
-
-            min_dist = min(dist_A, dist_B, dist_C)
-
-            if min_dist == dist_A:
-                return dist_A, A
-            elif min_dist == dist_B:
-                return dist_B, B
-            else:
-                return dist_C, C
+            edge_points = [
+                (np.dot(P - A, B - A) / np.dot(B - A, B - A)) * (B - A) + A,
+                (np.dot(P - B, C - B) / np.dot(C - B, C - B)) * (C - B) + B,
+                (np.dot(P - C, A - C) / np.dot(A - C, A - C)) * (A - C) + C
+            ]
+            edge_dists = [np.linalg.norm(P - pt) for pt in edge_points]
+            min_dist_idx = np.argmin(edge_dists)
+            return edge_dists[min_dist_idx], edge_points[min_dist_idx]
 
     def pointDistanceToPyramid(self, P, pyramidVertices):
         base = pyramidVertices[:4]
@@ -534,7 +531,7 @@ class Box_Vector_Mesh(CADClass.CAD):
     #which is annoying
     #so let's do v1 of that first? below
     
-    def pyramidFromCubeV2(self, id='003'):
+    def pyramidFromCubeV2(self, id='004'):
 
         print(f"Starting pyramid attempt")
 
@@ -593,8 +590,15 @@ class Box_Vector_Mesh(CADClass.CAD):
         
         #attempt 2: calculating the intersection volume and using that
 
-        # def objectiveFunction():
+        # def objectiveFunction(meshcube, pyramidMesh):
+        #     make meshcube, pyramidMesh into solid
+        #     do boolean with that, and calculate volume of boolean 
         #     return volumeDiff
+
+        #while objectiveFunction(meshcube, pyramidMesh) > 0:
+        #   somehow move some mesh vertices 
+        #   regenerate the meshes and set meshcube = new mesh after the modifications - distance change could be similar to control points?
+        #   repeat process
         
         mesh2 = self.makeMesh(vertices)
 
