@@ -145,6 +145,7 @@ class Box(CADClass.CAD):
     
 
 from scipy.spatial.transform import Rotation
+from scipy.optimize import minimize
 
 class Box_Vector(CADClass.CAD): 
     
@@ -327,7 +328,7 @@ class Box_Vector(CADClass.CAD):
 
 class Box_Vector_Mesh(CADClass.CAD):
 
-    def __init__(self, stlfile="", stpfile="", meshres=1.0):
+    def __init__(self, stlfile="", stpfile="", meshres=2.5):
         super(CADClass.CAD, self).__init__()
         self.STLfile = stlfile
         self.STPfile = stpfile
@@ -453,6 +454,62 @@ class Box_Vector_Mesh(CADClass.CAD):
         self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/pyramid_test_final", self.meshres)
 
         return deformed_vertices, faces
+    
+    def pyramidFromCubeV2(self, id='000'):
+
+        print(f"Starting pyramid attempt")
+
+        vertices = []
+
+        for i in range(len(self.allmeshes[0].Facets)):
+            facet_points = self.allmeshes[0].Facets[i].Points
+            for point in facet_points:
+                vertices.append(list(point))      
+
+        vertices = np.array(vertices) #cube vertices now defined
+
+        print(f"Original vertices: {vertices[0:3]}")  
+        print(f"Number of vertices: {len(vertices)}")
+
+        # os.makedirs(f"pyramidtest{id}")
+        # meshUpdated = self.makeMesh(vertices)
+        # self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/before_pyramid", self.meshres)
+
+        faces = np.array([[facet.PointIndices[i] for i in range(3)] for facet in self.faces])
+        # print(f"Original faces: {faces}")    
+        print(f"Number of faces: {faces.shape}")   
+
+        #define the target: pyramid base points + vertex point
+        #define objective function: distance from mesh vertices, to pyramid base points
+
+        pyramidVertices = np.array(
+            [
+            #base vertices
+            [0.0, 0.0, 0.0],
+            [0.0, 10.0, 0.0],
+            [10.0, 10.0, 0.0],
+            [10.0, 0.0, 0.0],
+            #vertex
+            [5.0, 5.0, 5.0],
+            ]
+        )
+
+        def objective(v):
+            v = v.reshape(-1, 3)  #reshape the flat array into an array of 3D points
+            #calcObj = np.sum((v - pyramidVertices)**2)
+            calcObj = np.sum((v[:4] - pyramidVertices[:4])**2) + np.sum((v[4:] - pyramidVertices[4])**2)
+            print(f"Calculated objective function values: {calcObj}")
+            return calcObj
+        
+        optResult = minimize(objective, vertices.flatten(), method='BFGS')
+
+        print(f"Result after minimization: {optResult}")
+
+        optResultRes = optResult.x.reshape(-1, 3)
+        print(f"Result, flattened: {optResultRes}")
+
+        return 
+
     
     def saveMeshSTL(self, mesh, label, resolution, path='./'):
         """

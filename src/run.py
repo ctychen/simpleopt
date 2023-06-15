@@ -578,7 +578,8 @@ if __name__ == '__main__':
     """
 
     #TODO
-    setup.box.pyramidFromCube()
+    #setup.box.pyramidFromCube()
+    setup.box.pyramidFromCubeV2()
 
     """
     VERIFYING NORMAL VECTORS, CENTERS, OVERALL CENTER FOR APPLYING FOUND ROTATION - CHECK FOR NO OFFSETS & ETC
