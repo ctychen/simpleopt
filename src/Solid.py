@@ -328,7 +328,7 @@ class Box_Vector(CADClass.CAD):
 
 class Box_Vector_Mesh(CADClass.CAD):
 
-    def __init__(self, stlfile="", stpfile="", meshres=2.5):
+    def __init__(self, stlfile="", stpfile="", meshres=2.0):
         super(CADClass.CAD, self).__init__()
         self.STLfile = stlfile
         self.STPfile = stpfile
@@ -454,8 +454,71 @@ class Box_Vector_Mesh(CADClass.CAD):
         self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/pyramid_test_final", self.meshres)
 
         return deformed_vertices, faces
+
+    def isPointOutsidePyramid(self, point, pyramidVertices):
+        vertex0, vertex1, vertex2, vertex3, apex = pyramidVertices
+
+        # Calculate face normals
+        face0 = np.cross(vertex1 - vertex0, vertex2 - vertex0)
+        face1 = np.cross(vertex2 - vertex1, vertex3 - vertex1)
+        face2 = np.cross(vertex3 - vertex2, vertex0 - vertex2)
+        face3 = np.cross(vertex0 - vertex3, vertex1 - vertex3)
+
+        # Compute signed distances
+        distances = [
+            np.dot(point - vertex0, face0),
+            np.dot(point - vertex1, face1),
+            np.dot(point - vertex2, face2),
+            np.dot(point - vertex3, face3)
+        ]
+
+        #if all distances are positive: point is inside pyramid
+        #if any of the distances are negative: point is outside the pyramid
+        if all(distance >= 0 for distance in distances):
+            return True
+        else:
+            return False
+        
+    def pointDistanceToPyramid(self, point, pyramid_vertices):
+        closest_dist = float("inf")
+        closest_point = None
+
+        for i in range(4):
+            vertex0, vertex1, vertex2 = pyramid_vertices[i], pyramid_vertices[(i+1)%4], pyramid_vertices[4]
+
+            #barycentric coordinates
+            v0 = vertex2 - vertex0
+            v1 = vertex1 - vertex0
+            v2 = point - vertex0
+
+            dot00 = np.dot(v0, v0)
+            dot01 = np.dot(v0, v1)
+            dot02 = np.dot(v0, v2)
+            dot11 = np.dot(v1, v1)
+            dot12 = np.dot(v1, v2)
+
+            inv_denom = 1 / (dot00 * dot11 - dot01 * dot01)
+            u = (dot11 * dot02 - dot01 * dot12) * inv_denom
+            v = (dot00 * dot12 - dot01 * dot02) * inv_denom
+
+            if u >= 0 and v >= 0 and u + v <= 1:
+                # Point is inside the current face
+                closest_point_on_face = vertex0 + u * v0 + v * v1
+                dist = np.linalg.norm(point - closest_point_on_face)
+                if dist < closest_dist:
+                    closest_dist = dist
+                    closest_point = closest_point_on_face
+
+        return closest_dist, closest_point
     
-    def pyramidFromCubeV2(self, id='001'):
+
+    #alternative method: find boolean between mesh and target pyramid
+    #then use that difference (the volume inside 1 but not the other, total) as objective fcn
+    #need to write fcn for mesh (vertices) to solid in order to find boolean/intersection operation though for volume
+    #which is annoying
+    #so let's do v1 of that first? below
+    
+    def pyramidFromCubeV2(self, id='002'):
 
         print(f"Starting pyramid attempt")
 
@@ -479,36 +542,45 @@ class Box_Vector_Mesh(CADClass.CAD):
         # print(f"Original faces: {faces}")    
         print(f"Number of faces: {faces.shape}")   
 
-        #define the target: pyramid base points + vertex point
-        #define objective function: distance from mesh vertices, to pyramid base points
-
-        pyramidVertices = np.array(
-            [
-            #base vertices
+        pyramidVertices = np.array([
             [0.0, 0.0, 0.0],
             [0.0, 10.0, 0.0],
             [10.0, 10.0, 0.0],
             [10.0, 0.0, 0.0],
-            #vertex
             [5.0, 5.0, 5.0],
-            ]
-        )
+        ])
 
-        def objective(v):
-            v = v.reshape(-1, 3)  #reshape the flat array into an array of 3D points
-            #calcObj = np.sum((v - pyramidVertices)**2)
-            calcObj = np.sum((v[:4] - pyramidVertices[:4])**2) + np.sum((v[4:] - pyramidVertices[4])**2)
-            print(f"Calculated objective function values: {calcObj}")
-            return calcObj
+        #v3 approach?
+        #objective to minimize: (volume of mesh outside of target volume) + (volume of target outside of mesh), with intersect? 
+        #determine pyramid volume based on defined vertices, & determine where this sits in space
+        #how to calculate mesh volume outside of another volume? 
+        #somehow move mesh points to reduce the volume: probably similar to grad desc? (how to determine though - move vertex to nearest point inside the mesh?)
+        #eg: calculate the distance from a mesh vertex to the closest point inside the target area, then move it there (or just move to some distance within it)
         
-        optResult = minimize(objective, vertices.flatten(), method='BFGS')
 
-        print(f"Result after minimization: {optResult}")
+        #for vertex in mesh: determine if the vertex is inside/outside target pyramid volume
+        #either: minimize volume outside the target volume AND/OR: minimize number of vertex points outside the target volume (ie, want it to get to 0) - could be more straightforward?
+        #keep moving the vertices until the number outside the pyramid target is 0
 
-        optResultRes = optResult.x.reshape(-1, 3)
-        print(f"Result, flattened: {optResultRes}")
+        #attempt1: iteratively moving vertices inside the pyramid if they aren't in there already
+        count = 0
+        for i in range(len(vertices)):
+            vertex = vertices[i]
+            if self.isPointOutsidePyramid(vertex, pyramidVertices):
+                distance, targetPoint = self.pointDistanceToPyramid(vertex, pyramidVertices)
+                print(f"Distance to pyramid surface: {distance}, target point: {targetPoint}")
+                vertices[i] = targetPoint
+            if count % 200 == 0: 
+                meshUpdated = self.makeMesh(vertices)
+                self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/pyramid_test_00{count/200}", self.meshres)
+            count += 1
+        
+        #attempt 2: calculating the intersection volume and using that
 
-        mesh2 = self.makeMesh(optResultRes)
+        # def objectiveFunction():
+        #     return volumeDiff
+        
+        mesh2 = self.makeMesh(vertices)
 
         self.saveMeshSTL(mesh2, f"pyramidtest{id}/pyramid_test_final_{id}", self.meshres)
 
