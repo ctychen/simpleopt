@@ -455,7 +455,7 @@ class Box_Vector_Mesh(CADClass.CAD):
 
         return deformed_vertices, faces
     
-    def pyramidFromCubeV2(self, id='000'):
+    def pyramidFromCubeV2(self, id='001'):
 
         print(f"Starting pyramid attempt")
 
@@ -471,9 +471,9 @@ class Box_Vector_Mesh(CADClass.CAD):
         print(f"Original vertices: {vertices[0:3]}")  
         print(f"Number of vertices: {len(vertices)}")
 
-        # os.makedirs(f"pyramidtest{id}")
-        # meshUpdated = self.makeMesh(vertices)
-        # self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/before_pyramid", self.meshres)
+        os.makedirs(f"pyramidtest{id}")
+        meshUpdated = self.makeMesh(vertices)
+        self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/before_pyramid", self.meshres)
 
         faces = np.array([[facet.PointIndices[i] for i in range(3)] for facet in self.faces])
         # print(f"Original faces: {faces}")    
@@ -507,6 +507,10 @@ class Box_Vector_Mesh(CADClass.CAD):
 
         optResultRes = optResult.x.reshape(-1, 3)
         print(f"Result, flattened: {optResultRes}")
+
+        mesh2 = self.makeMesh(optResultRes)
+
+        self.saveMeshSTL(mesh2, f"pyramidtest{id}/pyramid_test_final_{id}", self.meshres)
 
         return 
 
