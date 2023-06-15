@@ -554,7 +554,6 @@ class Box_Vector_Mesh(CADClass.CAD):
 
         vertices = np.array(vertices) #cube vertices now defined
 
-        print(f"Original vertices: {vertices[0:3]}")  
         print(f"Number of vertices: {len(vertices)}")
 
         os.makedirs(f"pyramidtest{id}")
@@ -567,9 +566,9 @@ class Box_Vector_Mesh(CADClass.CAD):
 
         pyramidVertices = np.array([
             [0.0, 0.0, 0.0],
-            [0.0, 10.0, 0.0],
-            [10.0, 10.0, 0.0],
             [10.0, 0.0, 0.0],
+            [10.0, 10.0, 0.0],
+            [0.0, 10.0, 0.0],
             [5.0, 5.0, 5.0],
         ])
 
@@ -618,17 +617,39 @@ class Box_Vector_Mesh(CADClass.CAD):
 
         #     return volumeDiff
 
-        pyramidShape=Part.Shape()
-        pyramidMesh = self.makeMesh(pyramidVertices)
-        pyramidShape.makeShapeFromMesh(pyramidMesh, 0.05) # the second arg is the tolerance for sewing
-        pyramidSolid = Part.makeSolid(pyramidShape)
-        self.saveMeshSTL(pyramidMesh, f"pyramidtest{id}/pyramid_target_{id}", self.meshres)
+        pVertices = [
+            FreeCAD.Vector(0,0,0),
+            FreeCAD.Vector(10,0,0),
+            FreeCAD.Vector(10,10,0),
+            FreeCAD.Vector(0,10,0),
+            FreeCAD.Vector(5,5,10),  # the apex
+        ]
+        # Create the base
+        pBase = Part.makePolygon(pVertices[:4] + [pVertices[0]])  # makePolygon requires a closed loop, hence append the first vertex at the end
+
+        # Create the faces
+        faces = [Part.Face(pBase)]
+        for i in range(4):
+            triangle = Part.makePolygon([pVertices[i], pVertices[(i+1)%4], pVertices[4], pVertices[i]])
+            faces.append(Part.Face(triangle))
+
+        # Create a shell from the faces
+        shell = Part.makeShell(faces)
+
+        # Create a solid from the shell
+        pyramidSolid = Part.makeSolid(shell)
 
 
         def objectiveFunction(cubeVertices, pyramidSolid):
-            cubeShape=Part.Shape()
-            cubeShape.makeShapeFromMesh(self.makeMesh(cubeVertices),0.05) # the second arg is the tolerance for sewing
-            cubeSolid = Part.makeSolid(cubeShape)
+            # cubeShape=Part.Shape()
+            # cubeMesh = self.makeMesh(cubeVertices)
+            # cubeShape.makeShapeFromMesh(cubeMesh.Topology, 0.05) # the second arg is the tolerance for sewing
+            # cubeSolid = Part.makeSolid(cubeShape)
+            
+            cubeMesh = self.makeMesh(cubeVertices)
+            cubeShape = Part.makeSolid(Part.makeShell(cubeMesh.Facets))
+            cubeSolid = FreeCAD.ActiveDocument.addObject("Part::Feature", "CubeSolid")
+            cubeSolid.Shape = cubeShape
 
             intersection = cubeSolid.Shape.common(pyramidSolid.Shape)
             volumeDiff = intersection.Volume
@@ -647,7 +668,7 @@ class Box_Vector_Mesh(CADClass.CAD):
                 print(f"Original cube vertex {i}: {cubeVertices[i]}")
 
                 cubeVertices[i] = self.gradMoveVertex(cubeVertices[i], pyramidVertices)
-                
+
                 print(f"Modified cube vertex {i}: {cubeVertices[i]}")
 
                 if count % 200 == 0:
