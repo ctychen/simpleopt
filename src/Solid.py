@@ -336,7 +336,7 @@ class Box_Vector(CADClass.CAD):
 
 class Box_Vector_Mesh(CADClass.CAD):
 
-    def __init__(self, stlfile="", stpfile="", meshres=2.0):
+    def __init__(self, stlfile="", stpfile="", meshres=1.0):
         super(CADClass.CAD, self).__init__()
         self.STLfile = stlfile
         self.STPfile = stpfile
@@ -563,7 +563,7 @@ class Box_Vector_Mesh(CADClass.CAD):
     #which is annoying
     #so let's do v1 of that first? below
     
-    def pyramidFromCubeV2(self, id='009'):
+    def pyramidFromCubeV2(self, id='011'):
 
         print(f"Starting pyramid attempt")
 
@@ -591,7 +591,7 @@ class Box_Vector_Mesh(CADClass.CAD):
             [10.0, 0.0, 0.0],
             [10.0, 10.0, 0.0],
             [0.0, 10.0, 0.0],
-            [5.0, 5.0, 10.0],
+            [5.0, 5.0, 5.0],
         ])
 
         #v3 approach?
@@ -611,7 +611,7 @@ class Box_Vector_Mesh(CADClass.CAD):
             FreeCAD.Vector(10,0,0),
             FreeCAD.Vector(10,10,0),
             FreeCAD.Vector(0,10,0),
-            FreeCAD.Vector(5,5,10),  # the apex
+            FreeCAD.Vector(5,5,5),  # the apex
         ]
         # Create the base
         pBase = Part.makePolygon(pVertices[:4] + [pVertices[0]])  # makePolygon requires a closed loop, hence append the first vertex at the end
@@ -742,7 +742,7 @@ class Box_Vector_Mesh(CADClass.CAD):
                 print(f"Modified cube vertex {i}: {cubeVertices[i]}")
                 print(f"Modified cube vertex in Trimesh {i}: {cubeTriMesh.vertices[i]}")
 
-                if i == 253: 
+                if i == 1243: #253 for 2mm, 1243 for 1mm
                     cubeTriMesh.export(f"pyramidtest{id}/wip_{count}.stl")
                     count += 1
 
