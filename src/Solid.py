@@ -537,12 +537,24 @@ class Box_Vector_Mesh(CADClass.CAD):
         #calculate direction vector from the vertex to the closest point on the pyramid
         #then normalize
         direction_vector = closest_point - vertex
-        norms = np.linalg.norm(direction_vector)
-        if norms != 0.0: #so we don't have division by 0 issues
-            direction_vector /= np.linalg.norm(direction_vector)
+        # norms = np.linalg.norm(direction_vector)
+        # if norms != 0.0: #so we don't have division by 0 issues
+        #     direction_vector /= np.linalg.norm(direction_vector)
         #move vertex towards closest point using direction vector
         vertex += step_size * direction_vector
         return vertex
+    
+    def gradMoveVertex_TriMesh(self, vertex, tri_mesh, step_size = 0.1):
+        # closest_point, distance, triangle_id = mesh.nearest.on_surface([point])
+        closest_point, distance, triangle_id = tri_mesh.nearest.on_surface([vertex])
+        # print(f"Closest point on the mesh: {closest_point[0]}")
+        # print(f"Distance from point to mesh: {distance[0]}")
+        direction_vector = closest_point[0] - vertex
+        #if norms != 0.0: #so we don't have division by 0 issues
+        #    direction_vector /= np.linalg.norm(direction_vector)
+        #move vertex towards closest point using direction vector
+        vertex += step_size * direction_vector
+        return 
     
 
     #alternative method: find boolean between mesh and target pyramid
@@ -551,7 +563,7 @@ class Box_Vector_Mesh(CADClass.CAD):
     #which is annoying
     #so let's do v1 of that first? below
     
-    def pyramidFromCubeV2(self, id='007'):
+    def pyramidFromCubeV2(self, id='009'):
 
         print(f"Starting pyramid attempt")
 
@@ -579,7 +591,7 @@ class Box_Vector_Mesh(CADClass.CAD):
             [10.0, 0.0, 0.0],
             [10.0, 10.0, 0.0],
             [0.0, 10.0, 0.0],
-            [5.0, 5.0, 5.0],
+            [5.0, 5.0, 10.0],
         ])
 
         #v3 approach?
@@ -714,23 +726,6 @@ class Box_Vector_Mesh(CADClass.CAD):
             vMesh = cubeMesh.volume
             volumeDiff = np.abs(vMesh - vIntersect)
             return volumeDiff
-
-        # def objectiveFunction(cubeVertices, pyramidSolid):
-        #     # cubeShape=Part.Shape()
-        #     # cubeMesh = self.makeMesh(cubeVertices)
-        #     # cubeShape.makeShapeFromMesh(cubeMesh.Topology, 0.05) # the second arg is the tolerance for sewing
-        #     # cubeSolid = Part.makeSolid(cubeShape)
-            
-        #     cubeMesh = self.makeMesh(cubeVertices)
-        #     cubeShape = Part.makeSolid(Part.makeShell(cubeMesh.Facets))
-        #     cubeSolid = FreeCAD.ActiveDocument.addObject("Part::Feature", "CubeSolid")
-        #     cubeSolid.Shape = cubeShape
-
-        #     intersection = cubeSolid.Shape.common(pyramidSolid.Shape)
-        #     volumeMesh = cubeSolid.Shape.Volume
-        #     volumeBool = intersection.Volume
-
-        #     return volumeMesh - volumeBool
         
         while objectiveFunction(cubeTriMesh, pyramidTriMesh) > 0:
             #move mesh vertices somehow
@@ -741,6 +736,7 @@ class Box_Vector_Mesh(CADClass.CAD):
                 print(f"Original cube vertex {i}: {cubeVertices[i]}")
 
                 cubeVertices[i] = self.gradMoveVertex(cubeVertices[i], pyramidVertices)
+                # cubeVertices[i] = self.gradMoveVertex_TriMesh(cubeVertices[i], pyramidTriMesh)
                 cubeTriMesh.vertices[i] = cubeVertices[i] #Not sure if this is needed but have to check
 
                 print(f"Modified cube vertex {i}: {cubeVertices[i]}")
