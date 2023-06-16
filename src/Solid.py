@@ -8,6 +8,8 @@ import numpy as np
 import toolsClass
 import math 
 
+import trimesh
+
 tools = toolsClass.tools()
 
 class Box(CADClass.CAD): 
@@ -628,38 +630,106 @@ class Box_Vector_Mesh(CADClass.CAD):
         pBase = Part.makePolygon(pVertices[:4] + [pVertices[0]])  # makePolygon requires a closed loop, hence append the first vertex at the end
 
         # Create the faces
-        faces = [Part.Face(pBase)]
+        pFaces = [Part.Face(pBase)]
         for i in range(4):
             triangle = Part.makePolygon([pVertices[i], pVertices[(i+1)%4], pVertices[4], pVertices[i]])
-            faces.append(Part.Face(triangle))
+            pFaces.append(Part.Face(triangle))
 
         # Create a shell from the faces
-        shell = Part.makeShell(faces)
+        shell = Part.makeShell(pFaces)
 
         # Create a solid from the shell
         pyramidSolid = Part.makeSolid(shell)
+        
+        psolid = FreeCAD.ActiveDocument.addObject("Part::Feature", "Pyramid")
+        psolid.Shape = pyramidSolid
 
+        # self.allmeshes = self.part2mesh(self.CADparts, meshres)
 
-        def objectiveFunction(cubeVertices, pyramidSolid):
-            # cubeShape=Part.Shape()
-            # cubeMesh = self.makeMesh(cubeVertices)
-            # cubeShape.makeShapeFromMesh(cubeMesh.Topology, 0.05) # the second arg is the tolerance for sewing
-            # cubeSolid = Part.makeSolid(cubeShape)
-            
-            cubeMesh = self.makeMesh(cubeVertices)
-            cubeShape = Part.makeSolid(Part.makeShell(cubeMesh.Facets))
-            cubeSolid = FreeCAD.ActiveDocument.addObject("Part::Feature", "CubeSolid")
-            cubeSolid.Shape = cubeShape
+        # pyramidMesh = self.part2mesh(pyramidSolid, self.meshres)
+        pyramidMesh = self.part2meshStandard(psolid)
 
-            intersection = cubeSolid.Shape.common(pyramidSolid.Shape)
-            volumeDiff = intersection.Volume
+        print(f'Pyramid Mesh vertices: {pyramidMesh[0].Points}')
+        print(f'Pyramid Mesh faces: {pyramidMesh[0].Facets}')
+        #above this: stuff works - created a pyramid mesh that can work
 
+        #pyramidMeshVertices = pyramidMesh[0].Points
+        #pyramidMeshFaces = pyramidMesh[0].Facets
+
+        pyramidMeshVertices = []
+        pyramidMeshFaces = []
+
+        for i in range(len(pyramidMesh[0].Facets)):
+            facet_points_list = pyramidMesh[0].Facets[i]
+            facet_points = facet_points_list.Points
+            for point in facet_points:
+                pyramidMeshVertices.append(list(point))  
+            for j in facet_points_list.Points:
+                print(j)
+                pyramidMeshFaces.append(list(j))
+
+        pyramidMeshVertices = np.array(pyramidMeshVertices) 
+        pyramidMeshFaces = np.array(pyramidMeshFaces)
+
+        print(f"Pyramid mesh faces: {pyramidMeshFaces}")
+
+        #below this: needs work 
+
+        #in theory what this should do:
+        #calculate the volume that's inside the cube/object but outside the target volume
+        #calculate the volume that's inside the target voluem but outside the cube/object
+        #sum the volume
+        #this sum is what should be minimized
+        #so it's time for mesh ops - boolean/intersection - and FC may not be the way to go
+
+        # mesh = trimesh.Trimesh(vertices=[[0, 0, 0], [0, 0, 1], [0, 1, 0]],
+        #                faces=[[0, 1, 2]])
+
+        #both of these inputs should be trimesh objects
+        #objective should be: (volume of mesh) - (volume of intersection of/boolean mesh & pyramid) -> minimize
+        #if mesh fits perfectly inside pyramid, then Vmesh = Vpyr, so Vbool = Vmesh
+        #so objective should be abs(Vmesh - Vbool(mesh,pyr)) since we want that diff to be close to 0
+        #trimesh also has fcn for trimesh.boolean.difference
+        #trimesh.boolean.intersection(meshes, engine=None, **kwargs)
+        def objectiveFunction(cubeMesh, pyramidMesh):
+            intersectionMesh = trimesh.boolean.intersection([cubeMesh, pyramidMesh])
+            vIntersect = intersectionMesh.volume
+            vMesh = cubeMesh.volume
+            volumeDiff = np.abs(vMesh - vIntersect)
             return volumeDiff
+
+        # def objectiveFunction(cubeVertices, pyramidSolid):
+        #     # cubeShape=Part.Shape()
+        #     # cubeMesh = self.makeMesh(cubeVertices)
+        #     # cubeShape.makeShapeFromMesh(cubeMesh.Topology, 0.05) # the second arg is the tolerance for sewing
+        #     # cubeSolid = Part.makeSolid(cubeShape)
+            
+        #     cubeMesh = self.makeMesh(cubeVertices)
+        #     cubeShape = Part.makeSolid(Part.makeShell(cubeMesh.Facets))
+        #     cubeSolid = FreeCAD.ActiveDocument.addObject("Part::Feature", "CubeSolid")
+        #     cubeSolid.Shape = cubeShape
+
+        #     intersection = cubeSolid.Shape.common(pyramidSolid.Shape)
+        #     volumeMesh = cubeSolid.Shape.Volume
+        #     volumeBool = intersection.Volume
+
+        #     return volumeMesh - volumeBool
         
         cubeVertices = vertices.copy()
+        cubeFaces = faces.copy()
         count = 0
+
+        cubeTriMesh = trimesh.Trimesh(
+            vertices=cubeVertices, faces=cubeFaces
+        )
+
+        pyramidTriMesh = trimesh.Trimesh(
+            vertices=pyramidMeshVertices, faces=pyramidMeshFaces
+        )
+
+        pyramidTriMesh.export(f"pyramidtest{id}/basepyramid.stl")
         
-        while objectiveFunction(cubeVertices, pyramidSolid) > 0:
+        while objectiveFunction(cubeTriMesh, pyramidTriMesh) > 0:
             #move mesh vertices somehow
             #update the mesh somehow
             
@@ -668,12 +738,16 @@ class Box_Vector_Mesh(CADClass.CAD):
                 print(f"Original cube vertex {i}: {cubeVertices[i]}")
 
                 cubeVertices[i] = self.gradMoveVertex(cubeVertices[i], pyramidVertices)
+                cubeTriMesh.vertices[i] = cubeVertices[i] #Not sure if this is needed but have to check
 
                 print(f"Modified cube vertex {i}: {cubeVertices[i]}")
+                print(f"Modified cube vertex in Trimesh {i}: {cubeTriMesh.vertices[i]}")
 
                 if count % 200 == 0:
-                    cubeMesh = self.makeMesh(cubeVertices)
-                    self.saveMeshSTL(cubeMesh, f"pyramidtest{id}/wip_{count}", self.meshres)
+                    #cubeMesh = self.makeMesh(cubeVertices)
+                    #self.saveMeshSTL(cubeMesh, f"pyramidtest{id}/wip_{count}", self.meshres)
+                    #mesh2.export('stuff.stl')
+                    cubeTriMesh.export(f"pyramidtest{id}/wip_{count}.stl")
 
             count += 1
 
