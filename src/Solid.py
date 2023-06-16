@@ -659,17 +659,59 @@ class Box_Vector_Mesh(CADClass.CAD):
         pyramidMeshVertices = []
         pyramidMeshFaces = []
 
-        for i in range(len(pyramidMesh[0].Facets)):
-            facet_points_list = pyramidMesh[0].Facets[i]
-            facet_points = facet_points_list.Points
-            for point in facet_points:
-                pyramidMeshVertices.append(list(point))  
-            for j in facet_points_list.Points:
-                print(j)
-                pyramidMeshFaces.append(list(j))
+                # # Convert FreeCAD vertices to a numpy array
+        # vertices = np.array([v.Point for v in vertices_list])
 
-        pyramidMeshVertices = np.array(pyramidMeshVertices) 
-        pyramidMeshFaces = np.array(pyramidMeshFaces)
+        # # Convert FreeCAD facets to a numpy array
+        # faces = np.array([[v1.Index, v2.Index, v3.Index] for v1, v2, v3 in facets_list])
+
+        # # Create Trimesh object
+        # mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
+
+
+        # for i in range(len(pyramidMesh[0].Facets)):
+        #     facet_points_list = pyramidMesh[0].Facets[i]
+        #     facet_points = facet_points_list.Points
+        #     for point in facet_points:
+        #         pyramidMeshVertices.append(list(point))  
+            # for j in facet_points_list.Points:
+            #     print(j)
+            #     pyramidMeshFaces.append(list(j))
+
+        # pyramidMeshVertices = np.array(pyramidMeshVertices) 
+
+        pyramidMeshVertices = np.array([[v.x, v.y, v.z] for v in pyramidMesh[0].Points])
+        pyramidMeshFaces = np.array([[f.PointIndices[0], f.PointIndices[1], f.PointIndices[2]] for f in pyramidMesh[0].Facets])
+        # pyramidMeshFaces = np.array(pyramidMeshFaces)
+
+        # cubeVertices = vertices.copy()
+        # cubeFaces = faces.copy()
+
+        cubeVertices = np.array([[v.x, v.y, v.z] for v in self.allmeshes[0].Points])
+        cubeFaces = np.array([[f.PointIndices[0], f.PointIndices[1], f.PointIndices[2]] for f in self.allmeshes[0].Facets])
+        #f.PointIndices
+        count = 0
+
+        cubeTriMesh = trimesh.Trimesh(
+            vertices=cubeVertices, faces=cubeFaces
+        )
+
+        cubeTriMesh.export(f"pyramidtest{id}/basecube.stl")
+
+        # # Convert FreeCAD vertices to a numpy array
+        # vertices = np.array([v.Point for v in vertices_list])
+
+        # # Convert FreeCAD facets to a numpy array
+        # faces = np.array([[v1.Index, v2.Index, v3.Index] for v1, v2, v3 in facets_list])
+
+        # # Create Trimesh object
+        # mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
+
+        pyramidTriMesh = trimesh.Trimesh(
+            vertices=pyramidMeshVertices, faces=pyramidMeshFaces
+        )
+
+        pyramidTriMesh.export(f"pyramidtest{id}/basepyramid.stl")
 
         print(f"Pyramid mesh faces: {pyramidMeshFaces}")
 
@@ -714,20 +756,6 @@ class Box_Vector_Mesh(CADClass.CAD):
         #     volumeBool = intersection.Volume
 
         #     return volumeMesh - volumeBool
-        
-        cubeVertices = vertices.copy()
-        cubeFaces = faces.copy()
-        count = 0
-
-        cubeTriMesh = trimesh.Trimesh(
-            vertices=cubeVertices, faces=cubeFaces
-        )
-
-        pyramidTriMesh = trimesh.Trimesh(
-            vertices=pyramidMeshVertices, faces=pyramidMeshFaces
-        )
-
-        pyramidTriMesh.export(f"pyramidtest{id}/basepyramid.stl")
         
         while objectiveFunction(cubeTriMesh, pyramidTriMesh) > 0:
             #move mesh vertices somehow
