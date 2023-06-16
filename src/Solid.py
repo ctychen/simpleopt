@@ -532,12 +532,14 @@ class Box_Vector_Mesh(CADClass.CAD):
         
         return min_distance, closest_point
     
-    def gradMoveVertex(self, vertex, pyramidVertices, step_size=0.01):
+    def gradMoveVertex(self, vertex, pyramidVertices, step_size=0.1):
         distance, closest_point = self.pointDistanceToPyramid(vertex, pyramidVertices)
         #calculate direction vector from the vertex to the closest point on the pyramid
         #then normalize
         direction_vector = closest_point - vertex
-        direction_vector /= np.linalg.norm(direction_vector)
+        norms = np.linalg.norm(direction_vector)
+        if norms != 0.0: #so we don't have division by 0 issues
+            direction_vector /= np.linalg.norm(direction_vector)
         #move vertex towards closest point using direction vector
         vertex += step_size * direction_vector
         return vertex
@@ -549,7 +551,7 @@ class Box_Vector_Mesh(CADClass.CAD):
     #which is annoying
     #so let's do v1 of that first? below
     
-    def pyramidFromCubeV2(self, id='005'):
+    def pyramidFromCubeV2(self, id='007'):
 
         print(f"Starting pyramid attempt")
 
@@ -591,39 +593,6 @@ class Box_Vector_Mesh(CADClass.CAD):
         #for vertex in mesh: determine if the vertex is inside/outside target pyramid volume
         #either: minimize volume outside the target volume AND/OR: minimize number of vertex points outside the target volume (ie, want it to get to 0) - could be more straightforward?
         #keep moving the vertices until the number outside the pyramid target is 0
-
-        ####attempt1####: iteratively moving vertices inside the pyramid if they aren't in there already
-        # count = 0
-        # for i in range(len(vertices)):
-        #     vertex = vertices[i]
-        #     if self.isPointOutsidePyramid(vertex, pyramidVertices):
-        #         distance, targetPoint = self.pointDistanceToPyramid(vertex, pyramidVertices)
-        #         print(f"Distance to pyramid surface: {distance}, target point: {targetPoint}")
-        #         vertices[i] = targetPoint
-        #     if count % 200 == 0: 
-        #         meshUpdated = self.makeMesh(vertices)
-        #         self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/pyramid_test_00{count/200}", self.meshres)
-        #     count += 1
-        
-        #attempt 2: calculating the intersection volume and using that
-
-        # def objectiveFunction(meshcube, pyramidMesh):
-        #     make meshcube, pyramidMesh into solid
-        #     do boolean with that, and calculate volume of boolean 
-        #     return volumeDiff
-
-        # def objectiveFunction(cubeVertices, pyramidVertices):
-        #     cubeShape=Part.Shape()
-        #     cubeShape.makeShapeFromMesh(self.makeMesh(cubeVertices),0.05) # the second arg is the tolerance for sewing
-        #     cubeSolid = Part.makeSolid(cubeShape)
-        #     pyramidShape=Part.Shape()
-        #     pyramidShape.makeShapeFromMesh(self.makeMesh(pyramidVertices),0.05) # the second arg is the tolerance for sewing
-        #     pyramidSolid = Part.makeSolid(pyramidShape)
-
-        #     intersection = cubeSolid.Shape.common(pyramidSolid.Shape)
-        #     volumeDiff = intersection.Volume
-
-        #     return volumeDiff
 
         pVertices = [
             FreeCAD.Vector(0,0,0),
@@ -777,13 +746,18 @@ class Box_Vector_Mesh(CADClass.CAD):
                 print(f"Modified cube vertex {i}: {cubeVertices[i]}")
                 print(f"Modified cube vertex in Trimesh {i}: {cubeTriMesh.vertices[i]}")
 
-                if count % 200 == 0:
+                if i == 253: 
+                    cubeTriMesh.export(f"pyramidtest{id}/wip_{count}.stl")
+                    count += 1
+
+                #if count % 200 == 0:
                     #cubeMesh = self.makeMesh(cubeVertices)
                     #self.saveMeshSTL(cubeMesh, f"pyramidtest{id}/wip_{count}", self.meshres)
                     #mesh2.export('stuff.stl')
-                    cubeTriMesh.export(f"pyramidtest{id}/wip_{count}.stl")
+                #    cubeTriMesh.export(f"pyramidtest{id}/wip_{count}.stl")
+                
+                #count += 1
 
-            count += 1
 
 
         #while objectiveFunction(meshcube, pyramidMesh) > 0:
