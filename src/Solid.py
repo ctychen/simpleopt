@@ -554,7 +554,8 @@ class Box_Vector_Mesh(CADClass.CAD):
         #    direction_vector /= np.linalg.norm(direction_vector)
         #move vertex towards closest point using direction vector
         vertex += step_size * direction_vector
-        return 
+        return vertex
+    
     
 
     #alternative method: find boolean between mesh and target pyramid
@@ -563,7 +564,7 @@ class Box_Vector_Mesh(CADClass.CAD):
     #which is annoying
     #so let's do v1 of that first? below
     
-    def pyramidFromCubeV2(self, id='011'):
+    def pyramidFromCubeV2(self, id='013'):
 
         print(f"Starting pyramid attempt")
 
@@ -591,7 +592,7 @@ class Box_Vector_Mesh(CADClass.CAD):
             [10.0, 0.0, 0.0],
             [10.0, 10.0, 0.0],
             [0.0, 10.0, 0.0],
-            [5.0, 5.0, 5.0],
+            [5.0, 5.0, 10.0],
         ])
 
         #v3 approach?
@@ -611,7 +612,7 @@ class Box_Vector_Mesh(CADClass.CAD):
             FreeCAD.Vector(10,0,0),
             FreeCAD.Vector(10,10,0),
             FreeCAD.Vector(0,10,0),
-            FreeCAD.Vector(5,5,5),  # the apex
+            FreeCAD.Vector(5,5,10),  # the apex
         ]
         # Create the base
         pBase = Part.makePolygon(pVertices[:4] + [pVertices[0]])  # makePolygon requires a closed loop, hence append the first vertex at the end
@@ -646,26 +647,6 @@ class Box_Vector_Mesh(CADClass.CAD):
         pyramidMeshVertices = []
         pyramidMeshFaces = []
 
-                # # Convert FreeCAD vertices to a numpy array
-        # vertices = np.array([v.Point for v in vertices_list])
-
-        # # Convert FreeCAD facets to a numpy array
-        # faces = np.array([[v1.Index, v2.Index, v3.Index] for v1, v2, v3 in facets_list])
-
-        # # Create Trimesh object
-        # mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
-
-
-        # for i in range(len(pyramidMesh[0].Facets)):
-        #     facet_points_list = pyramidMesh[0].Facets[i]
-        #     facet_points = facet_points_list.Points
-        #     for point in facet_points:
-        #         pyramidMeshVertices.append(list(point))  
-            # for j in facet_points_list.Points:
-            #     print(j)
-            #     pyramidMeshFaces.append(list(j))
-
-        # pyramidMeshVertices = np.array(pyramidMeshVertices) 
 
         pyramidMeshVertices = np.array([[v.x, v.y, v.z] for v in pyramidMesh[0].Points])
         pyramidMeshFaces = np.array([[f.PointIndices[0], f.PointIndices[1], f.PointIndices[2]] for f in pyramidMesh[0].Facets])
@@ -727,7 +708,20 @@ class Box_Vector_Mesh(CADClass.CAD):
             volumeDiff = np.abs(vMesh - vIntersect)
             return volumeDiff
         
+        #finds sum of distances of cube mesh vertices to the pyramid mesh. ideally this should be as close to 0 as possible
+        def objectiveFunction2(cubeMesh, pyramidMesh):
+            sumDistances = 0.0
+            for cubeVertex in cubeMesh.Vertices: 
+                closest_point, distance, triangle_id = pyramidMesh.nearest.on_surface([cubeVertex])
+                sumDistances += distance[0]
+            print(f"Sum of vertex-to-pyramid distances: {sumDistances}")
+            return sumDistances
+        
+        #original: used only volume obj fcn, test000-013
         while objectiveFunction(cubeTriMesh, pyramidTriMesh) > 0:
+
+        #new attempt: use 2 objective functions: distance, and volume, to get rid of the "spike" points
+       #while (objectiveFunction(cubeTriMesh, pyramidTriMesh) > 0) and (objectiveFunction2(cubeTriMesh, pyramidTriMesh) > 0):
             #move mesh vertices somehow
             #update the mesh somehow
             
@@ -735,8 +729,8 @@ class Box_Vector_Mesh(CADClass.CAD):
                 #keep step size fixed for now but move vertex a bit, according to direction/distance from pyramid
                 print(f"Original cube vertex {i}: {cubeVertices[i]}")
 
-                cubeVertices[i] = self.gradMoveVertex(cubeVertices[i], pyramidVertices)
-                # cubeVertices[i] = self.gradMoveVertex_TriMesh(cubeVertices[i], pyramidTriMesh)
+                # cubeVertices[i] = self.gradMoveVertex(cubeVertices[i], pyramidVertices)
+                cubeVertices[i] = self.gradMoveVertex_TriMesh(cubeVertices[i], pyramidTriMesh)
                 cubeTriMesh.vertices[i] = cubeVertices[i] #Not sure if this is needed but have to check
 
                 print(f"Modified cube vertex {i}: {cubeVertices[i]}")
