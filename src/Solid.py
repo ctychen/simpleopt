@@ -8,7 +8,13 @@ import numpy as np
 import toolsClass
 import math 
 
+# Set the blender executable path
+# os.environ['BLENDER_EXECUTABLE_PATH'] = '/usr/bin/blender' #'/Applications/Blender.app/Contents/MacOS/blender'
+
 import trimesh
+# Check available backends
+print(trimesh.interfaces.blender.exists)
+print(trimesh.interfaces.scad.exists)
 
 tools = toolsClass.tools()
 
@@ -144,7 +150,7 @@ class Box(CADClass.CAD):
 
         print("\nWrote meshes to files")
         return
-    
+
 
 from scipy.spatial.transform import Rotation
 from scipy.optimize import minimize
@@ -543,7 +549,7 @@ class Box_Vector_Mesh(CADClass.CAD):
     #which is annoying
     #so let's do v1 of that first? below
     
-    def pyramidFromCubeV2(self, id='004'):
+    def pyramidFromCubeV2(self, id='005'):
 
         print(f"Starting pyramid attempt")
 
@@ -734,7 +740,7 @@ class Box_Vector_Mesh(CADClass.CAD):
         #trimesh also has fcn for trimesh.boolean.difference
         #trimesh.boolean.intersection(meshes, engine=None, **kwargs)
         def objectiveFunction(cubeMesh, pyramidMesh):
-            intersectionMesh = trimesh.boolean.intersection([cubeMesh, pyramidMesh])
+            intersectionMesh = trimesh.boolean.intersection([cubeMesh, pyramidMesh], engine='scad')
             vIntersect = intersectionMesh.volume
             vMesh = cubeMesh.volume
             volumeDiff = np.abs(vMesh - vIntersect)

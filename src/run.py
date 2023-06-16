@@ -18,13 +18,22 @@ except:
 
 if (runMode == 'docker'):
     FreeCADPath = '/usr/lib/freecad-daily/lib'
+    BlenderPath = '/usr/lib/blender'
+    OpenSCADPath = '/usr/bin/openscad'
+
     # HEATPath = '/root/source/HEAT'
 else:
-    FreeCADPath = '/usr/lib/freecad-python3/lib'
+    #FreeCADPath = '/Applications/FreeCAD.app' #'/usr/lib/freecad-python3/lib'
+    FreeCADPath = '/Applications/FreeCAD.app/Contents/Resources/lib'
+    BlenderPath = '/Applications/Blender.app/Contents/MacOS/blender'
     # HEATPath = '/Users/cchen/Desktop/HEAT'
 
 sys.path.append(FreeCADPath)
+sys.path.append(BlenderPath)
+sys.path.append(OpenSCADPath)
 print(sys.path)
+
+import trimesh
 
 import CADClass
 
