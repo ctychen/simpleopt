@@ -18,13 +18,22 @@ except:
 
 if (runMode == 'docker'):
     FreeCADPath = '/usr/lib/freecad-daily/lib'
+    BlenderPath = '/usr/lib/blender'
+    OpenSCADPath = '/usr/bin/openscad'
+
     # HEATPath = '/root/source/HEAT'
 else:
-    FreeCADPath = '/usr/lib/freecad-python3/lib'
+    #FreeCADPath = '/Applications/FreeCAD.app' #'/usr/lib/freecad-python3/lib'
+    FreeCADPath = '/Applications/FreeCAD.app/Contents/Resources/lib'
+    BlenderPath = '/Applications/Blender.app/Contents/MacOS/blender'
     # HEATPath = '/Users/cchen/Desktop/HEAT'
 
 sys.path.append(FreeCADPath)
+sys.path.append(BlenderPath)
+sys.path.append(OpenSCADPath)
 print(sys.path)
+
+import trimesh
 
 import CADClass
 
@@ -85,14 +94,16 @@ class RunSetup_3DBox:
     def __init__(self):
         g_obj = lambda qvals: max(qvals) #+ qvals.count(max(qvals)) #maybe changing obj function helps??
 
-        # stpPath = "standard_test_box.step" #not rotated, starting at 0,0,0
-        stpPath = "test_box_2.step" #test_box_7.step"
+        #stpPath = "standard_test_box.step" #not rotated, starting at 0,0,0
+        stpPath = "unit_test_cube.step"
+        #stpPath = "test_box_2.step" #test_box_7.step"
 
         stlPath = " " #"box.stl"
         qDirIn = [0.0, -1.0, 0.0] #[m]
         qMagIn = 10.0 #[W/m^2]
 
-        self.box = Solid.Box_Vector(stlPath, stpPath) 
+        self.box = Solid.Box_Vector_Mesh(stlPath, stpPath)
+        #self.box = Solid.Box_Vector(stlPath, stpPath) #normally, use this one!
         self.fwd = ForwardModel.ForwardModel_Box(g_obj, self.box, qMagIn, qDirIn) 
         self.opt = OptModel.OptModel_3DRot(g_obj)
 
@@ -551,7 +562,6 @@ class RunSetup_3DBox:
 
         #return 
         return [min_q, [xMin, yMin, zMin]]
-
         
 
 if __name__ == '__main__':
@@ -565,12 +575,20 @@ if __name__ == '__main__':
     """
     Run gradient descent optimizer
     """
-    all_q_found = setup.runModel(momentum = 0.5, runid = 36)
+    #all_q_found = setup.runModel(momentum = 0.5, runid = 36)
 
     """
     Find global minimum
     """    
     # setup.findGlobalMin()
+
+    """
+    Run cube mesh operation test
+    """
+
+    #TODO
+    #setup.box.pyramidFromCube()
+    setup.box.pyramidFromCubeV2()
 
     """
     VERIFYING NORMAL VECTORS, CENTERS, OVERALL CENTER FOR APPLYING FOUND ROTATION - CHECK FOR NO OFFSETS & ETC
