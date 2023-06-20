@@ -53,7 +53,7 @@ class RunSetup_MeshHF:
         self.box = Solid.MeshSolid(stlPath, stpPath)
         #self.box = Solid.MeshSolid(stlPath, stpPath) #normally, use this one!
 
-        self.fwd = ForwardModel.ForwardModel_Box(g_obj, self.box, qMagIn, qDirIn) 
+        self.fwd = ForwardModel.ForwardModel_MeshHF(g_obj, self.box, qMagIn, qDirIn) 
         # self.opt = OptModel.OptModel_3DRot(g_obj)
         self.opt = OptModel.OptModel_MeshHF()
 
