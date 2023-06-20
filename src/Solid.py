@@ -15,10 +15,7 @@ print(trimesh.interfaces.scad.exists)
 
 tools = toolsClass.tools()
 
-from scipy.spatial.transform import Rotation
-from scipy.optimize import minimize
-
-class MeshSolid(CADClass.CAD):
+class Box_Vector_Mesh(CADClass.CAD):
 
     def __init__(self, stlfile="", stpfile="", meshres=1.0):
         super(CADClass.CAD, self).__init__()
@@ -32,19 +29,51 @@ class MeshSolid(CADClass.CAD):
         # self.allmeshes = self.part2meshStandard(self.CADparts)
 
         self.vertices = np.array(self.allmeshes[0].Points)
-
         self.faces = np.array(self.allmeshes[0].Facets)
 
         return
 
     def makeMesh(self, vertices):
+        """
+        create freecad mesh from array or list of vertices
+        """
         if type(vertices) != list:
             vertices = vertices.tolist()
 
         newMesh = Mesh.Mesh(vertices)
         return newMesh
+
+    def isPointOutsidePyramid(self, point, pyramidVertices):
+        """
+        check if given vertex is outside the pyramid defined by its vertices
+        not needed if using trimesh implementation
+        """
+        base = pyramidVertices[0:4]
+        apex = pyramidVertices[4]
+        
+        for i in range(4):
+            #vertices for pyramid edge
+            v1, v2 = base[i], base[(i+1)%4]
+            
+            #find normal between edges
+            normal = np.cross(v2 - v1, apex - v1)
+            
+            #vector from the point to the triangle face
+            vec = v1 - point
+            
+            #if dot product is positive, the point is outside pyramid
+            if np.dot(normal, vec) >= 0:
+                return False
+        
+        return True
         
     def pointTriangleDistance(self, P, A, B, C):
+        """
+        calculate distance from a point to a triangle's center using barycentric coordinates
+        triangle defined by its vertices
+        this was used for finding the distance from a mesh vertex to the nearest surface on the target pyramid
+        deprecated if using the trimesh implementation
+        """
         # Compute vectors        
         v0 = C - A
         v1 = B - A
@@ -78,6 +107,10 @@ class MeshSolid(CADClass.CAD):
             return edge_dists[min_dist_idx], edge_points[min_dist_idx]
 
     def pointDistanceToPyramid(self, P, pyramidVertices):
+        """
+        calculate the nearest distance from some point to the pyramid, as defined by its vertices. 
+        eventually this was replaced by trimesh nearest_on_surface, but used in non-trimesh implementation.
+        """
         base = pyramidVertices[:4]
         apex = pyramidVertices[4]
         
@@ -94,6 +127,10 @@ class MeshSolid(CADClass.CAD):
         return min_distance, closest_point
     
     def gradMoveVertex(self, vertex, pyramidVertices, step_size=0.1):
+        """
+        gradient descent implementation, given pyramid vertices - not using trimesh
+        gradually move a vertex in the direction such that it approaches the closest point on the target mesh
+        """
         distance, closest_point = self.pointDistanceToPyramid(vertex, pyramidVertices)
         #calculate direction vector from the vertex to the closest point on the pyramid
         #then normalize
@@ -106,6 +143,10 @@ class MeshSolid(CADClass.CAD):
         return vertex
     
     def gradMoveVertex_TriMesh(self, vertex, tri_mesh, step_size = 0.1):
+        """
+        gradient descent implementation for trimesh mesh
+        gradually move a vertex in the direction such that it approaches the closest point on the target mesh
+        """
         # closest_point, distance, triangle_id = mesh.nearest.on_surface([point])
         closest_point, distance, triangle_id = tri_mesh.nearest.on_surface([vertex])
         # print(f"Closest point on the mesh: {closest_point[0]}")
@@ -117,13 +158,12 @@ class MeshSolid(CADClass.CAD):
         vertex += step_size * direction_vector
         return vertex
     
-    #alternative method: find boolean between mesh and target pyramid
-    #then use that difference (the volume inside 1 but not the other, total) as objective fcn
-    #need to write fcn for mesh (vertices) to solid in order to find boolean/intersection operation though for volume
-    #which is annoying
-    #so let's do v1 of that first? below
     
-    def pyramidFromCubeV2(self, id='000'):
+
+    #find boolean between mesh and target pyramid, and get the volume of the boolean
+    #use this volume as objective function for optimization: 
+    #want the volume of the final mesh to be as close to the target volume as possible (diff = 0)
+    def pyramidFromCubeV2(self, id='013'):
 
         print(f"Starting pyramid attempt")
 
@@ -143,31 +183,23 @@ class MeshSolid(CADClass.CAD):
         self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/before_pyramid", self.meshres)
 
         faces = np.array([[facet.PointIndices[i] for i in range(3)] for facet in self.faces])
-        # print(f"Original faces: {faces}")    
         print(f"Number of faces: {faces.shape}")   
 
-        pyramidVertices = np.array([
-            [0.0, 0.0, 0.0],
-            [10.0, 0.0, 0.0],
-            [10.0, 10.0, 0.0],
-            [0.0, 10.0, 0.0],
-            [5.0, 5.0, 10.0],
-        ])
-
-        #v3 approach?
+        #approach: 
         #objective to minimize: (volume of mesh outside of target volume) + (volume of target outside of mesh), with intersect? 
         #determine pyramid volume based on defined vertices, & determine where this sits in space
         #how to calculate mesh volume outside of another volume? 
         #somehow move mesh points to reduce the volume: probably similar to grad desc? (how to determine though - move vertex to nearest point inside the mesh?)
         #eg: calculate the distance from a mesh vertex to the closest point inside the target area, then move it there (or just move to some distance within it)
         
-
         #for vertex in mesh: determine if the vertex is inside/outside target pyramid volume
         #either: minimize volume outside the target volume AND/OR: minimize number of vertex points outside the target volume (ie, want it to get to 0) - could be more straightforward?
         #keep moving the vertices until the number outside the pyramid target is 0
 
+        #defining target pyramid object - then use this to make a solid, then mesh, for reference
+
         pVertices = [
-            FreeCAD.Vector(0,0,0),
+            FreeCAD.Vector(0,0,0), #corners
             FreeCAD.Vector(10,0,0),
             FreeCAD.Vector(10,10,0),
             FreeCAD.Vector(0,10,0),
@@ -182,58 +214,39 @@ class MeshSolid(CADClass.CAD):
             triangle = Part.makePolygon([pVertices[i], pVertices[(i+1)%4], pVertices[4], pVertices[i]])
             pFaces.append(Part.Face(triangle))
 
-        # Create a shell from the faces
+        # Create a shell from the faces for the pyramid
         shell = Part.makeShell(pFaces)
 
-        # Create a solid from the shell
+        # Create a solid from the shell for the pyramid
         pyramidSolid = Part.makeSolid(shell)
         
         psolid = FreeCAD.ActiveDocument.addObject("Part::Feature", "Pyramid")
         psolid.Shape = pyramidSolid
 
-        # self.allmeshes = self.part2mesh(self.CADparts, meshres)
-
-        # pyramidMesh = self.part2mesh(pyramidSolid, self.meshres)
         pyramidMesh = self.part2meshStandard(psolid)
 
         print(f'Pyramid Mesh vertices: {pyramidMesh[0].Points}')
         print(f'Pyramid Mesh faces: {pyramidMesh[0].Facets}')
-        #above this: stuff works - created a pyramid mesh that can work
-
-        #pyramidMeshVertices = pyramidMesh[0].Points
-        #pyramidMeshFaces = pyramidMesh[0].Facets
 
         pyramidMeshVertices = []
         pyramidMeshFaces = []
 
-
         pyramidMeshVertices = np.array([[v.x, v.y, v.z] for v in pyramidMesh[0].Points])
         pyramidMeshFaces = np.array([[f.PointIndices[0], f.PointIndices[1], f.PointIndices[2]] for f in pyramidMesh[0].Facets])
-        # pyramidMeshFaces = np.array(pyramidMeshFaces)
-
-        # cubeVertices = vertices.copy()
-        # cubeFaces = faces.copy()
 
         cubeVertices = np.array([[v.x, v.y, v.z] for v in self.allmeshes[0].Points])
         cubeFaces = np.array([[f.PointIndices[0], f.PointIndices[1], f.PointIndices[2]] for f in self.allmeshes[0].Facets])
-        #f.PointIndices
+
         count = 0
 
+        #create TriMesh mesh object of the original cube
         cubeTriMesh = trimesh.Trimesh(
             vertices=cubeVertices, faces=cubeFaces
         )
 
         cubeTriMesh.export(f"pyramidtest{id}/basecube.stl")
 
-        # # Convert FreeCAD vertices to a numpy array
-        # vertices = np.array([v.Point for v in vertices_list])
-
-        # # Convert FreeCAD facets to a numpy array
-        # faces = np.array([[v1.Index, v2.Index, v3.Index] for v1, v2, v3 in facets_list])
-
-        # # Create Trimesh object
-        # mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
-
+        #create TriMesh mesh object of the target pyramid; we had to do it originally from FreeCAD
         pyramidTriMesh = trimesh.Trimesh(
             vertices=pyramidMeshVertices, faces=pyramidMeshFaces
         )
@@ -242,17 +255,12 @@ class MeshSolid(CADClass.CAD):
 
         print(f"Pyramid mesh faces: {pyramidMeshFaces}")
 
-        #below this: needs work 
-
         #in theory what this should do:
         #calculate the volume that's inside the cube/object but outside the target volume
         #calculate the volume that's inside the target voluem but outside the cube/object
         #sum the volume
         #this sum is what should be minimized
         #so it's time for mesh ops - boolean/intersection - and FC may not be the way to go
-
-        # mesh = trimesh.Trimesh(vertices=[[0, 0, 0], [0, 0, 1], [0, 1, 0]],
-        #                faces=[[0, 1, 2]])
 
         #both of these inputs should be trimesh objects
         #objective should be: (volume of mesh) - (volume of intersection of/boolean mesh & pyramid) -> minimize
@@ -268,6 +276,7 @@ class MeshSolid(CADClass.CAD):
             return volumeDiff
         
         #finds sum of distances of cube mesh vertices to the pyramid mesh. ideally this should be as close to 0 as possible
+        #this objective function ended up unused, but could be useful later?
         def objectiveFunction2(cubeMesh, pyramidMesh):
             sumDistances = 0.0
             for cubeVertex in cubeMesh.Vertices: 
@@ -299,23 +308,8 @@ class MeshSolid(CADClass.CAD):
                     cubeTriMesh.export(f"pyramidtest{id}/wip_{count}.stl")
                     count += 1
 
-                #if count % 200 == 0:
-                    #cubeMesh = self.makeMesh(cubeVertices)
-                    #self.saveMeshSTL(cubeMesh, f"pyramidtest{id}/wip_{count}", self.meshres)
-                    #mesh2.export('stuff.stl')
-                #    cubeTriMesh.export(f"pyramidtest{id}/wip_{count}.stl")
-                
-                #count += 1
-
-
-
-        #while objectiveFunction(meshcube, pyramidMesh) > 0:
-        #   somehow move some mesh vertices 
-        #   regenerate the meshes and set meshcube = new mesh after the modifications - distance change could be similar to control points?
-        #   repeat process
-        
+        #export and save the final mesh after modification
         mesh2 = self.makeMesh(vertices)
-
         self.saveMeshSTL(mesh2, f"pyramidtest{id}/pyramid_test_final_{id}", self.meshres)
 
         return 

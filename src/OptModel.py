@@ -51,6 +51,7 @@ import plotly.io as pio
 from plotly.subplots import make_subplots
 
 class OptModel_3DRot:
+    
     def __init__(self, objective, threshold = 0.1, gprev = 10000, gcurr = 5, delstep = 0.1, del_e = 1):
         #all placeholder values for now I have no idea what they should be yet - maybe these shouldn't be here and instead in opt? 
         self.objective = objective
@@ -62,7 +63,7 @@ class OptModel_3DRot:
         return
 
     def gradientDescent(self, cadModel, currentAng, calcQVal, angleRange, plotEnable = True, savePlotsTo = '', ct = 0, numSamples = 24):
-        
+
         currentXAng = currentAng[0]
         currentYAng = currentAng[1]
         currentZAng = currentAng[2]
