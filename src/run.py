@@ -7,7 +7,6 @@ import plotly.graph_objects as go
 import plotly.io as pio
 from plotly.subplots import make_subplots
 
-
 import matplotlib.pyplot as plt
 
 try:
@@ -41,55 +40,6 @@ import Solid
 import ForwardModel
 import OptModel
 
-class RunSetup_1DBox:
-    def __init__(self):
-        g_obj = lambda qvals: max(qvals) #+ qvals.count(max(qvals)) #maybe changing obj function helps??
-
-        # stpPath = "test_box.step" 
-        stpPath = "test_box_6.step" 
-        stlPath = " " #"box.stl"
-        qDirIn = [0.0, -1.0, 0] #[m]
-        qMagIn = 10.0 #[W/m^2]
-
-        self.box = Solid.Box(stlPath, stpPath) 
-        self.fwd = ForwardModel.ForwardModel_Box(g_obj, self.box, qMagIn, qDirIn) 
-        self.opt = OptModel.OptModel_Box()
-
-        #self.box.loadSTEP()
-        # mesh = self.box.load1Mesh(stlPath)
-
-        self.del_theta = 0
-        return
-
-    def runModel(self, stlEn = True):
-        count = 0
-        while ((abs(self.opt.del_e) > self.opt.threshold_err)):
-            self.fwd.processCADModel()
-            q_mesh_all = self.fwd.calcQMesh()
-            g_now = self.fwd.calcObjective(q_mesh_all)
-            print(f"g value found: {g_now}")
-            self.opt.updategValues(g_now)
-            self.opt.calculateDelE()
-
-            if (abs(self.opt.del_e) < self.opt.threshold_err) and (self.opt.g_prev > self.opt.g_curr):
-                print(f"[err]: {self.opt.del_e} [g_x now]: {self.opt.g_curr} [g_x prev]: {self.opt.g_prev} [theta]: {self.del_theta}")
-                print(f"found opt, last err: {self.opt.del_e}, rotated: {self.del_theta}")
-                self.box.CADdoc.recompute()
-                self.box.saveSTEP("final_box.step", self.box.CADobjs)
-                break
-            else: 
-                print(f"transform needed, error: {self.opt.del_e}")
-                self.del_theta = self.opt.doTransform(self.box) #this prob doesn't match yet, gonna fix
-                print(f"transformed: [err]: {self.opt.del_e} [g_x now]: {self.opt.g_curr} [g_x prev]: {self.opt.g_prev} [theta]: {self.del_theta}")
-                
-                if stlEn:
-                    self.box.saveMeshSTL(self.box.meshes, f"boxmesh_{count}", 500)
-
-            count += 1
-        print(f"Iterations: {count}")
-        return
-
-
 class RunSetup_3DBox:
     def __init__(self):
         g_obj = lambda qvals: max(qvals) #+ qvals.count(max(qvals)) #maybe changing obj function helps??
@@ -102,7 +52,7 @@ class RunSetup_3DBox:
         qDirIn = [0.0, -1.0, 0.0] #[m]
         qMagIn = 10.0 #[W/m^2]
 
-        self.box = Solid.Box_Vector_Mesh(stlPath, stpPath)
+        self.box = Solid.MeshSolid(stlPath, stpPath)
         #self.box = Solid.Box_Vector(stlPath, stpPath) #normally, use this one!
         self.fwd = ForwardModel.ForwardModel_Box(g_obj, self.box, qMagIn, qDirIn) 
         self.opt = OptModel.OptModel_3DRot(g_obj)
@@ -562,7 +512,27 @@ class RunSetup_3DBox:
 
         #return 
         return [min_q, [xMin, yMin, zMin]]
-        
+
+class RunSetup: 
+    def __init__(self):
+        g_obj = lambda qvals: max(qvals) #+ qvals.count(max(qvals)) #maybe changing obj function helps??
+
+        #stpPath = "standard_test_box.step" #not rotated, starting at 0,0,0
+        stpPath = "unit_test_cube.step"
+        #stpPath = "test_box_2.step" #test_box_7.step"
+
+        stlPath = " " #"box.stl"
+        qDirIn = [0.0, -1.0, 0.0] #[m]
+        qMagIn = 10.0 #[W/m^2]
+
+        self.box = Solid.MeshSolid(stlPath, stpPath)
+        #self.box = Solid.Box_Vector(stlPath, stpPath) #normally, use this one!
+        self.fwd = ForwardModel.ForwardModel_Box(g_obj, self.box, qMagIn, qDirIn) 
+        self.opt = OptModel.OptModel_3DRot(g_obj)
+
+        return    
+    
+    #TODO: fill the rest out
 
 if __name__ == '__main__':
 
@@ -588,7 +558,8 @@ if __name__ == '__main__':
 
     #TODO
     #setup.box.pyramidFromCube()
-    setup.box.pyramidFromCubeV2()
+    #setup.box.pyramidFromCubeV2()
+    setup.box.meshHFOpt()
 
     """
     VERIFYING NORMAL VECTORS, CENTERS, OVERALL CENTER FOR APPLYING FOUND ROTATION - CHECK FOR NO OFFSETS & ETC
@@ -617,24 +588,6 @@ if __name__ == '__main__':
     # print(f"Center of box after rotation: {boxcenter}")
 
     # setup.box.saveMeshSTL(rotatedMesh, f"box_after_rotation_{angles[0]}_{angles[1]}_{angles[2]}", 'standard')
-
-    """
-    Other old stuff
-    """
-
-    # angles0 = [-31.424581005586592, 18.35195530726257, 37.458100558659225] 
-    # angles1 = [1.8794837529640014, 44.03875981171882, -53.412947030027894]
-    # q0 = setup.calcPeakQWithRotation_Vector(angles0[0], angles0[1], angles0[2])
-    # q1 = setup.calcPeakQWithRotation_Vector(angles1[0], angles1[1], angles1[2])
-
-    # print(f"with 'global min': {angles0[0]}, {angles0[1]}, {angles0[2]}, q value is {q0}")
-    # print(f"with 'opt rotation': {angles1[0]}, {angles1[1]}, {angles1[2]}, q value is {q1}")
-
-
-    # all_q_found = setup.runModel(threshold=5.88)
-    # setup.plotRotations()
-
-    # print(f"Initial heat flux: {all_q_found[0][0]}, best heat flux: {min(all_q_found[0])}")
 
     print(f"Time elapsed: {time.time() - t0}")
 
