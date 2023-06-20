@@ -15,7 +15,7 @@ print(trimesh.interfaces.scad.exists)
 
 tools = toolsClass.tools()
 
-class Box_Vector_Mesh(CADClass.CAD):
+class MeshSolid(CADClass.CAD):
 
     def __init__(self, stlfile="", stpfile="", meshres=1.0):
         super(CADClass.CAD, self).__init__()
@@ -33,6 +33,7 @@ class Box_Vector_Mesh(CADClass.CAD):
 
         return
 
+    
     def makeMesh(self, vertices):
         """
         create freecad mesh from array or list of vertices
@@ -48,10 +49,7 @@ class Box_Vector_Mesh(CADClass.CAD):
         gradient descent implementation for trimesh mesh
         gradually move a vertex in the direction such that it approaches the closest point on the target mesh
         """
-        # closest_point, distance, triangle_id = mesh.nearest.on_surface([point])
         closest_point, distance, triangle_id = tri_mesh.nearest.on_surface([vertex])
-        # print(f"Closest point on the mesh: {closest_point[0]}")
-        # print(f"Distance from point to mesh: {distance[0]}")
         direction_vector = closest_point[0] - vertex
         #if norms != 0.0: #so we don't have division by 0 issues
         #    direction_vector /= np.linalg.norm(direction_vector)
@@ -60,26 +58,9 @@ class Box_Vector_Mesh(CADClass.CAD):
         return vertex
     
 
-    def gradientDescentHF(self, tri_mesh, objectiveFunction, delta):
-        """
-        gradient descent implementation for heat flux minimization
-        takes in trimesh object, applies objective function to it
-        moves all mesh vertices by a small amount and finds the gradient when doing so 
-        """
-        gradient = np.zeros_like(tri_mesh.Vertices)
-        #for each vertex
-        for i in range(len(tri_mesh.Vertices)):
-            #for each dimension
-            for j in range(3):
-                #move vertex a bit, see if the objective function decreases
-                tri_mesh.Vertices[i, j] += delta
-                obj_afterMoving = objectiveFunction(tri_mesh)
-                #move vertex back to original, calc objective function then for comparison
-                tri_mesh.Vertices[i, j] -= delta
-                obj_beforeMoving = objectiveFunction(tri_mesh)
-                gradient[i, j] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
-        return gradient
+    def processSolid(self):
 
+        return trimeshSolid
 
     def meshHFOpt(self, id='000'):
         """

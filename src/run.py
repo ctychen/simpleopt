@@ -40,7 +40,7 @@ import Solid
 import ForwardModel
 import OptModel
 
-class RunSetup_3DBox:
+class RunSetup_MeshHF:
     def __init__(self):
         g_obj = lambda qvals: max(qvals) #+ qvals.count(max(qvals)) #maybe changing obj function helps??
 
@@ -52,23 +52,29 @@ class RunSetup_3DBox:
 
         self.box = Solid.MeshSolid(stlPath, stpPath)
         #self.box = Solid.MeshSolid(stlPath, stpPath) #normally, use this one!
+
         self.fwd = ForwardModel.ForwardModel_Box(g_obj, self.box, qMagIn, qDirIn) 
-        self.opt = OptModel.OptModel_3DRot(g_obj)
+        # self.opt = OptModel.OptModel_3DRot(g_obj)
+        self.opt = OptModel.OptModel_MeshHF()
 
         return
+    
+    def runOptimization(self):
+        self.box.processSolid()
+        return self.opt.meshHFOpt()
 
 
 if __name__ == '__main__':
 
     t0 = time.time()
 
-    setup = RunSetup_3DBox()
+    setup = RunSetup_MeshHF()
 
     """
     Run cube mesh operation test
     """
-
-    setup.box.pyramidFromCubeV2()
+    #setup.box.meshHFOPt()
+    setup.runOptimization()
 
     print(f"Time elapsed: {time.time() - t0}")
 
