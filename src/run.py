@@ -53,15 +53,21 @@ class RunSetup_MeshHF:
         self.box = Solid.MeshSolid(stlPath, stpPath)
         #self.box = Solid.MeshSolid(stlPath, stpPath) #normally, use this one!
 
-        self.fwd = ForwardModel.ForwardModel_MeshHF(g_obj, self.box, qMagIn, qDirIn) 
-        # self.opt = OptModel.OptModel_3DRot(g_obj)
+        self.fwd = ForwardModel.ForwardModel_MeshHF(self.box, qMagIn, qDirIn) 
         self.opt = OptModel.OptModel_MeshHF()
 
         return
     
-    def runOptimization(self):
+    def runOptimization(self, runID="000"):
+
+        os.makedirs(f"test{runID}")
+
         self.box.processSolid()
-        return self.opt.meshHFOpt()
+        trimeshSolid = self.box.trimeshSolid
+        trimeshSolid.export(f"test{runID}/initial.stl")
+
+        # args: hfObjectiveFcn, meshObj, changeMeshFcn, threshold, delta
+        return self.opt.meshHFOpt(self.fwd.calculateMaxHF, trimeshSolid, self.opt.moveMeshVertices, threshold=0.01, delta=0.01, id=runID)
 
 
 if __name__ == '__main__':
