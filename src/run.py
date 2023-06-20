@@ -51,7 +51,7 @@ class RunSetup_3DBox:
         qMagIn = 10.0 #[W/m^2]
 
         self.box = Solid.MeshSolid(stlPath, stpPath)
-        #self.box = Solid.Box_Vector(stlPath, stpPath) #normally, use this one!
+        #self.box = Solid.MeshSolid(stlPath, stpPath) #normally, use this one!
         self.fwd = ForwardModel.ForwardModel_Box(g_obj, self.box, qMagIn, qDirIn) 
         self.opt = OptModel.OptModel_3DRot(g_obj)
 
