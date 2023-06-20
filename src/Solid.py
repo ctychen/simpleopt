@@ -394,7 +394,7 @@ class Box_Vector_Mesh(CADClass.CAD):
 
         return weights
 
-    #use this one for now
+    #DEPRECATED - original control point based approach
     def pyramidFromCube(self, id='004'):
 
         print(f"Starting pyramid attempt")
