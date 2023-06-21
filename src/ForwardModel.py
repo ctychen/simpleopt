@@ -34,7 +34,7 @@ class ForwardModel_MeshHF:
             n = normals[i] 
             #dotprod >= 0.0 and dotprod <= 1.0
             dotprod = np.dot(self.q_dir, n)
-            if dotprod >= 0.0 and dotprod <= 1.0: #back face culling
+            if dotprod > 0.0 and dotprod <= 1.0: #back face culling
                 q_i = dotprod * self.q_mag
                 q_mesh_sum += q_i
 

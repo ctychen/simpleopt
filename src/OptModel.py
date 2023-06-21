@@ -30,15 +30,15 @@ class OptModel_MeshHF:
         moves all mesh vertices by a small amount and finds the gradient when doing so 
         """
         gradient = np.zeros_like(tri_mesh.vertices)
-        x_allVals = []
-        y_allVals = []
-        z_allVals = []
+        # x_allVals = []
+        # y_allVals = []
+        # z_allVals = []
         #for each vertex
         for i in range(len(tri_mesh.vertices)):
             #for each dimension
-            x_allVals.append(tri_mesh.vertices[i][0])
-            y_allVals.append(tri_mesh.vertices[i][1])
-            z_allVals.append(tri_mesh.vertices[i][2])
+            # x_allVals.append(tri_mesh.vertices[i][0])
+            # y_allVals.append(tri_mesh.vertices[i][1])
+            # z_allVals.append(tri_mesh.vertices[i][2])
             for j in range(3):
                 #move vertex a bit, see if the objective function decreases
                 # print(f"Vertex: {tri_mesh.vertices[i]}") #format: [x, y, z]
@@ -56,7 +56,7 @@ class OptModel_MeshHF:
         # print(f"x values: {x_allVals}")
         # print(f"y values: {y_allVals}")
         # print(f"length x: {len(x_allVals)} length y: {len(y_allVals)} length z: {len(z_allVals)} length gradient: {len(gradient)}")
-        return [gradient, x_allVals, y_allVals, z_allVals]
+        return gradient
     
     
     def plotIteration(self, gradDescOut, count, fileID):
@@ -68,19 +68,39 @@ class OptModel_MeshHF:
 
         gradient_magnitudes = []
         for grad in gradient: 
+            print(f"Normal: {np.linalg.norm(grad)}")
             gradient_magnitudes.append(np.linalg.norm(grad))
 
-        fig = go.Figure(data=go.Volume(
-            x=x_vals,
-            y=y_vals,
-            z=z_vals,
-            value=gradient_magnitudes,
-            isomin=np.min(gradient_magnitudes),
-            isomax=np.max(gradient_magnitudes),
-            opacity=0.3,
-            surface_count=17,
-            colorscale='Thermal'
-        ))
+        # Assuming you have 1D lists of coordinates and magnitudes
+        x_coords = [x for x in range(len(x_vals)) for _ in range(len(y_vals)) for __ in range(len(z_vals))]
+        y_coords = [y for _ in range(len(x_vals)) for y in range(len(y_vals)) for __ in range(len(z_vals))]
+        z_coords = [z for _ in range(len(x_vals)) for __ in range(len(y_vals)) for z in range(len(z_vals))]
+        magnitudes = [gradient_magnitudes for _ in range(len(x_vals)) for __ in range(len(y_vals)) for ___ in range(len(z_vals))]
+
+        # Convert the lists to numpy arrays
+        x_coords_np = np.array(x_coords)
+        y_coords_np = np.array(y_coords)
+        z_coords_np = np.array(z_coords)
+        magnitudes_np = np.array(magnitudes)
+
+        # Reshape the 1D numpy arrays to 3D
+        x_coords_3d = x_coords_np.reshape((len(x_vals), len(y_vals), len(z_vals)))
+        y_coords_3d = y_coords_np.reshape((len(x_vals), len(y_vals), len(z_vals)))
+        z_coords_3d = z_coords_np.reshape((len(x_vals), len(y_vals), len(z_vals)))
+        magnitudes_3d = magnitudes_np.reshape((len(x_vals), len(y_vals), len(z_vals)))
+
+
+        fig = go.Figure(data=go.Isosurface(
+            x=x_coords_3d.flatten(),
+            y=y_coords_3d.flatten(),
+            z=z_coords_3d.flatten(),
+            value=magnitudes_3d.flatten(),
+            opacity=0.6,
+            isomin=magnitudes_3d.min(),
+            isomax=magnitudes_3d.max(),
+            surface_count=3,
+            caps=dict(x_show=False, y_show=False)
+            ))
 
         # Set plot layout and axis labels
         fig.update_layout(
@@ -125,6 +145,7 @@ class OptModel_MeshHF:
         print("Starting the mesh HF opt")
 
         print(f"Starting max HF: {hfObjectiveFcn(trimeshSolid)}")
+        trimeshSolid.export(f"test{id}/original.stl")
 
         #objective fcn should take in a trimesh mesh object
         while hfObjectiveFcn(trimeshSolid) > threshold:
@@ -132,11 +153,11 @@ class OptModel_MeshHF:
             print(f"Current max HF: {hfObjectiveFcn(trimeshSolid)}")
 
             #calc the gradient
-            gradientDescentOut = self.gradientDescentHF(trimeshSolid, hfObjectiveFcn, delta, fileID=id)
-            gradient = gradientDescentOut[0]
-            print(f"Gradient calculated: {gradient}")
+            gradient = self.gradientDescentHF(trimeshSolid, hfObjectiveFcn, delta, fileID=id)
+            # print(f"Gradient calculated: {gradient}")
 
-            self.plotIteration(gradientDescentOut, count, id)
+            #this is ridiculously inefficient and also broken so no
+            #self.plotIteration(gradientDescentOut, count, id)
 
             #move the vertices a bit based on the gradient
             trimeshSolid.vertices = changeMeshFcn(trimeshSolid, gradient, delta)
@@ -148,6 +169,8 @@ class OptModel_MeshHF:
 
             print(f"New HF value: {new_obj_val}")
             count += 1
+        
+        self.plotRun(all_objective_function_values, f"test{id}")
         
         #when process is done, the mesh should have been modified - so return it 
         return trimeshSolid
