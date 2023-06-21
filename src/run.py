@@ -67,7 +67,7 @@ class RunSetup_MeshHF:
         trimeshSolid.export(f"test{runID}/initial.stl")
 
         # args: hfObjectiveFcn, meshObj, changeMeshFcn, threshold, delta
-        return self.opt.meshHFOpt(self.fwd.calculateMaxHF, trimeshSolid, self.opt.moveMeshVertices, threshold=0.01, delta=0.01, id=runID)
+        return self.opt.meshHFOpt(self.fwd.calculateMaxHF, trimeshSolid, self.opt.moveMeshVertices, threshold=0.1, delta=1.0, id=runID)
 
 
 if __name__ == '__main__':
@@ -79,7 +79,6 @@ if __name__ == '__main__':
     """
     Run cube mesh operation test
     """
-    #setup.box.meshHFOPt()
     setup.runOptimization()
 
     print(f"Time elapsed: {time.time() - t0}")

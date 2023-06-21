@@ -35,17 +35,27 @@ class OptModel_MeshHF:
             for j in range(3):
                 #move vertex a bit, see if the objective function decreases
                 tri_mesh.vertices[i, j] += delta
+                print(f"After moving: {tri_mesh.vertices[i, j]}")
                 obj_afterMoving = objectiveFunction(tri_mesh)
+                print(f"Objective function after moving: {obj_afterMoving}")
+                tri_mesh.export(f"test000/wip_movingvertices_{i}_{j}.stl")
+                print(f"Saved file for solid after moving vertices {i}, {j}")
                 #move vertex back to original, calc objective function then for comparison
                 tri_mesh.vertices[i, j] -= delta
                 obj_beforeMoving = objectiveFunction(tri_mesh)
+                print(f"Before moving: {tri_mesh.vertices[i, j]}")
+                print(f"Objective function before moving: {obj_beforeMoving}")
                 gradient[i, j] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
+                print(f"Gradient value: {gradient[i, j]}")
+                print(f"Gradient should be: {(obj_afterMoving - obj_beforeMoving) / (2 * delta)}")
+        
         return gradient
     
     def moveMeshVertices(self, trimeshSolid, gradient, delta):
         """
         function for how we want to adjust mesh vertices, depending on what the gradient is 
         """
+        # return trimeshSolid.vertices - delta
         return trimeshSolid.vertices - (delta * gradient)
 
     def meshHFOpt(self, hfObjectiveFcn, meshObj, changeMeshFcn, threshold, delta, id):
@@ -64,17 +74,13 @@ class OptModel_MeshHF:
         while hfObjectiveFcn(trimeshSolid) > threshold:
 
             #calc the gradient
-            #gradientDescentHF(self, tri_mesh, objectiveFunction, delta)
             gradient = self.gradientDescentHF(trimeshSolid, hfObjectiveFcn, delta)
             print(f"Gradient calculated: {gradient}")
-            # gradient = gradientDescentFcn()
 
-            #move the vertices a bit based on the gradient (not sure if you can do this without looping)
-            #trimeshSolid.Vertices -= 0.01 * gradient
-
+            #move the vertices a bit based on the gradient
             trimeshSolid.vertices = changeMeshFcn(trimeshSolid, gradient, delta)
 
-            trimeshSolid.export(f"test{id}/wip_{count}.stl")
+            # trimeshSolid.export(f"test{id}/wip_{count}.stl")
             count += 1
         
         #when process is done, the mesh should have been modified - so return it 
