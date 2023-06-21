@@ -77,6 +77,9 @@ class MeshSolid(CADClass.CAD):
     
 
     def normalsCentersAreas_Trimesh(self, trimeshSolid):
+        """
+        calculate face normal vectors, centers, and areas for trimesh 
+        """
         #normal vectors of each face
         faceNormals = trimeshSolid.face_normals
 
@@ -98,6 +101,8 @@ class MeshSolid(CADClass.CAD):
         """
         TODO but this should be for calculating HF on this object
         implementation depends on how we want to do it - what metrics
+
+        this goes into objective function
         """
 
         return 

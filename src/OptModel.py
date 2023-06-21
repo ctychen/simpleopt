@@ -198,6 +198,33 @@ from pymoo.algorithms.so_genetic_algorithm import GA
 from pymoo.factory import get_sampling, get_crossover, get_mutation
 from pymoo.factory import get_termination
 
+from pymoo.model.callback import Callback
+
+import trimesh
+
+class CustomCallback(Callback):
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.data["best"] = []
+
+    def notify(self, algorithm):
+        best_value = algorithm.pop.get("F").min()
+        self.data["best"].append(best_value)
+        #eventually to get best data out: callback.data["best"]
+        
+        #save stl's every 10 counts
+        #need to figure out how to get faces into this tho
+        if self.counter % 10 == 0:
+            best_individual = algorithm.pop[np.argmin(algorithm.pop.get("F"))]
+            vertices = best_individual.X.reshape((-1, 3))
+            mesh = trimesh.Trimesh(vertices=vertices, faces=faces) 
+            #TODO need to figure out how to get original trimesh faces into this ^^ 
+            mesh.export(f'best_mesh_{self.counter}.stl')
+        
+        self.counter += 1
+
+
 """
 for opt approach where i attempt using GA
 """
@@ -218,12 +245,13 @@ class OptModelGA:
         )
 
         self.termination = get_termination("n_gen", 100)
+        self.callback = CustomCallback() #this is for process prints, intermediate stl's etc. 
         print(f"Opt set up")
         return
     
     def optimize(self):
         print("Running opt")
-        return minimize(self.problem, self.algorithm, self.termination, seed=1, verbose=True)
+        return minimize(self.problem, self.algorithm, self.termination, callback=self.callback, seed=1, verbose=True, save_history=True)
 
 
 class OptModel_Template:
