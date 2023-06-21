@@ -75,6 +75,35 @@ class RunSetup_MeshHF:
         # return self.opt.meshHFOpt(self.fwd.calculateHFMeshElements, self.fwd.calculateHFMeshSum, trimeshSolid, threshold=0.1, step=0.1, id=runID)
 
 
+class RunSetupGA: 
+    """
+    for setup with GA attempt
+    """
+    def __init__(self):
+        stpPath = "unit_test_cube.step"
+
+        stlPath = " " #"box.stl"
+
+        qDirIn = [0.0, -1.0, 0.0] #[m]
+        qMagIn = 10.0 #[W/m^2]
+
+        self.box = Solid.MeshSolid(stlPath, stpPath)
+
+        self.box.processSolid()
+        self.box.setHF(qDirIn, qMagIn)
+        #trimeshSolid = self.box.trimeshSolid
+
+        self.fwd = ForwardModel.ForwardModelGA(self.box.trimeshSolid, self.box.calcHF) #originalTriMesh, calculateHF -- todo
+        self.opt = OptModel.OptModelGA(self.fwd) #fwdModelProblem
+        return
+    
+    def runOptimization(self):
+        result = self.opt.optimize()
+        print(f"optimized result: {result.F}")
+        return result.F
+
+
+
 if __name__ == '__main__':
 
     t0 = time.time()

@@ -49,4 +49,35 @@ class ForwardModel_MeshHF:
         maxHF = np.max(q_mesh_all)
         return maxHF
     
+
+from pymoo.optimize import minimize
+from pymoo.model.problem import Problem
+from pymoo.algorithms.so_genetic_algorithm import GA
+from pymoo.factory import get_sampling, get_crossover, get_mutation
+from pymoo.factory import get_termination
+import trimesh
+
+"""
+for approach where i attempt using GA
+""" 
+class ForwardModelGA(Problem):
+
+    def __init__(self, originalTriMesh, calculateHF):
+        super().__init__(n_var=originalTriMesh.vertices.size, 
+                         n_obj=1, 
+                         xl=-np.inf, 
+                         xu=np.inf)
+        self.mesh = originalTriMesh
+        self.calculateHF = calculateHF
+        print("forward model set up")
+        return
     
+    def _evaluate(self, x, out, *args, **kwargs):
+        """
+        objective function - this is fitness criteria for GA
+        """
+        new_mesh = trimesh.Trimesh(vertices=x.reshape(self.mesh.vertices.shape), faces=self.mesh.faces)
+        flux = self.calculateHF(new_mesh)
+        print(f"flux calculated: {flux}")
+        out["F"] = flux
+

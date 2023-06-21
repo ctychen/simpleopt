@@ -10,7 +10,9 @@ import plotly.io as pio
 from plotly.subplots import make_subplots
 import plotly.express as px
 
-
+"""
+for gradient-descent-only opt approach
+"""
 class OptModel_MeshHF: 
     """
     Mesh element manipulation to optimize heat flux - model for optimization
@@ -189,6 +191,39 @@ class OptModel_MeshHF:
         pio.write_html(fig, output_file)
         return 
 
+
+from pymoo.optimize import minimize
+from pymoo.model.problem import Problem
+from pymoo.algorithms.so_genetic_algorithm import GA
+from pymoo.factory import get_sampling, get_crossover, get_mutation
+from pymoo.factory import get_termination
+
+"""
+for opt approach where i attempt using GA
+"""
+class OptModelGA: 
+
+    def __init__(self, fwdModelProblem):
+        """
+        TODO: figure out what properties we actually need for optmodel, and what can just be fcn inputs
+        """
+        self.problem = fwdModelProblem # ForwardModelGA(originalTriMesh, calcHF)
+        self.algorithm = GA(
+            pop_size=50,
+            sampling=get_sampling("real_random"),
+            crossover=get_crossover("real_sbx", prob=0.9, eta=15),
+            mutation=get_mutation("real_pm", eta=20),
+            eliminate_duplicates=True,
+            n_offsprings=25
+        )
+
+        self.termination = get_termination("n_gen", 100)
+        print(f"Opt set up")
+        return
+    
+    def optimize(self):
+        print("Running opt")
+        return minimize(self.problem, self.algorithm, self.termination, seed=1, verbose=True)
 
 
 class OptModel_Template:

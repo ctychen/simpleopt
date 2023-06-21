@@ -87,6 +87,20 @@ class MeshSolid(CADClass.CAD):
         faceAreas = trimeshSolid.area_faces
 
         return faceNormals, faceCenters, faceAreas
+    
+
+    def setHF(self, qDir, qMag): #this def needs to be redone eventually... 
+        self.qDir = qDir
+        self.qMag = qMag
+        return 
+
+    def calcHF(self):
+        """
+        TODO but this should be for calculating HF on this object
+        implementation depends on how we want to do it - what metrics
+        """
+
+        return 
 
 
     def saveMeshSTL(self, mesh, label, resolution, path='./'):
@@ -129,69 +143,4 @@ class MeshSolid(CADClass.CAD):
 
         print("\nWrote meshes to files")
         return
-    
-
-
-    # def meshHFOpt(self, id='000'):
-    #     """
-    #     process to optimize surface heat flux using gradient descent
-    #     """
-
-    #     print(f"Starting HF optimization attempt")
-
-    #     vertices = []
-
-    #     for i in range(len(self.allmeshes[0].Facets)):
-    #         facet_points = self.allmeshes[0].Facets[i].Points
-    #         for point in facet_points:
-    #             vertices.append(list(point))      
-
-    #     vertices = np.array(vertices) #cube vertices now defined
-
-    #     print(f"Number of vertices: {len(vertices)}")
-
-    #     os.makedirs(f"pyramidtest{id}")
-    #     meshUpdated = self.makeMesh(vertices)
-    #     self.saveMeshSTL(meshUpdated, f"pyramidtest{id}/before_pyramid", self.meshres)
-
-    #     faces = np.array([[facet.PointIndices[i] for i in range(3)] for facet in self.faces])
-    #     # print(f"Original faces: {faces}")    
-    #     print(f"Number of faces: {faces.shape}")   
-
-    #     cubeVertices = np.array([[v.x, v.y, v.z] for v in self.allmeshes[0].Points])
-    #     cubeFaces = np.array([[f.PointIndices[0], f.PointIndices[1], f.PointIndices[2]] for f in self.allmeshes[0].Facets])
-    #     count = 0
-
-    #     cubeTriMesh = trimesh.Trimesh(
-    #         vertices=cubeVertices, faces=cubeFaces
-    #     )
-
-    #     cubeTriMesh.export(f"pyramidtest{id}/basecube.stl")
-        
-    #     def hfObjectiveFunction(cubeTrimesh):
-    #         #TODO: techically already exists elsewhere, but gotta trimeshify
-    #         #Calculate normal vector for every mesh facet
-    #         #Calculate (dot product of normal vector, direction of HF)*(magnitude of HF)
-    #         #Store all these in a list, then find the max
-    #         meshAllHF = []
-    #         return meshMaxHF
-        
-
-    #     while hfObjectiveFunction(cubeTriMesh) > 0:
-    #         #calculated the objective function value and it means HF is still not @ min
-    #         #move each vertex in direction to minimize HF - how to determine this/pick direction?  
-
-    #         #calc the gradient
-    #         gradient = self.gradientDescentHF()
-
-    #         #move the vertices a bit based on the gradient (not sure if you can do this without looping)
-    #         cubeTriMesh.Vertices -= 0.01 * gradient
-        
-    #     mesh2 = self.makeMesh(vertices)
-
-    #     self.saveMeshSTL(mesh2, f"pyramidtest{id}/pyramid_test_final_{id}", self.meshres)
-
-    #     return 
-    
-    
     
