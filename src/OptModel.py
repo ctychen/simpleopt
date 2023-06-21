@@ -37,75 +37,15 @@ class OptModel_MeshHF:
                 tri_mesh.vertices[i, j] += delta
                 # print(f"After moving: {tri_mesh.vertices[i, j]}")
                 obj_afterMoving = objectiveFunction(tri_mesh)
-                # print(f"Objective function after moving: {obj_afterMoving}")
                 tri_mesh.export(f"test{fileID}/wip/movingvertices_{i}_{j}.stl")
-                # print(f"Saved file for solid after moving vertices {i}, {j}")
                 #move vertex back to original, calc objective function then for comparison
                 tri_mesh.vertices[i, j] -= delta
                 obj_beforeMoving = objectiveFunction(tri_mesh)
-                # OR: maybe the change is to change the objective function so it's only calculating the HF on this one mesh element?
-                #and then modifying one element at a time?
-                # print(f"Before moving: {tri_mesh.vertices[i, j]}")
-                # print(f"Objective function before moving: {obj_beforeMoving}")
                 gradient[i, j] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
                 # print(f"Gradient value: {gradient[i, j]}")
                 # print(f"Gradient should be: {(obj_afterMoving - obj_beforeMoving) / (2 * delta)}")
         
         return gradient
-    
-    #self.optHFandModifyMesh(self, trimeshSolid, hfFunction, hfObjectiveFcn, stepSize=step, id=id, count=count, maxMargin=0.05)
-    def optHFandModifyMesh(self, tri_mesh, objectiveFunction, stepSize, id, count):
-
-        #q_mesh_all = hfFunction(tri_mesh) #fwdModel.calculateHFMeshElements(tri_mesh)
-
-        #max_faces = np.where(q_mesh_all >= (np.max(q_mesh_all) - maxMargin))[0]
-
-        #for each face that contributes to the maximum, calculate the gradient
-        #of the objective function with respect to the positions of its vertices
-        for face in tri_mesh.faces:
-            # Get the vertices of this face
-            vertices = tri_mesh.faces[face]
-
-            #calculate the gradient for each vertex
-            for vertex in vertices:
-                
-                grad = self.compute_gradient_single_vertex(tri_mesh, objectiveFunction, vertex)
-                
-                #update the position of this vertex
-                #mesh.vertices[vertex] -= step_size * grad
-                tri_mesh.vertices[vertex] -= stepSize * grad
-
-                if count % 2 == 0: 
-                    tri_mesh.export(f"test{id}/wip/{count}_hf_{objectiveFunction(tri_mesh)}.stl")
-
-        return 
-    
-
-    def compute_gradient_single_vertex(self, mesh, objective_function, vertex_index, epsilon=0.5):
-        # Store the original position
-        original_pos = mesh.vertices[vertex_index].copy()
-
-        # Initialize gradient
-        gradient = np.zeros(3)
-
-        origMesh = mesh
-
-        # For each dimension
-        for i in range(3):
-            #move vertex slightly in this dimension
-            mesh.vertices[vertex_index][i] += epsilon
-
-            #calculate change in the objective function
-            delta = objective_function(mesh) - objective_function(origMesh)
-
-            #estimate gradient in this dimension
-            gradient[i] = delta / epsilon
-
-            #reset vertex to its original position to repeat process
-            mesh.vertices[vertex_index] = original_pos
-
-        return gradient
-
     
     def moveMeshVertices(self, trimeshSolid, gradient, delta):
         """
@@ -145,10 +85,6 @@ class OptModel_MeshHF:
 
             trimeshSolid.export(f"test{id}/wip_{count}.stl")
 
-            #optHFandModifyMesh(self, tri_mesh, hfFunction, objectiveFunction, stepSize, id, count, maxMargin=0.05):
-            #def optHFandModifyMesh(self, tri_mesh, objectiveFunction, stepSize, id, count):
-            # self.optHFandModifyMesh(trimeshSolid, hfObjectiveFcn, stepSize=step, id=id, count=count)
-            #self.optHFandModifyMesh(trimeshSolid, hfFunction, hfObjectiveFcn, stepSize=step, id=id, count=count, maxMargin=0.5)
             print(f"Current max HF: {hfObjectiveFcn(trimeshSolid)}")
             count += 1
         
