@@ -28,10 +28,17 @@ class ForwardModel_MeshHF:
         """
         q_mesh_sum = 0
         normals, centers, areas = self.solidObj.normalsCentersAreas_Trimesh(trimeshSolid)
+
         for i in range(len(normals)):
+            
             n = normals[i] 
-            q_i = np.dot(self.q_dir, n) * self.q_mag
-            q_mesh_sum += q_i
+            #dotprod >= 0.0 and dotprod <= 1.0
+            dotprod = np.dot(self.q_dir, n)
+            if dotprod >= 0.0 and dotprod <= 1.0: #back face culling
+                q_i = dotprod * self.q_mag
+                q_mesh_sum += q_i
+
+        #return np.sum(self.calculateHFMeshElements(trimeshSolid))
         return q_mesh_sum
     
     def calculateMaxHF(self, trimeshSolid):

@@ -58,7 +58,7 @@ class RunSetup_MeshHF:
 
         return
     
-    def runOptimization(self, runID="001_5"):
+    def runOptimization(self, runID="002"):
 
         os.makedirs(f"test{runID}")
 
@@ -68,7 +68,11 @@ class RunSetup_MeshHF:
 
         # args: hfObjectiveFcn, meshObj, changeMeshFcn, threshold, delta
         # args: meshHFOpt(self, hfFunction, hfObjectiveFcn, meshObj, threshold, stepSize, id)
-        return self.opt.meshHFOpt(self.fwd.calculateHFMeshElements, self.fwd.calculateMaxHF, trimeshSolid, threshold=0.1, step=0.1, id=runID)
+        #calculateHFMeshSum
+        # def meshHFOpt(self, hfObjectiveFcn, meshObj, changeMeshFcn, threshold, delta, id):
+        return self.opt.meshHFOpt(self.fwd.calculateHFMeshSum, trimeshSolid, self.opt.moveMeshVertices, threshold=0.1, delta=0.5, id=runID)
+        #return self.opt.meshHFOpt(self.fwd.calculateHFMeshElements, self.fwd.calculateMaxHF, trimeshSolid, threshold=0.1, step=0.1, id=runID)
+        # return self.opt.meshHFOpt(self.fwd.calculateHFMeshElements, self.fwd.calculateHFMeshSum, trimeshSolid, threshold=0.1, step=0.1, id=runID)
 
 
 if __name__ == '__main__':
