@@ -1,3 +1,8 @@
+import time
+import sys
+import numpy as np
+import os
+
 import FreeCAD
 import Part
 import Mesh
@@ -202,6 +207,19 @@ from pymoo.model.callback import Callback
 
 import trimesh
 
+import Solid
+import ForwardModel
+
+#define the mesh and get its vertices and faces - so this will be accessible in Callback and Opt
+#this def isn't the best way to handle it so maybe redo later depending on how it goes
+stpPath = "unit_test_cube.step"
+stlPath = " "
+box = Solid.MeshSolid(stlPath, stpPath)
+box.processSolid()
+trimeshSolid = box.trimeshSolid
+vertices = trimeshSolid.vertices
+faces = trimeshSolid.faces
+
 class CustomCallback(Callback):
 
     def __init__(self) -> None:
@@ -234,7 +252,9 @@ class OptModelGA:
         """
         TODO: figure out what properties we actually need for optmodel, and what can just be fcn inputs
         """
-        self.problem = fwdModelProblem # ForwardModelGA(originalTriMesh, calcHF)
+        #basically: for now, moving stuff from run.py into this 
+
+        self.fwdModel = fwdModelProblem # ForwardModelGA(originalTriMesh, calcHF)
         self.algorithm = GA(
             pop_size=50,
             sampling=get_sampling("real_random"),
@@ -251,7 +271,9 @@ class OptModelGA:
     
     def optimize(self):
         print("Running opt")
-        return minimize(self.problem, self.algorithm, self.termination, callback=self.callback, seed=1, verbose=True, save_history=True)
+        return minimize(self.fwdModel, self.algorithm, self.termination, callback=self.callback, seed=1, verbose=True, save_history=True)
+
+
 
 
 class OptModel_Template:
