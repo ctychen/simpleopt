@@ -58,7 +58,8 @@ class OptModel_MeshHF:
         # print(f"length x: {len(x_allVals)} length y: {len(y_allVals)} length z: {len(z_allVals)} length gradient: {len(gradient)}")
         return gradient
     
-    
+
+    #this doesn't work yet
     def plotIteration(self, gradDescOut, count, fileID):
         # Create a 3D surface plot with color mapped to function values
         gradient = gradDescOut[0]
@@ -128,7 +129,29 @@ class OptModel_MeshHF:
         """
         return trimeshSolid.vertices - (delta * gradient)
 
-    def meshHFOpt(self, hfObjectiveFcn, meshObj, changeMeshFcn, threshold, delta, id):
+
+# prev_q = 1000
+#         curr_q = 0
+#         prev_vel = 0
+#         curr_vel = 0
+#         angles = self.box.getCurrentRotationAngles()
+
+#         print(f"CURRENT ANGLE FOR START: {angles}")
+
+#         outputDir = f"id_{runid}_3D_with_images"
+
+#         os.makedirs(outputDir)
+#         all_x_angles = []
+#         all_y_angles = []
+#         all_z_angles = []
+#         all_q_tried = []
+
+#         #todo add momentum and maybe add variable learning rate
+#         # poss new condition: while del_velocity > threshold and del_q > threshold: run gradient descent. once both conditions met, done
+#         #while (noVals or (np.amin(all_q_found) > threshold)): 
+#         while noVals or (((abs(prev_q - curr_q) > epsilon_q)
+
+    def meshHFOpt(self, hfObjectiveFcn, constraints, hfAllMesh, hfMeshCalc, meshObj, changeMeshFcn, threshold, delta, id):
     # def meshHFOpt(self, hfFunction, hfObjectiveFcn, meshObj, threshold, step, id):
         """
         runs optimization process until objective fcn value reaches stopping condition @ minimum
@@ -137,6 +160,9 @@ class OptModel_MeshHF:
         can change changeMeshFcn, hfObjectiveFcn to use different functions
         if we want a different manipulation, or add more stuff to the functions
         """
+        #TODO: add constraints somehow - take in list of criteria? eg. don't move face if x=0 or y=0 or x=10 or y=10?
+        #TODO: 
+
         #assuming input is already a trimesh, ie. processing the solid was done already
         trimeshSolid = meshObj
         count = 0
@@ -144,13 +170,16 @@ class OptModel_MeshHF:
 
         print("Starting the mesh HF opt")
 
-        print(f"Starting max HF: {hfObjectiveFcn(trimeshSolid)}")
+        print(f"Starting objective function value: {hfObjectiveFcn(trimeshSolid)}")
         trimeshSolid.export(f"test{id}/original.stl")
 
-        #objective fcn should take in a trimesh mesh object
-        while hfObjectiveFcn(trimeshSolid) > threshold:
+        prev_objVal = 50
+        curr_objVal = 0
 
-            print(f"Current max HF: {hfObjectiveFcn(trimeshSolid)}")
+        while abs(prev_objVal - curr_objVal) > threshold: #or not(constraints(trimeshSolid)): 
+
+        #objective fcn should take in a trimesh mesh object --> below was original threshold
+        #while hfObjectiveFcn(trimeshSolid) > threshold:
 
             #calc the gradient
             gradient = self.gradientDescentHF(trimeshSolid, hfObjectiveFcn, delta, fileID=id)
@@ -164,10 +193,28 @@ class OptModel_MeshHF:
 
             trimeshSolid.export(f"test{id}/{count}.stl")
 
-            new_obj_val = hfObjectiveFcn(trimeshSolid)
-            all_objective_function_values.append(new_obj_val)
+            new_objVal = hfObjectiveFcn(trimeshSolid)
+            all_objective_function_values.append(new_objVal)
 
-            print(f"New HF value: {new_obj_val}")
+            prev_objVal = curr_objVal
+            curr_objVal = new_objVal
+
+            print(f"New objective function value: {new_objVal}")
+
+            q_mesh_all = hfAllMesh(trimeshSolid)
+
+            fig = go.Figure(data=[go.Histogram(x=q_mesh_all)])
+            fig.show()
+            output_file = f"test{id}/{count}_run_entiredistribution.html"
+            pio.write_html(fig, output_file)
+
+            q_mesh_objective = hfMeshCalc(trimeshSolid)
+
+            fig = go.Figure(data=[go.Histogram(x=q_mesh_objective)])
+            fig.show()
+            output_file = f"test{id}/{count}_run_distributionforobjective.html"
+            pio.write_html(fig, output_file)
+
             count += 1
         
         self.plotRun(all_objective_function_values, f"test{id}")
@@ -183,7 +230,7 @@ class OptModel_MeshHF:
         x_count = np.linspace(0, len(objective_function_values), len(objective_function_values))
         fig = px.scatter(x = x_count, y = objective_function_values)
         fig.update_xaxes(title_text='Iterations')
-        fig.update_yaxes(title_text='Sum of HF over all elements')
+        fig.update_yaxes(title_text='Objective function - mean HF across elements')
         fig.show()            
         output_file = f"{outputDir}/entire_run.html"
         pio.write_html(fig, output_file)

@@ -57,8 +57,8 @@ class RunSetup_MeshHF:
         self.opt = OptModel.OptModel_MeshHF()
 
         return
-    
-    def runOptimization(self, runID="003"):
+
+    def runOptimization(self, runID="005_5"):
 
         os.makedirs(f"test{runID}")
 
@@ -66,11 +66,35 @@ class RunSetup_MeshHF:
         trimeshSolid = self.box.trimeshSolid
         trimeshSolid.export(f"test{runID}/initial.stl")
 
+        def constraintFcn(trimeshSolid):
+            #return true if maxHF is below threshold, false if it's above threshold. 
+            #we want to keep running opt until we reach solns that satisfy this
+            return (self.fwd.calculateMaxHF(trimeshSolid) < 9.0)
+        
+        def newObjective(trimeshSolid):
+            #giving this an attempt since the distribution is really shifted
+            return self.fwd.meanHF(trimeshSolid) + self.fwd.stdHF(trimeshSolid)
+
+        #optimizer setup
+        # return self.opt.meshHFOpt(self.fwd.calculateHFMeshSum, trimeshSolid, self.opt.moveMeshVertices, threshold=100, delta=0.05, id=runID)
+        
+        return self.opt.meshHFOpt(
+            #self.fwd.meanHF, 
+            newObjective,
+            constraintFcn, 
+            self.fwd.calculateHFMeshElements, 
+            self.fwd.distForObj, 
+            trimeshSolid, 
+            self.opt.moveMeshVertices, 
+            threshold=0.01, 
+            delta=0.1, 
+            id=runID
+            )
+
         # args: hfObjectiveFcn, meshObj, changeMeshFcn, threshold, delta
         # args: meshHFOpt(self, hfFunction, hfObjectiveFcn, meshObj, threshold, stepSize, id)
         #calculateHFMeshSum
         # def meshHFOpt(self, hfObjectiveFcn, meshObj, changeMeshFcn, threshold, delta, id):
-        return self.opt.meshHFOpt(self.fwd.calculateHFMeshSum, trimeshSolid, self.opt.moveMeshVertices, threshold=100, delta=0.05, id=runID)
         #return self.opt.meshHFOpt(self.fwd.calculateHFMeshElements, self.fwd.calculateMaxHF, trimeshSolid, threshold=0.1, step=0.1, id=runID)
         # return self.opt.meshHFOpt(self.fwd.calculateHFMeshElements, self.fwd.calculateHFMeshSum, trimeshSolid, threshold=0.1, step=0.1, id=runID)
 
