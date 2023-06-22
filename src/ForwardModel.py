@@ -51,8 +51,8 @@ class ForwardModel_MeshHF:
     
 
 from pymoo.optimize import minimize
-from pymoo.model.problem import Problem
-from pymoo.algorithms.so_genetic_algorithm import GA
+from pymoo.core.problem import Problem
+from pymoo.algorithms.soo.nonconvex.ga import GA
 from pymoo.factory import get_sampling, get_crossover, get_mutation
 from pymoo.factory import get_termination
 import trimesh
@@ -68,6 +68,7 @@ class ForwardModelGA(Problem):
                          xl=-np.inf, 
                          xu=np.inf)
         self.mesh = originalTriMesh
+        self.faces = self.mesh.faces
         self.calculateHF = calculateHF
         print("forward model set up")
         return
@@ -76,7 +77,20 @@ class ForwardModelGA(Problem):
         """
         objective function - this is fitness criteria for GA
         """
-        new_mesh = trimesh.Trimesh(vertices=x.reshape(self.mesh.vertices.shape), faces=self.mesh.faces)
+        print(f"input to eval: {x}")
+        print(f"input length: {len(x)}")
+        print(f"input individual elements: {x[0]}")
+        print(f"individual element lengths: {len(x[0])}")
+        
+        #so length right now is 50 and for each one: 
+        #want to reshape each one - but the input right now is a list of lists and each list is a bunch of points presumably?
+        #individual lists are 1D and 762 elements
+        #overall length of the list is 50 elements, so 50 * 762
+        #50 prob bc of population size? 
+        #why 762?
+        #right now: 1512 vertices, (504, 3) faces
+
+        new_mesh = trimesh.Trimesh(vertices=x, faces=self.faces)
         flux = self.calculateHF(new_mesh)
         print(f"flux calculated: {flux}")
         out["F"] = flux

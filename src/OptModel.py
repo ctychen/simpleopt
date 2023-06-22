@@ -198,12 +198,13 @@ class OptModel_MeshHF:
 
 
 from pymoo.optimize import minimize
-from pymoo.model.problem import Problem
-from pymoo.algorithms.so_genetic_algorithm import GA
+from pymoo.core.problem import Problem
+from pymoo.algorithms.soo.nonconvex.ga import GA
 from pymoo.factory import get_sampling, get_crossover, get_mutation
 from pymoo.factory import get_termination
 
-from pymoo.model.callback import Callback
+from pymoo.core.callback import Callback
+from pymoo.operators.selection.rnd import RandomSelection
 
 import trimesh
 
@@ -255,12 +256,26 @@ class OptModelGA:
         #basically: for now, moving stuff from run.py into this 
 
         self.fwdModel = fwdModelProblem # ForwardModelGA(originalTriMesh, calcHF)
+
+        # class GA(
+        #     pop_size: int = 100,
+        #     sampling: FloatRandomSampling = FloatRandomSampling(),
+        #     selection: TournamentSelection = TournamentSelection(func_comp=comp_by_cv_and_fitness),
+        #     crossover: SBX = SBX(),
+        #     mutation: PM = PM(),
+        #     survival: FitnessSurvival = FitnessSurvival(),
+        #     eliminate_duplicates: bool = True,
+        #     n_offsprings: Any | None = None,
+        #     output: SingleObjectiveOutput = SingleObjectiveOutput(),
+        #     **kwargs: Any
+        # )
         self.algorithm = GA(
             pop_size=50,
-            sampling=get_sampling("real_random"),
-            crossover=get_crossover("real_sbx", prob=0.9, eta=15),
-            mutation=get_mutation("real_pm", eta=20),
-            eliminate_duplicates=True,
+            #selection=RandomSelection(),
+            #sampling=get_sampling("real_random"),
+            #crossover=get_crossover("real_sbx", prob=0.9, eta=15),
+            #mutation=get_mutation("real_pm", eta=20),
+            #eliminate_duplicates=True,
             n_offsprings=25
         )
 

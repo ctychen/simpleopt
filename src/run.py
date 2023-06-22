@@ -80,6 +80,9 @@ class RunSetupGA:
     for setup with GA attempt
     """
     def __init__(self):
+
+        os.makedirs(f"test004")
+
         stpPath = "unit_test_cube.step"
 
         stlPath = " " #"box.stl"
@@ -108,7 +111,7 @@ if __name__ == '__main__':
 
     t0 = time.time()
 
-    setup = RunSetup_MeshHF()
+    setup = RunSetupGA()
 
     """
     Run cube mesh operation test
