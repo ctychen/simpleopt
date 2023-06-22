@@ -44,7 +44,7 @@ class RunSetup_MeshHF:
     def __init__(self):
         g_obj = lambda qvals: max(qvals) #+ qvals.count(max(qvals)) #maybe changing obj function helps??
 
-        stpPath = "unit_test_cone.step" #"unit_test_cube.step"
+        stpPath = "unit_test_cube.step" #"unit_test_cone.step" 
 
         stlPath = " " #"box.stl"
         qDirIn = [0.0, -1.0, 0.0] #[m]
@@ -58,7 +58,7 @@ class RunSetup_MeshHF:
 
         return
 
-    def runOptimization(self, runID="006_3"):
+    def runOptimization(self, runID="007_0"):
 
         os.makedirs(f"test{runID}")
 
@@ -74,6 +74,14 @@ class RunSetup_MeshHF:
         def newObjective(trimeshSolid):
             #giving this an attempt since the distribution is really shifted
             return self.fwd.meanHF(trimeshSolid) + self.fwd.stdHF(trimeshSolid)
+        
+        def compoundObjective(trimeshSolid):
+            #weighting for now, lets try it: 
+            #max val of maxHF is on the order of 10
+            #max val of sumHF is on the order of 1000 so scale down to same range
+            c1 = 1
+            c2 = 0.01
+            return c1*self.fwd.calculateMaxHF(trimeshSolid) + c2*self.fwd.calculateHFMeshSum(trimeshSolid)
 
         #optimizer setup
         # return self.opt.meshHFOpt(self.fwd.calculateHFMeshSum, trimeshSolid, self.opt.moveMeshVertices, threshold=100, delta=0.05, id=runID)
@@ -81,11 +89,13 @@ class RunSetup_MeshHF:
         return self.opt.meshHFOpt(
             #self.fwd.meanHF, 
             #newObjective,
-            self.fwd.calculateHFMeshSum,
+            #self.fwd.calculateHFMeshSum,
+            compoundObjective, 
             constraintFcn, 
-            self.fwd.calculateHFMeshElements, 
+            #self.fwd.calculateHFMeshElements, 
+            self.fwd.calculateHFMeshSum, #using this for now to plot components of compound obj
             #self.fwd.distForObj, 
-            self.fwd.calculateMaxHF,
+            self.fwd.calculateMaxHF, #using this for now to plot components of compound obj
             trimeshSolid, 
             self.opt.moveMeshVertices, 
             threshold=0.8, 

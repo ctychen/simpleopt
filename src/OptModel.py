@@ -138,6 +138,7 @@ class OptModel_MeshHF:
         count = 0
         all_objective_function_values = [hfObjectiveFcn(trimeshSolid)]
         max_hf_each_run = [hfMeshCalc(trimeshSolid)]
+        sum_hf_each_run = [hfAllMesh(trimeshSolid)]
 
         print("Starting the mesh HF opt")
 
@@ -154,10 +155,6 @@ class OptModel_MeshHF:
 
             #calc the gradient
             gradient = self.gradientDescentHF(trimeshSolid, hfObjectiveFcn, delta, fileID=id)
-            # print(f"Gradient calculated: {gradient}")
-
-            #this is ridiculously inefficient and also broken so no
-            #self.plotIteration(gradientDescentOut, count, id)
 
             #move the vertices a bit based on the gradient
             trimeshSolid.vertices = changeMeshFcn(trimeshSolid, gradient, delta)
@@ -172,6 +169,9 @@ class OptModel_MeshHF:
 
             new_max_hf = hfMeshCalc(trimeshSolid)
             max_hf_each_run.append(new_max_hf)
+
+            new_sum_hf = hfAllMesh(trimeshSolid)
+            sum_hf_each_run.append(new_sum_hf)
 
             print(f"New objective function value: {new_objVal}")
 
@@ -188,11 +188,11 @@ class OptModel_MeshHF:
             # output_file = f"test{id}/{count}_run_distributionforobjective.html"
             # pio.write_html(fig, output_file)
 
-            if count % 20 == 0: 
+            if count % 10 == 0: 
                 x_count = np.linspace(0, len(all_objective_function_values), len(all_objective_function_values))
                 fig = px.scatter(x = x_count, y = all_objective_function_values)
                 fig.update_xaxes(title_text='Iterations')
-                fig.update_yaxes(title_text='Objective function - sum HF over elements')
+                fig.update_yaxes(title_text='Objective function: max(HF) + 0.01*(sum HF over elements)')
                 fig.show()            
                 output_file = f"test{id}/objective_up_to_run_{count}.html"
                 pio.write_html(fig, output_file)
@@ -203,6 +203,14 @@ class OptModel_MeshHF:
                 fig.update_yaxes(title_text='Max HF')
                 fig.show()            
                 output_file = f"test{id}/max_hf_up_to_run_{count}.html"
+                pio.write_html(fig, output_file)
+
+                x_count = np.linspace(0, len(sum_hf_each_run), len(sum_hf_each_run))
+                fig = px.scatter(x = x_count, y = sum_hf_each_run)
+                fig.update_xaxes(title_text='Iterations')
+                fig.update_yaxes(title_text='Sum HF on mesh')
+                fig.show()            
+                output_file = f"test{id}/sum_hf_up_to_run_{count}.html"
                 pio.write_html(fig, output_file)
 
 
@@ -232,7 +240,7 @@ class OptModel_MeshHF:
         fig.update_xaxes(title_text='Iterations')
         fig.update_yaxes(title_text='Max HF')
         fig.show()            
-        output_file = f"test{id}/max_hf_each_run.html"
+        output_file = f"{outputDir}/max_hf_each_run.html"
         pio.write_html(fig, output_file)
 
 
