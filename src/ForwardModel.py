@@ -20,8 +20,9 @@ class ForwardModel_MeshHF:
             n = normals[i] 
             dotprod = np.dot(self.q_dir, n)
             # if dotprod > 0.0 and dotprod <= 1.0:
+            
             if dotprod < 0.0 and abs(dotprod) <= 1.0: #not a backface/shadowed since shadowed would be if b dot n > 0
-                q_i = dotprod * self.q_mag
+                q_i = abs(dotprod) * self.q_mag
                 q_mesh_all.append(q_i)
         return q_mesh_all
     
@@ -35,8 +36,9 @@ class ForwardModel_MeshHF:
             dotprod = np.dot(self.q_dir, n)
             #adjusting the range here to try and get it to move not the edges by a bit - distribution is very much around 0 right now
             #if dotprod > 0.0 and dotprod <= 1.0: 
+
             if dotprod < 0.0 and abs(dotprod) <= 1.0:
-                q_i = dotprod * self.q_mag
+                q_i = abs(dotprod) * self.q_mag
                 q_mesh_all.append(q_i)
 
         q_mesh_all = np.array(q_mesh_all)
@@ -72,8 +74,11 @@ class ForwardModel_MeshHF:
             #dotprod >= 0.0 and dotprod <= 1.0
             dotprod = np.dot(self.q_dir, n)
             #if dotprod > 0.0 and dotprod <= 1.0: 
+
+            #this condition is bc highest fluxes would be expected to be on faces facing into the flux
+            #ie, where q dot n is negative
             if dotprod < 0.0 and abs(dotprod) <= 1.0:
-                q_i = dotprod * self.q_mag
+                q_i = abs(dotprod) * self.q_mag
                 q_mesh_sum += q_i
 
         #return np.sum(self.calculateHFMeshElements(trimeshSolid))

@@ -44,7 +44,7 @@ class RunSetup_MeshHF:
     def __init__(self):
         g_obj = lambda qvals: max(qvals) #+ qvals.count(max(qvals)) #maybe changing obj function helps??
 
-        stpPath = "unit_test_cube.step"
+        stpPath = "unit_test_cone.step" #"unit_test_cube.step"
 
         stlPath = " " #"box.stl"
         qDirIn = [0.0, -1.0, 0.0] #[m]
@@ -58,7 +58,7 @@ class RunSetup_MeshHF:
 
         return
 
-    def runOptimization(self, runID="005_5"):
+    def runOptimization(self, runID="006_3"):
 
         os.makedirs(f"test{runID}")
 
@@ -80,14 +80,16 @@ class RunSetup_MeshHF:
         
         return self.opt.meshHFOpt(
             #self.fwd.meanHF, 
-            newObjective,
+            #newObjective,
+            self.fwd.calculateHFMeshSum,
             constraintFcn, 
             self.fwd.calculateHFMeshElements, 
-            self.fwd.distForObj, 
+            #self.fwd.distForObj, 
+            self.fwd.calculateMaxHF,
             trimeshSolid, 
             self.opt.moveMeshVertices, 
-            threshold=0.01, 
-            delta=0.1, 
+            threshold=0.8, 
+            delta=0.05, 
             id=runID
             )
 

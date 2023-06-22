@@ -30,15 +30,9 @@ class OptModel_MeshHF:
         moves all mesh vertices by a small amount and finds the gradient when doing so 
         """
         gradient = np.zeros_like(tri_mesh.vertices)
-        # x_allVals = []
-        # y_allVals = []
-        # z_allVals = []
         #for each vertex
         for i in range(len(tri_mesh.vertices)):
             #for each dimension
-            # x_allVals.append(tri_mesh.vertices[i][0])
-            # y_allVals.append(tri_mesh.vertices[i][1])
-            # z_allVals.append(tri_mesh.vertices[i][2])
             for j in range(3):
                 #move vertex a bit, see if the objective function decreases
                 # print(f"Vertex: {tri_mesh.vertices[i]}") #format: [x, y, z]
@@ -53,9 +47,6 @@ class OptModel_MeshHF:
                 # print(f"Gradient value: {gradient[i, j]}")
                 # print(f"Gradient should be: {(obj_afterMoving - obj_beforeMoving) / (2 * delta)}")
         
-        # print(f"x values: {x_allVals}")
-        # print(f"y values: {y_allVals}")
-        # print(f"length x: {len(x_allVals)} length y: {len(y_allVals)} length z: {len(z_allVals)} length gradient: {len(gradient)}")
         return gradient
     
 
@@ -130,27 +121,6 @@ class OptModel_MeshHF:
         return trimeshSolid.vertices - (delta * gradient)
 
 
-# prev_q = 1000
-#         curr_q = 0
-#         prev_vel = 0
-#         curr_vel = 0
-#         angles = self.box.getCurrentRotationAngles()
-
-#         print(f"CURRENT ANGLE FOR START: {angles}")
-
-#         outputDir = f"id_{runid}_3D_with_images"
-
-#         os.makedirs(outputDir)
-#         all_x_angles = []
-#         all_y_angles = []
-#         all_z_angles = []
-#         all_q_tried = []
-
-#         #todo add momentum and maybe add variable learning rate
-#         # poss new condition: while del_velocity > threshold and del_q > threshold: run gradient descent. once both conditions met, done
-#         #while (noVals or (np.amin(all_q_found) > threshold)): 
-#         while noVals or (((abs(prev_q - curr_q) > epsilon_q)
-
     def meshHFOpt(self, hfObjectiveFcn, constraints, hfAllMesh, hfMeshCalc, meshObj, changeMeshFcn, threshold, delta, id):
     # def meshHFOpt(self, hfFunction, hfObjectiveFcn, meshObj, threshold, step, id):
         """
@@ -167,6 +137,7 @@ class OptModel_MeshHF:
         trimeshSolid = meshObj
         count = 0
         all_objective_function_values = [hfObjectiveFcn(trimeshSolid)]
+        max_hf_each_run = [hfMeshCalc(trimeshSolid)]
 
         print("Starting the mesh HF opt")
 
@@ -199,41 +170,72 @@ class OptModel_MeshHF:
             prev_objVal = curr_objVal
             curr_objVal = new_objVal
 
+            new_max_hf = hfMeshCalc(trimeshSolid)
+            max_hf_each_run.append(new_max_hf)
+
             print(f"New objective function value: {new_objVal}")
 
-            q_mesh_all = hfAllMesh(trimeshSolid)
+            # #Plotting process, for anything using means/distributions
+            # q_mesh_all = hfAllMesh(trimeshSolid)
+            # fig = go.Figure(data=[go.Histogram(x=q_mesh_all)])
+            # fig.show()
+            # output_file = f"test{id}/{count}_run_entiredistribution.html"
+            # pio.write_html(fig, output_file)
 
-            fig = go.Figure(data=[go.Histogram(x=q_mesh_all)])
-            fig.show()
-            output_file = f"test{id}/{count}_run_entiredistribution.html"
-            pio.write_html(fig, output_file)
+            # q_mesh_objective = hfMeshCalc(trimeshSolid)
+            # fig = go.Figure(data=[go.Histogram(x=q_mesh_objective)])
+            # fig.show()
+            # output_file = f"test{id}/{count}_run_distributionforobjective.html"
+            # pio.write_html(fig, output_file)
 
-            q_mesh_objective = hfMeshCalc(trimeshSolid)
+            if count % 20 == 0: 
+                x_count = np.linspace(0, len(all_objective_function_values), len(all_objective_function_values))
+                fig = px.scatter(x = x_count, y = all_objective_function_values)
+                fig.update_xaxes(title_text='Iterations')
+                fig.update_yaxes(title_text='Objective function - sum HF over elements')
+                fig.show()            
+                output_file = f"test{id}/objective_up_to_run_{count}.html"
+                pio.write_html(fig, output_file)
 
-            fig = go.Figure(data=[go.Histogram(x=q_mesh_objective)])
-            fig.show()
-            output_file = f"test{id}/{count}_run_distributionforobjective.html"
-            pio.write_html(fig, output_file)
+                x_count = np.linspace(0, len(max_hf_each_run), len(max_hf_each_run))
+                fig = px.scatter(x = x_count, y = max_hf_each_run)
+                fig.update_xaxes(title_text='Iterations')
+                fig.update_yaxes(title_text='Max HF')
+                fig.show()            
+                output_file = f"test{id}/max_hf_up_to_run_{count}.html"
+                pio.write_html(fig, output_file)
+
 
             count += 1
         
-        self.plotRun(all_objective_function_values, f"test{id}")
+        self.plotRun(all_objective_function_values, max_hf_each_run, f"test{id}")
         
         #when process is done, the mesh should have been modified - so return it 
         return trimeshSolid
     
 
-    def plotRun(self, objective_function_values, outputDir):
+    def plotRun(self, objective_function_values, max_hf_each_run, outputDir):
         """
         plot values of objective function over iterations
         """
         x_count = np.linspace(0, len(objective_function_values), len(objective_function_values))
         fig = px.scatter(x = x_count, y = objective_function_values)
         fig.update_xaxes(title_text='Iterations')
-        fig.update_yaxes(title_text='Objective function - mean HF across elements')
+        fig.update_yaxes(title_text='Objective function - sum HF over elements')
         fig.show()            
         output_file = f"{outputDir}/entire_run.html"
         pio.write_html(fig, output_file)
+
+
+        x_count = np.linspace(0, len(max_hf_each_run), len(max_hf_each_run))
+        fig = px.scatter(x = x_count, y = max_hf_each_run)
+        fig.update_xaxes(title_text='Iterations')
+        fig.update_yaxes(title_text='Max HF')
+        fig.show()            
+        output_file = f"test{id}/max_hf_each_run.html"
+        pio.write_html(fig, output_file)
+
+
         return 
 
 
