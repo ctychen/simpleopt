@@ -125,9 +125,21 @@ class OptModel_MeshHF:
                 else: #if we've already moved the vertices, keep this 0 since we don't want to move it more? maybe not... 
                     tri_mesh.vertices[i, j] = 0.0 
 
-        #now, move all the vertices that haven't already been moved based on gradient
+            #testing out stuff below this is new
+            tri_mesh.vertices[i, 0] -= (delta * gradient[i, 0])
+            tri_mesh.vertices[i, 1] -= (delta * gradient[i, 1])
+            tri_mesh.vertices[i, 2] -= (delta * gradient[i, 2])
 
-        return gradient 
+            tri_mesh.export(f"{filedir}/{count}_vertex_{i}_moved.stl")
+
+            input(f"moved vertex {i}")
+
+        #now, move all the vertices that haven't already been moved based on gradient
+        return tri_mesh
+
+        #return gradient 
+
+
     
 
     #this doesn't work yet
@@ -239,11 +251,14 @@ class OptModel_MeshHF:
             hf_all_mesh = calcHFAllMesh(trimeshSolid)
             
             #calc the gradient
-            gradient = self.gradientDesignHFV2(trimeshSolid, hfObjectiveFcn, hf_all_mesh, delta, f"test{id}", count)
+            #gradient = self.gradientDesignHFV2(trimeshSolid, hfObjectiveFcn, hf_all_mesh, delta, f"test{id}", count)
+            newTrimesh = self.gradientDesignHFV2(trimeshSolid, hfObjectiveFcn, hf_all_mesh, delta, f"test{id}", count)
             # gradient = self.gradientDescentHF(trimeshSolid, hfObjectiveFcn, hf_all_mesh, delta, fileID=id)
 
+            trimeshSolid = newTrimesh
+
             #move the vertices a bit based on the gradient
-            trimeshSolid.vertices = changeMeshFcn(trimeshSolid, gradient, delta)
+            #trimeshSolid.vertices = changeMeshFcn(trimeshSolid, gradient, delta)
 
             trimeshSolid.export(f"test{id}/{count}.stl")
 
