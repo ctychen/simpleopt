@@ -11,6 +11,11 @@ from plotly.subplots import make_subplots
 import plotly.express as px
 
 
+import vtk
+from mayavi import mlab
+from tvtk.api import tvtk
+import vtk
+
 class OptModel_MeshHF: 
     """
     Mesh element manipulation to optimize heat flux - model for optimization
@@ -348,7 +353,7 @@ class OptModel_MeshHF:
             # output_file = f"test{id}/{count}_run_distributionforobjective.html"
             # pio.write_html(fig, output_file)
 
-            if count and count % 1 == 0: 
+            if count and count % 5 == 0: 
                 x_count = np.linspace(0, len(all_objective_function_values), len(all_objective_function_values))
                 fig = px.scatter(x = x_count, y = all_objective_function_values)
                 fig.update_xaxes(title_text='Iterations')
@@ -373,6 +378,9 @@ class OptModel_MeshHF:
                 output_file = f"test{id}/sum_hf_up_to_run_{count}.html"
                 pio.write_html(fig, output_file)
 
+                #make VTK to display HF on surface
+                self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"test{id}")
+
 
             count += 1
         
@@ -380,6 +388,21 @@ class OptModel_MeshHF:
         
         #when process is done, the mesh should have been modified - so return it 
         return trimeshSolid
+
+
+    def plotHFVTK(self, hfValues, trimeshSolid, fileDir):
+        """
+        attempt at making a VTK for visualizing HF on mesh elements for each iteration
+        """
+        polydata = tvtk.PolyData(points=trimeshSolid.vertices, polys=trimeshSolid.faces)
+        scalars = tvtk.DoubleArray()
+        scalars.from_array(hfValues)
+
+        writer = vtk.vtkPolyDataWriter()
+        writer.SetFileName(f"{fileDir}/hfOnMesh.vtk")
+        writer.SetInputData(polydata)
+        writer.Write()
+        return 
     
 
     def plotRun(self, objective_function_values, max_hf_each_run, sum_hf_each_run, outputDir):

@@ -58,7 +58,7 @@ class RunSetup_MeshHF:
 
         return
 
-    def runOptimization(self, runID="009_2"):
+    def runOptimization(self, runID="009_4"):
 
         os.makedirs(f"test{runID}")
 
@@ -79,8 +79,8 @@ class RunSetup_MeshHF:
             #weighting for now, lets try it: 
             #max val of maxHF is on the order of 10
             #max val of sumHF is on the order of 1000 so scale down to same range
-            c1 = 0.5
-            c2 = 0.01
+            c1 = 0.6
+            c2 = 0.4
             return c1*self.fwd.calculateMaxHF(trimeshSolid) + c2*self.fwd.calculateHFMeshSum(trimeshSolid)
 
         #optimizer setup
@@ -90,7 +90,7 @@ class RunSetup_MeshHF:
             #self.fwd.meanHF, 
             #newObjective,
             #self.fwd.calculateHFMeshSum,
-            self.fwd.calculateHFMeshSum, #compoundObjective, 
+            compoundObjective, #self.fwd.calculateHFMeshSum, #compoundObjective, 
             self.fwd.calculateAllHF,
             #self.fwd.calculateHFMeshElements, 
             #self.fwd.calculateHFMeshSum, #using this for now to plot components of compound obj
@@ -99,7 +99,7 @@ class RunSetup_MeshHF:
             self.fwd.calculateHFMeshSum,
             trimeshSolid, 
             self.opt.moveMeshVertices, 
-            threshold=0.0001, 
+            threshold=0.000001, 
             delta=0.01, 
             id=runID
         )
