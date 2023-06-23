@@ -58,7 +58,7 @@ class RunSetup_MeshHF:
 
         return
 
-    def runOptimization(self, runID="008_1"):
+    def runOptimization(self, runID="008_5"):
 
         os.makedirs(f"test{runID}")
 
@@ -80,7 +80,7 @@ class RunSetup_MeshHF:
             #max val of maxHF is on the order of 10
             #max val of sumHF is on the order of 1000 so scale down to same range
             c1 = 0.5
-            c2 = 0.05
+            c2 = 0.01
             return c1*self.fwd.calculateMaxHF(trimeshSolid) + c2*self.fwd.calculateHFMeshSum(trimeshSolid)
 
         #optimizer setup
@@ -89,27 +89,20 @@ class RunSetup_MeshHF:
         return self.opt.meshHFOpt(
             #self.fwd.meanHF, 
             #newObjective,
-            self.fwd.calculateHFMeshSum,
-            #compoundObjective, 
-            constraintFcn, 
+            #self.fwd.calculateHFMeshSum,
+            self.fwd.calculateHFMeshSum, #compoundObjective, 
             self.fwd.calculateAllHF,
             #self.fwd.calculateHFMeshElements, 
             #self.fwd.calculateHFMeshSum, #using this for now to plot components of compound obj
             #self.fwd.distForObj, 
-            self.fwd.calculateMaxHF, #using this for now to plot components of compound obj
+            self.fwd.calculateMostNegHF, #self.fwd.calculateMaxHF, #using this for now to plot components of compound obj
+            self.fwd.calculateHFMeshSum,
             trimeshSolid, 
             self.opt.moveMeshVertices, 
-            threshold=100, 
-            delta=0.01, 
+            threshold=0.0001, 
+            delta=0.001, 
             id=runID
-            )
-
-        # args: hfObjectiveFcn, meshObj, changeMeshFcn, threshold, delta
-        # args: meshHFOpt(self, hfFunction, hfObjectiveFcn, meshObj, threshold, stepSize, id)
-        #calculateHFMeshSum
-        # def meshHFOpt(self, hfObjectiveFcn, meshObj, changeMeshFcn, threshold, delta, id):
-        #return self.opt.meshHFOpt(self.fwd.calculateHFMeshElements, self.fwd.calculateMaxHF, trimeshSolid, threshold=0.1, step=0.1, id=runID)
-        # return self.opt.meshHFOpt(self.fwd.calculateHFMeshElements, self.fwd.calculateHFMeshSum, trimeshSolid, threshold=0.1, step=0.1, id=runID)
+        )
 
 
 if __name__ == '__main__':

@@ -67,12 +67,17 @@ class OptModel_MeshHF:
         gradient_step0 = np.zeros_like(tri_mesh.vertices)
 
         highestHFVertexIndices = []
-        maxHF = np.max(allmeshelementsHF)
+
+        #maxHF = np.max(allmeshelementsHF)
+        
+        #changing mesh to refer to element with the most negative HF - maybe this is why the back face is moving?
+        maxHF = np.min(allmeshelementsHF)
 
         print(f"Starting gradient descent. maxHF is {maxHF}")
         
         for i in range(len(allmeshelementsHF)):
-            if allmeshelementsHF[i] > (maxHF - 0.5): #arbitrary threshold we can change later
+            # if allmeshelementsHF[i] > (maxHF - 0.5): #arbitrary threshold we can change later
+            if allmeshelementsHF[i] < (maxHF + 0.5):
                 i_vertices = tri_mesh.faces[i]  #format: [x, y, z]
                 #print(f"from this face: {i_vertices}")
 
@@ -197,7 +202,7 @@ class OptModel_MeshHF:
         return trimeshSolid.vertices - (delta * gradient)
 
 
-    def meshHFOpt(self, hfObjectiveFcn, constraints, calcHFAllMesh, calcMaxHF, meshObj, changeMeshFcn, threshold, delta, id):
+    def meshHFOpt(self, hfObjectiveFcn, calcHFAllMesh, calcMaxHF, calcHFSum, meshObj, changeMeshFcn, threshold, delta, id):
     # def meshHFOpt(self, hfFunction, hfObjectiveFcn, meshObj, threshold, step, id):
         """
         runs optimization process until objective fcn value reaches stopping condition @ minimum
@@ -214,7 +219,7 @@ class OptModel_MeshHF:
         count = 0
         all_objective_function_values = [hfObjectiveFcn(trimeshSolid)]
         max_hf_each_run = [calcMaxHF(trimeshSolid)]
-        sum_hf_each_run = [hfObjectiveFcn(trimeshSolid)] #[hfAllMesh(trimeshSolid)]
+        sum_hf_each_run = [calcHFSum(trimeshSolid)] #[hfAllMesh(trimeshSolid)]
 
         print("Starting the mesh HF opt")
 
@@ -224,7 +229,7 @@ class OptModel_MeshHF:
         prev_objVal = 2000
         curr_objVal = 0
 
-        while abs(prev_objVal - curr_objVal) > threshold and prev_objVal > curr_objVal: #or not(constraints(trimeshSolid)): 
+        while abs(prev_objVal - curr_objVal) > threshold: #and prev_objVal > curr_objVal: #or not(constraints(trimeshSolid)): 
 
         #objective fcn should take in a trimesh mesh object --> below was original threshold
         #while hfObjectiveFcn(trimeshSolid) > threshold:
@@ -251,7 +256,7 @@ class OptModel_MeshHF:
             new_max_hf = calcMaxHF(trimeshSolid)
             max_hf_each_run.append(new_max_hf)
 
-            new_sum_hf = hfObjectiveFcn(trimeshSolid) #hfAllMesh(trimeshSolid)
+            new_sum_hf = calcHFSum(trimeshSolid) #hfAllMesh(trimeshSolid)
             sum_hf_each_run.append(new_sum_hf)
 
             print(f"New objective function value: {new_objVal}")
@@ -269,11 +274,11 @@ class OptModel_MeshHF:
             # output_file = f"test{id}/{count}_run_distributionforobjective.html"
             # pio.write_html(fig, output_file)
 
-            if count and count % 2 == 0: 
+            if count and count % 1 == 0: 
                 x_count = np.linspace(0, len(all_objective_function_values), len(all_objective_function_values))
                 fig = px.scatter(x = x_count, y = all_objective_function_values)
                 fig.update_xaxes(title_text='Iterations')
-                fig.update_yaxes(title_text='Objective function: max(HF) + 0.01*(sum HF over elements)')
+                fig.update_yaxes(title_text='Objective function: c1*max(HF) + c2*(sum HF over elements)')
                 fig.show()            
                 output_file = f"test{id}/objective_up_to_run_{count}.html"
                 pio.write_html(fig, output_file)

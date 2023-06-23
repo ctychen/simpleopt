@@ -35,7 +35,8 @@ class ForwardModel_MeshHF:
         for i in range(len(normals)):
             n = normals[i] 
             dotprod = np.dot(self.q_dir, n)
-            q_i = abs(dotprod) * self.q_mag
+            #q_i = abs(dotprod) * self.q_mag
+            q_i = dotprod * self.q_mag
             q_mesh_all.append(q_i)
         return q_mesh_all
     
@@ -100,8 +101,13 @@ class ForwardModel_MeshHF:
         """
         Find single highest heat flux from all mesh element heat fluxes
         """
-        q_mesh_all = self.calculateHFMeshElements(trimeshSolid)
+        q_mesh_all = self.calculateAllHF(trimeshSolid) #self.calculateHFMeshElements(trimeshSolid)
         maxHF = np.max(q_mesh_all)
         return maxHF
+    
+    def calculateMostNegHF(self, trimeshSolid):
+        #changing this bc the negative HFs' are the worst case scenarios, and so that magnitude should be minimized
+        q_mesh_all = self.calculateAllHF(trimeshSolid)
+        return np.min(q_mesh_all)
     
     
