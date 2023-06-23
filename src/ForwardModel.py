@@ -26,35 +26,32 @@ class ForwardModel_MeshHF:
                 q_mesh_all.append(q_i)
         return q_mesh_all
     
+    # def calculateAllHF(self, trimeshSolid):
+    #     """
+    #     Calculate HF on every mesh element, with no exclusions, and returning them all in a list
+    #     """
+    #     normals, centers, areas = self.solidObj.normalsCentersAreas_Trimesh(trimeshSolid)
+    #     q_mesh_all = []
+    #     for i in range(len(normals)):
+    #         n = normals[i] 
+    #         dotprod = np.dot(self.q_dir, n)
+    #         #q_i = abs(dotprod) * self.q_mag
+    #         q_i = dotprod * self.q_mag
+    #         q_mesh_all.append(q_i)
+    #     return q_mesh_all
+    
     def calculateAllHF(self, trimeshSolid):
         """
         Calculate HF on every mesh element, with no exclusions, and returning them all in a list
         """
         normals, centers, areas = self.solidObj.normalsCentersAreas_Trimesh(trimeshSolid)
-        q_mesh_all = []
-        for i in range(len(normals)):
-            n = normals[i] 
-            dotprod = np.dot(self.q_dir, n)
-            #q_i = abs(dotprod) * self.q_mag
-            q_i = dotprod * self.q_mag
-            q_mesh_all.append(q_i)
+        q_mesh_all = (np.dot(normals, self.q_dir)) * self.q_mag
         return q_mesh_all
     
     def calculateHFDistribution(self, trimeshSolid):
         #q_mesh_all = np.array(self.calculateHFMeshElements(trimeshSolid))
         normals, centers, areas = self.solidObj.normalsCentersAreas_Trimesh(trimeshSolid)
-        q_mesh_all = []
-        for i in range(len(normals)):
-            n = normals[i] 
-            dotprod = np.dot(self.q_dir, n)
-            #adjusting the range here to try and get it to move not the edges by a bit - distribution is very much around 0 right now
-            #if dotprod > 0.0 and dotprod <= 1.0: 
-
-            if dotprod < 0.0 and abs(dotprod) <= 1.0:
-                q_i = abs(dotprod) * self.q_mag
-                q_mesh_all.append(q_i)
-
-        q_mesh_all = np.array(q_mesh_all)
+        q_mesh_all = (np.dot(normals, self.q_dir)) * self.q_mag
 
         hfMean = np.mean(q_mesh_all)
         hfVariance = np.var(q_mesh_all)
@@ -74,27 +71,40 @@ class ForwardModel_MeshHF:
     def distForObj(self, trimeshSolid):
         return self.calculateHFDistribution(trimeshSolid)[3]
     
+    # def calculateHFMeshSum(self, trimeshSolid):
+    #     """
+    #     Calculate sum of heat flux from all mesh elements
+    #     """
+    #     q_mesh_sum = 0
+    #     normals, centers, areas = self.solidObj.normalsCentersAreas_Trimesh(trimeshSolid)
+
+    #     for i in range(len(normals)):
+            
+    #         n = normals[i] 
+    #         #dotprod >= 0.0 and dotprod <= 1.0
+    #         dotprod = np.dot(self.q_dir, n)
+    #         #if dotprod > 0.0 and dotprod <= 1.0: 
+
+    #         #this condition is bc highest fluxes would be expected to be on faces facing into the flux
+    #         #ie, where q dot n is negative
+    #         if dotprod < 0.0 and abs(dotprod) <= 1.0:
+    #             q_i = abs(dotprod) * self.q_mag
+    #             q_mesh_sum += q_i
+
+    #     #return np.sum(self.calculateHFMeshElements(trimeshSolid))
+    #     return q_mesh_sum
+    
     def calculateHFMeshSum(self, trimeshSolid):
         """
         Calculate sum of heat flux from all mesh elements
         """
-        q_mesh_sum = 0
+
         normals, centers, areas = self.solidObj.normalsCentersAreas_Trimesh(trimeshSolid)
+        q_mesh_all = (np.dot(normals, self.q_dir)) * self.q_mag
 
-        for i in range(len(normals)):
-            
-            n = normals[i] 
-            #dotprod >= 0.0 and dotprod <= 1.0
-            dotprod = np.dot(self.q_dir, n)
-            #if dotprod > 0.0 and dotprod <= 1.0: 
+        dotprods = filter(lambda x: x < 0, q_mesh_all)
+        q_mesh_sum = sum(abs(x) for x in dotprods)
 
-            #this condition is bc highest fluxes would be expected to be on faces facing into the flux
-            #ie, where q dot n is negative
-            if dotprod < 0.0 and abs(dotprod) <= 1.0:
-                q_i = abs(dotprod) * self.q_mag
-                q_mesh_sum += q_i
-
-        #return np.sum(self.calculateHFMeshElements(trimeshSolid))
         return q_mesh_sum
     
     def calculateMaxHF(self, trimeshSolid):

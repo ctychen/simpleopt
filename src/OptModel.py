@@ -190,8 +190,7 @@ class OptModel_MeshHF:
 
                 # print(f"Gradient of index {vertexIdx}: {gradient[vertexIdx]}")
                 # print(f"Vertex orig: {tri_mesh.vertices[vertexIdx]}")
-                
-                
+            
                 #testing out stuff below this is new
                 #basically - move each vertex and update it
                 tri_mesh.vertices[vertexIdx, 0] -= (delta * gradient[vertexIdx, 0])
@@ -202,7 +201,7 @@ class OptModel_MeshHF:
 
                 # input(f"moved vertex {vertexIdx}")
         
-        tri_mesh.export(f"{filedir}/{count}_test.stl")
+        #tri_mesh.export(f"{filedir}/{count}_test.stl")
 
         return tri_mesh
 
@@ -353,7 +352,7 @@ class OptModel_MeshHF:
                 x_count = np.linspace(0, len(all_objective_function_values), len(all_objective_function_values))
                 fig = px.scatter(x = x_count, y = all_objective_function_values)
                 fig.update_xaxes(title_text='Iterations')
-                fig.update_yaxes(title_text='Objective function: c1*max(HF) + c2*(sum HF over elements)')
+                fig.update_yaxes(title_text=f'Objective function: {hfObjectiveFcn.__name__}')
                 fig.show()            
                 output_file = f"test{id}/objective_up_to_run_{count}.html"
                 pio.write_html(fig, output_file)
