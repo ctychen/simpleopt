@@ -20,12 +20,24 @@ class ForwardModel_MeshHF:
             n = normals[i] 
             dotprod = np.dot(self.q_dir, n)
             # if dotprod > 0.0 and dotprod <= 1.0:
-            
+
             if dotprod < 0.0 and abs(dotprod) <= 1.0: #not a backface/shadowed since shadowed would be if b dot n > 0
                 q_i = abs(dotprod) * self.q_mag
                 q_mesh_all.append(q_i)
         return q_mesh_all
     
+    def calculateAllHF(self, trimeshSolid):
+        """
+        Calculate HF on every mesh element, with no exclusions, and returning them all in a list
+        """
+        normals, centers, areas = self.solidObj.normalsCentersAreas_Trimesh(trimeshSolid)
+        q_mesh_all = []
+        for i in range(len(normals)):
+            n = normals[i] 
+            dotprod = np.dot(self.q_dir, n)
+            q_i = abs(dotprod) * self.q_mag
+            q_mesh_all.append(q_i)
+        return q_mesh_all
     
     def calculateHFDistribution(self, trimeshSolid):
         #q_mesh_all = np.array(self.calculateHFMeshElements(trimeshSolid))

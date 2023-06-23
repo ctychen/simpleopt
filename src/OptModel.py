@@ -48,6 +48,81 @@ class OptModel_MeshHF:
                 # print(f"Gradient should be: {(obj_afterMoving - obj_beforeMoving) / (2 * delta)}")
         
         return gradient
+
+    
+    def gradientDesignHFV2(self, tri_mesh, objectiveFunction, allmeshelementsHF, delta, filedir, count):
+        """
+        what this should do: 
+        find all vertices for mesh elements that have heat flux that's maxHF-delta to maxHF
+        move those first - calc gradient and move actually depending on gradient
+        then do gradient descent on rest
+
+        """ 
+
+        #find mesh elements with HF close to maxHF and calculate those motions first, then apply them
+        #modify those within this loop before calculating changes on everything else
+        #then set the gradient values for those indices to be 0 afterwards so they don't move while other elements on pass 2 will
+    
+        #which means calculate hf for all faces using hfCalc (or get it from facesHF / q_all as an input)
+        gradient_step0 = np.zeros_like(tri_mesh.vertices)
+
+        highestHFVertexIndices = []
+        maxHF = np.max(allmeshelementsHF)
+
+        print(f"Starting gradient descent. maxHF is {maxHF}")
+        
+        for i in range(len(allmeshelementsHF)):
+            if allmeshelementsHF[i] > (maxHF - 0.5): #arbitrary threshold we can change later
+                i_vertices = tri_mesh.faces[i]  #format: [x, y, z]
+                #print(f"from this face: {i_vertices}")
+
+                for v_idx in i_vertices:
+                    if v_idx not in highestHFVertexIndices:
+                        highestHFVertexIndices.append(v_idx)
+                #if value in my_array[:, col_num]
+
+        print(f"indices found with close-to-maxHF values: {highestHFVertexIndices}")
+
+        for idx in highestHFVertexIndices: 
+            for j in range(3):
+                tri_mesh.vertices[idx, j] += delta
+                obj_afterMoving = objectiveFunction(tri_mesh)
+                tri_mesh.vertices[idx, j] -= delta
+                obj_beforeMoving = objectiveFunction(tri_mesh)
+                gradient_step0[idx, j] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
+
+        print(f"Found gradients for highest HF elements")
+
+        #now, apply gradient to those vertices first so that it is already moved 
+        for idx in highestHFVertexIndices: 
+            for j in range(3):
+                tri_mesh.vertices[idx, j] -= (delta * gradient_step0[idx, j])
+
+        print(f"Moved highest HF elements")
+
+        #make stl after moving highest-hf-elements to check what's happening
+        tri_mesh.export(f"{filedir}/{count}_onlyhighesthfmoved.stl")
+
+        gradient = np.zeros_like(tri_mesh.vertices)
+        #for each vertex
+        for i in range(len(tri_mesh.vertices)):
+            #for each dimension
+            for j in range(3):
+                #now, calc gradient if we haven't already moved the points
+                if i not in highestHFVertexIndices: 
+                    #move vertex a bit, see if the objective function decreases
+                    tri_mesh.vertices[i, j] += delta
+                    obj_afterMoving = objectiveFunction(tri_mesh)
+                    #move vertex back to original, calc objective function then for comparison
+                    tri_mesh.vertices[i, j] -= delta
+                    obj_beforeMoving = objectiveFunction(tri_mesh)
+                    gradient[i, j] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
+                else: #if we've already moved the vertices, keep this 0 since we don't want to move it more? maybe not... 
+                    tri_mesh.vertices[i, j] = 0.0 
+
+        #now, move all the vertices that haven't already been moved based on gradient
+
+        return gradient 
     
 
     #this doesn't work yet
@@ -118,10 +193,11 @@ class OptModel_MeshHF:
         """
         function for how we want to adjust mesh vertices, depending on what the gradient is 
         """
+
         return trimeshSolid.vertices - (delta * gradient)
 
 
-    def meshHFOpt(self, hfObjectiveFcn, constraints, hfAllMesh, hfMeshCalc, meshObj, changeMeshFcn, threshold, delta, id):
+    def meshHFOpt(self, hfObjectiveFcn, constraints, calcHFAllMesh, calcMaxHF, meshObj, changeMeshFcn, threshold, delta, id):
     # def meshHFOpt(self, hfFunction, hfObjectiveFcn, meshObj, threshold, step, id):
         """
         runs optimization process until objective fcn value reaches stopping condition @ minimum
@@ -137,8 +213,8 @@ class OptModel_MeshHF:
         trimeshSolid = meshObj
         count = 0
         all_objective_function_values = [hfObjectiveFcn(trimeshSolid)]
-        max_hf_each_run = [hfMeshCalc(trimeshSolid)]
-        sum_hf_each_run = [hfAllMesh(trimeshSolid)]
+        max_hf_each_run = [calcMaxHF(trimeshSolid)]
+        sum_hf_each_run = [] #[hfAllMesh(trimeshSolid)]
 
         print("Starting the mesh HF opt")
 
@@ -148,13 +224,18 @@ class OptModel_MeshHF:
         prev_objVal = 50
         curr_objVal = 0
 
-        while abs(prev_objVal - curr_objVal) > threshold: #or not(constraints(trimeshSolid)): 
+        while abs(prev_objVal - curr_objVal) > threshold and prev_objVal > curr_objVal: #or not(constraints(trimeshSolid)): 
 
         #objective fcn should take in a trimesh mesh object --> below was original threshold
         #while hfObjectiveFcn(trimeshSolid) > threshold:
 
+            #v2: before calc gradient, calc the max hf so that elements with it can be moved first
+            #maxHF = calcMaxHF(trimeshSolid)
+            hf_all_mesh = calcHFAllMesh(trimeshSolid)
+            
             #calc the gradient
-            gradient = self.gradientDescentHF(trimeshSolid, hfObjectiveFcn, delta, fileID=id)
+            gradient = self.gradientDesignHFV2(trimeshSolid, hfObjectiveFcn, hf_all_mesh, delta, f"test{id}", count)
+            # gradient = self.gradientDescentHF(trimeshSolid, hfObjectiveFcn, hf_all_mesh, delta, fileID=id)
 
             #move the vertices a bit based on the gradient
             trimeshSolid.vertices = changeMeshFcn(trimeshSolid, gradient, delta)
@@ -167,7 +248,7 @@ class OptModel_MeshHF:
             prev_objVal = curr_objVal
             curr_objVal = new_objVal
 
-            new_max_hf = hfMeshCalc(trimeshSolid)
+            new_max_hf = calcMaxHF(trimeshSolid)
             max_hf_each_run.append(new_max_hf)
 
             new_sum_hf = hfAllMesh(trimeshSolid)
@@ -182,13 +263,13 @@ class OptModel_MeshHF:
             # output_file = f"test{id}/{count}_run_entiredistribution.html"
             # pio.write_html(fig, output_file)
 
-            # q_mesh_objective = hfMeshCalc(trimeshSolid)
+            # q_mesh_objective = calcMaxHF(trimeshSolid)
             # fig = go.Figure(data=[go.Histogram(x=q_mesh_objective)])
             # fig.show()
             # output_file = f"test{id}/{count}_run_distributionforobjective.html"
             # pio.write_html(fig, output_file)
 
-            if count % 10 == 0: 
+            if count and count % 10 == 0: 
                 x_count = np.linspace(0, len(all_objective_function_values), len(all_objective_function_values))
                 fig = px.scatter(x = x_count, y = all_objective_function_values)
                 fig.update_xaxes(title_text='Iterations')
@@ -216,13 +297,13 @@ class OptModel_MeshHF:
 
             count += 1
         
-        self.plotRun(all_objective_function_values, max_hf_each_run, f"test{id}")
+        self.plotRun(all_objective_function_values, max_hf_each_run, sum_hf_each_run, f"test{id}")
         
         #when process is done, the mesh should have been modified - so return it 
         return trimeshSolid
     
 
-    def plotRun(self, objective_function_values, max_hf_each_run, outputDir):
+    def plotRun(self, objective_function_values, max_hf_each_run, sum_hf_each_run, outputDir):
         """
         plot values of objective function over iterations
         """
@@ -241,6 +322,14 @@ class OptModel_MeshHF:
         fig.update_yaxes(title_text='Max HF')
         fig.show()            
         output_file = f"{outputDir}/max_hf_each_run.html"
+        pio.write_html(fig, output_file)
+
+        x_count = np.linspace(0, len(sum_hf_each_run), len(sum_hf_each_run))
+        fig = px.scatter(x = x_count, y = sum_hf_each_run)
+        fig.update_xaxes(title_text='Iterations')
+        fig.update_yaxes(title_text='Sum HF on mesh')
+        fig.show()            
+        output_file = f"{outputDir}/sum_hf_each_run.html"
         pio.write_html(fig, output_file)
 
 
