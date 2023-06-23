@@ -58,7 +58,7 @@ class RunSetup_MeshHF:
 
         return
 
-    def runOptimization(self, runID="008_6"):
+    def runOptimization(self, runID="009_1"):
 
         os.makedirs(f"test{runID}")
 
@@ -100,7 +100,7 @@ class RunSetup_MeshHF:
             trimeshSolid, 
             self.opt.moveMeshVertices, 
             threshold=0.0001, 
-            delta=0.001, 
+            delta=0.01, 
             id=runID
         )
 
