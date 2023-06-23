@@ -58,7 +58,7 @@ class RunSetup_MeshHF:
 
         return
 
-    def runOptimization(self, runID="008_0"):
+    def runOptimization(self, runID="008_1"):
 
         os.makedirs(f"test{runID}")
 
@@ -99,8 +99,8 @@ class RunSetup_MeshHF:
             self.fwd.calculateMaxHF, #using this for now to plot components of compound obj
             trimeshSolid, 
             self.opt.moveMeshVertices, 
-            threshold=0.05, 
-            delta=0.05, 
+            threshold=100, 
+            delta=0.01, 
             id=runID
             )
 

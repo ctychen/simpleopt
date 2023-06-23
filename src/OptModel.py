@@ -214,14 +214,14 @@ class OptModel_MeshHF:
         count = 0
         all_objective_function_values = [hfObjectiveFcn(trimeshSolid)]
         max_hf_each_run = [calcMaxHF(trimeshSolid)]
-        sum_hf_each_run = [] #[hfAllMesh(trimeshSolid)]
+        sum_hf_each_run = [hfObjectiveFcn(trimeshSolid)] #[hfAllMesh(trimeshSolid)]
 
         print("Starting the mesh HF opt")
 
         print(f"Starting objective function value: {hfObjectiveFcn(trimeshSolid)}")
         trimeshSolid.export(f"test{id}/original.stl")
 
-        prev_objVal = 50
+        prev_objVal = 2000
         curr_objVal = 0
 
         while abs(prev_objVal - curr_objVal) > threshold and prev_objVal > curr_objVal: #or not(constraints(trimeshSolid)): 
@@ -251,7 +251,7 @@ class OptModel_MeshHF:
             new_max_hf = calcMaxHF(trimeshSolid)
             max_hf_each_run.append(new_max_hf)
 
-            new_sum_hf = hfAllMesh(trimeshSolid)
+            new_sum_hf = hfObjectiveFcn(trimeshSolid) #hfAllMesh(trimeshSolid)
             sum_hf_each_run.append(new_sum_hf)
 
             print(f"New objective function value: {new_objVal}")
@@ -269,7 +269,7 @@ class OptModel_MeshHF:
             # output_file = f"test{id}/{count}_run_distributionforobjective.html"
             # pio.write_html(fig, output_file)
 
-            if count and count % 10 == 0: 
+            if count and count % 2 == 0: 
                 x_count = np.linspace(0, len(all_objective_function_values), len(all_objective_function_values))
                 fig = px.scatter(x = x_count, y = all_objective_function_values)
                 fig.update_xaxes(title_text='Iterations')
