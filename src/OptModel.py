@@ -63,20 +63,23 @@ class OptModel_MeshHF:
         for idx in sortedFaceIndices: #idx is FACE INDICES!
             #each element of face is [p1idx, p2idx, p3idx] 
             face = tri_mesh.faces[idx]
-            obj_beforeMoving = objectiveFunction(tri_mesh)
+            # obj_beforeMoving = objectiveFunction(tri_mesh)
 
             for vertexIdx in face:  #vertexIdx is VERTEX INDICES
-                tri_mesh.vertices[vertexIdx, :] += delta
 
+                tri_mesh.vertices[vertexIdx, :] += delta
                 obj_afterMoving = objectiveFunction(tri_mesh)
+
                 tri_mesh.vertices[vertexIdx, :] -= delta
+                obj_beforeMoving = objectiveFunction(tri_mesh)
                 
                 gradient[vertexIdx, :] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
             
                 #basically - move each vertex and update it
-                tri_mesh.vertices[vertexIdx, 0] -= (delta * gradient[vertexIdx, 0])
-                tri_mesh.vertices[vertexIdx, 1] -= (delta * gradient[vertexIdx, 1])
-                tri_mesh.vertices[vertexIdx, 2] -= (delta * gradient[vertexIdx, 2])
+                tri_mesh.vertices[vertexIdx, :] -= (delta * gradient[vertexIdx, :])
+                #tri_mesh.vertices[vertexIdx, 0] -= (delta * gradient[vertexIdx, 0])
+                #tri_mesh.vertices[vertexIdx, 1] -= (delta * gradient[vertexIdx, 1])
+                #tri_mesh.vertices[vertexIdx, 2] -= (delta * gradient[vertexIdx, 2])
 
         return tri_mesh
 
