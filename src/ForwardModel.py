@@ -18,7 +18,6 @@ class ForwardModel_MeshHF:
     #then take any values where -(-q*(b dot n)) > 0, ie. HF's aren't physical
     #and set those to 0
 
-
     def calculateAllHF_AllVals(self, trimeshSolid):
         """
         Calculate HF on every mesh element, with no exclusions, and returning them all in a list
@@ -38,7 +37,9 @@ class ForwardModel_MeshHF:
     
     
     def calculateHFDistribution(self, trimeshSolid):
-        #q_mesh_all = np.array(self.calculateHFMeshElements(trimeshSolid))
+        """
+        Calculate mean, variance, standard deviation on all HF over mesh elements
+        """
         normals, centers, areas = self.solidObj.normalsCentersAreas_Trimesh(trimeshSolid)
         q_mesh_all = -1 * (np.dot(normals, self.q_dir)) * self.q_mag
 
@@ -79,13 +80,7 @@ class ForwardModel_MeshHF:
         Find single highest heat flux from all mesh element heat fluxes
         """
         q_mesh_all = self.calculateAllHF(trimeshSolid)
-        maxHF = np.max(q_mesh_all)
-        return maxHF
-    
-    def calculateMostNegHF(self, trimeshSolid):
-        #changing this bc the negative HFs' are the worst case scenarios, and so that magnitude should be minimized
-        q_mesh_all = self.calculateAllHF(trimeshSolid)
-        # return np.min(q_mesh_all)
         return np.max(q_mesh_all)
+    
     
     

@@ -5,6 +5,8 @@ import MeshPart
 from FreeCAD import Base
 import numpy as np
 
+import time
+
 import plotly.graph_objects as go
 import plotly.io as pio
 from plotly.subplots import make_subplots
@@ -27,131 +29,12 @@ class OptModel_MeshHF:
         return
     
 
-    def gradientDescentHF(self, tri_mesh, objectiveFunction, delta, fileID):
+    def gradientDescentHF(self, tri_mesh, objectiveFunction, allmeshelementsHF, delta, filedir, count):
         """
         gradient descent implementation for heat flux minimization
-        takes in trimesh object, applies objective function to it
-        moves all mesh vertices by a small amount and finds the gradient when doing so 
-        """
-        gradient = np.zeros_like(tri_mesh.vertices)
-        #for each vertex
-        for i in range(len(tri_mesh.vertices)):
-            #for each dimension
-            for j in range(3):
-                #move vertex a bit, see if the objective function decreases
-                # print(f"Vertex: {tri_mesh.vertices[i]}") #format: [x, y, z]
-                tri_mesh.vertices[i, j] += delta
-                # print(f"After moving: {tri_mesh.vertices[i, j]}")
-                obj_afterMoving = objectiveFunction(tri_mesh)
-                #tri_mesh.export(f"test{fileID}/wip_movingvertices_{i}_{j}.stl")
-                #move vertex back to original, calc objective function then for comparison
-                tri_mesh.vertices[i, j] -= delta
-                obj_beforeMoving = objectiveFunction(tri_mesh)
-                gradient[i, j] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
-                # print(f"Gradient value: {gradient[i, j]}")
-                # print(f"Gradient should be: {(obj_afterMoving - obj_beforeMoving) / (2 * delta)}")
-        
-        return gradient
-
-    
-    def gradientDesignHFV2(self, tri_mesh, objectiveFunction, allmeshelementsHF, delta, filedir, count):
-        """
-        what this should do: 
-        find all vertices for mesh elements that have heat flux that's maxHF-delta to maxHF
-        move those first - calc gradient and move actually depending on gradient
-        then do gradient descent on rest
-
-        """ 
-
-        #find mesh elements with HF close to maxHF and calculate those motions first, then apply them
-        #modify those within this loop before calculating changes on everything else
-        #then set the gradient values for those indices to be 0 afterwards so they don't move while other elements on pass 2 will
-    
-        #which means calculate hf for all faces using hfCalc (or get it from facesHF / q_all as an input)
-        gradient_step0 = np.zeros_like(tri_mesh.vertices)
-
-        highestHFVertexIndices = []
-
-        #maxHF = np.max(allmeshelementsHF)
-        
-        #changing mesh to refer to element with the most negative HF - maybe this is why the back face is moving?
-        maxHF = np.min(allmeshelementsHF)
-
-        print(f"Starting gradient descent. maxHF is {maxHF}")
-        
-        for i in range(len(allmeshelementsHF)):
-            # if allmeshelementsHF[i] > (maxHF - 0.5): #arbitrary threshold we can change later
-            if allmeshelementsHF[i] < (maxHF + 0.5):
-                i_vertices = tri_mesh.faces[i]  #format: [x, y, z]
-                #print(f"from this face: {i_vertices}")
-
-                for v_idx in i_vertices:
-                    if v_idx not in highestHFVertexIndices:
-                        highestHFVertexIndices.append(v_idx)
-                #if value in my_array[:, col_num]
-
-        print(f"indices found with close-to-maxHF values: {highestHFVertexIndices}")
-
-        for idx in highestHFVertexIndices: 
-            for j in range(3):
-                tri_mesh.vertices[idx, j] += delta
-                obj_afterMoving = objectiveFunction(tri_mesh)
-                tri_mesh.vertices[idx, j] -= delta
-                obj_beforeMoving = objectiveFunction(tri_mesh)
-                gradient_step0[idx, j] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
-
-        print(f"Found gradients for highest HF elements")
-
-        #now, apply gradient to those vertices first so that it is already moved 
-        for idx in highestHFVertexIndices: 
-            for j in range(3):
-                tri_mesh.vertices[idx, j] -= (delta * gradient_step0[idx, j])
-
-        print(f"Moved highest HF elements")
-
-        #make stl after moving highest-hf-elements to check what's happening
-        tri_mesh.export(f"{filedir}/{count}_onlyhighesthfmoved.stl")
-
-        gradient = np.zeros_like(tri_mesh.vertices)
-        #for each vertex
-        for i in range(len(tri_mesh.vertices)):
-            #for each dimension
-            for j in range(3):
-                #now, calc gradient if we haven't already moved the points
-                if i not in highestHFVertexIndices: 
-                    #move vertex a bit, see if the objective function decreases
-                    tri_mesh.vertices[i, j] += delta
-                    obj_afterMoving = objectiveFunction(tri_mesh)
-                    #move vertex back to original, calc objective function then for comparison
-                    tri_mesh.vertices[i, j] -= delta
-                    obj_beforeMoving = objectiveFunction(tri_mesh)
-                    gradient[i, j] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
-                else: #if we've already moved the vertices, keep this 0 since we don't want to move it more? maybe not... 
-                    tri_mesh.vertices[i, j] = 0.0 
-
-            #testing out stuff below this is new
-            tri_mesh.vertices[i, 0] -= (delta * gradient[i, 0])
-            tri_mesh.vertices[i, 1] -= (delta * gradient[i, 1])
-            tri_mesh.vertices[i, 2] -= (delta * gradient[i, 2])
-
-            tri_mesh.export(f"{filedir}/{count}_vertex_{i}_moved.stl")
-
-            input(f"moved vertex {i}")
-
-        #now, move all the vertices that haven't already been moved based on gradient
-        return tri_mesh
-
-        #return gradient 
-
-
-
-    def gradientDesignHFV3(self, tri_mesh, objectiveFunction, allmeshelementsHF, delta, filedir, count):
-        """
-        what this should do: 
-        find all vertices for mesh elements that have heat flux that's maxHF-delta to maxHF
-        move those first - calc gradient and move actually depending on gradient
-        then do gradient descent on rest
-
+        takes in trimesh object and sorts elements by HF to deal with worst elements first
+        calc gradient for each element by moving vertices a small amount and finding change in objective function
+        move each vertex based on gradient * delta when all gradients calculated
         """ 
 
         #process now:
@@ -169,42 +52,70 @@ class OptModel_MeshHF:
 
         facesIndices = list(range(len(tri_mesh.faces)))
         hfFacesLists = list(zip(allmeshelementsHF, facesIndices))
-        #should actually sort by ascending since -10 at the beginning is the worst heat flux
-        hfFacesLists.sort(key=lambda x: x[0])#, reverse=True)
+        hfFacesLists.sort(key=lambda x: x[0], reverse=True)
 
-        sortedHFs, sortedFaceIndices = zip(*hfFacesLists) #map(list, zip(*hfFacesLists))
+        sortedHFs, sortedFaceIndices = zip(*hfFacesLists) 
         sortedHFs = list(sortedHFs)
         sortedFaceIndices = list(sortedFaceIndices)
 
-        # print(f"Sorted HFs: {sortedHFs}")
-        # print(f"Corresponding face indices: {sortedFaceIndices}")
 
         gradient = np.zeros_like(tri_mesh.vertices)
 
-        for idx in sortedFaceIndices: #idx is FACE INDICES!
-            #each element of face is [p1idx, p2idx, p3idx]
-            face = tri_mesh.faces[idx]
-            for vertexIdx in face:  #vertexIdx is VERTEX INDICES!
-                for j in range(3):
-                    tri_mesh.vertices[vertexIdx, j] += delta
-                    obj_afterMoving = objectiveFunction(tri_mesh)
-                    tri_mesh.vertices[vertexIdx, j] -= delta
-                    obj_beforeMoving = objectiveFunction(tri_mesh)
-                    gradient[vertexIdx, j] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
+        
+        
+        # t0 = time.time()
 
-                # print(f"Gradient of index {vertexIdx}: {gradient[vertexIdx]}")
-                # print(f"Vertex orig: {tri_mesh.vertices[vertexIdx]}")
+        for idx in sortedFaceIndices: #idx is FACE INDICES!
+            #each element of face is [p1idx, p2idx, p3idx] 
+            face = tri_mesh.faces[idx]
+            obj_beforeMoving = objectiveFunction(tri_mesh)
+            # print(tri_mesh.vertices)
+            # input()
+
+            # tri_mesh.vertices[vertexIdx, :] += delta
+            # print(f"Time elapsed for obj after moving calc: {time.time() - t0}")
+            # obj_afterMoving = objectiveFunction(tri_mesh)
+            # tri_mesh.vertices[vertexIdx, :] -= delta
+            # obj_beforeMoving = objectiveFunction(tri_mesh)
+            # print(f"Time elapsed for obj before moving calc: {time.time() - t0}")
+            # gradient[vertexIdx, :] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
+
+            for vertexIdx in face:  #vertexIdx is VERTEX INDICES
+                tri_mesh.vertices[vertexIdx, :] += delta
+                # print(f"Time elapsed for obj after moving calc: {time.time() - t0}")
+                obj_afterMoving = objectiveFunction(tri_mesh)
+                tri_mesh.vertices[vertexIdx, :] -= delta
+                
+                # print(f"Time elapsed for obj before moving calc: {time.time() - t0}")
+                gradient[vertexIdx, :] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
+
+                # for j in range(3):
+
+                #     tri_mesh.vertices[vertexIdx, j] += delta
+                #     obj_afterMoving = objectiveFunction(tri_mesh)
+
+                #     print(f"Time elapsed for obj after moving calc: {time.time() - t0}")
+
+                #     tri_mesh.vertices[vertexIdx, j] -= delta
+                #     obj_beforeMoving = objectiveFunction(tri_mesh)
+
+                #     print(f"Time elapsed for obj before moving calc: {time.time() - t0}")
+
+                #     gradient[vertexIdx, j] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
             
-                #testing out stuff below this is new
                 #basically - move each vertex and update it
                 tri_mesh.vertices[vertexIdx, 0] -= (delta * gradient[vertexIdx, 0])
                 tri_mesh.vertices[vertexIdx, 1] -= (delta * gradient[vertexIdx, 1])
                 tri_mesh.vertices[vertexIdx, 2] -= (delta * gradient[vertexIdx, 2])
 
+                # print(f"Time elapsed to move: {time.time() - t0}")
+
                 # tri_mesh.export(f"{filedir}/{count}_vertex_{vertexIdx}_moved.stl")
 
                 # input(f"moved vertex {vertexIdx}")
         
+        # print(f"Time elapsed: {time.time() - t0}")
+
         #tri_mesh.export(f"{filedir}/{count}_test.stl")
 
         return tri_mesh
@@ -212,75 +123,10 @@ class OptModel_MeshHF:
         #return gradient 
 
 
-    #this doesn't work yet
-    def plotIteration(self, gradDescOut, count, fileID):
-        # Create a 3D surface plot with color mapped to function values
-        gradient = gradDescOut[0]
-        x_vals = gradDescOut[1]
-        y_vals = gradDescOut[2]
-        z_vals = gradDescOut[3]
-
-        gradient_magnitudes = []
-        for grad in gradient: 
-            print(f"Normal: {np.linalg.norm(grad)}")
-            gradient_magnitudes.append(np.linalg.norm(grad))
-
-        # Assuming you have 1D lists of coordinates and magnitudes
-        x_coords = [x for x in range(len(x_vals)) for _ in range(len(y_vals)) for __ in range(len(z_vals))]
-        y_coords = [y for _ in range(len(x_vals)) for y in range(len(y_vals)) for __ in range(len(z_vals))]
-        z_coords = [z for _ in range(len(x_vals)) for __ in range(len(y_vals)) for z in range(len(z_vals))]
-        magnitudes = [gradient_magnitudes for _ in range(len(x_vals)) for __ in range(len(y_vals)) for ___ in range(len(z_vals))]
-
-        # Convert the lists to numpy arrays
-        x_coords_np = np.array(x_coords)
-        y_coords_np = np.array(y_coords)
-        z_coords_np = np.array(z_coords)
-        magnitudes_np = np.array(magnitudes)
-
-        # Reshape the 1D numpy arrays to 3D
-        x_coords_3d = x_coords_np.reshape((len(x_vals), len(y_vals), len(z_vals)))
-        y_coords_3d = y_coords_np.reshape((len(x_vals), len(y_vals), len(z_vals)))
-        z_coords_3d = z_coords_np.reshape((len(x_vals), len(y_vals), len(z_vals)))
-        magnitudes_3d = magnitudes_np.reshape((len(x_vals), len(y_vals), len(z_vals)))
-
-
-        fig = go.Figure(data=go.Isosurface(
-            x=x_coords_3d.flatten(),
-            y=y_coords_3d.flatten(),
-            z=z_coords_3d.flatten(),
-            value=magnitudes_3d.flatten(),
-            opacity=0.6,
-            isomin=magnitudes_3d.min(),
-            isomax=magnitudes_3d.max(),
-            surface_count=3,
-            caps=dict(x_show=False, y_show=False)
-            ))
-
-        # Set plot layout and axis labels
-        fig.update_layout(
-            title=f'Vertices colored by gradient magnitude value on iteration {count}',
-            scene=dict(
-                xaxis_title='X',
-                yaxis_title='Y',
-                zaxis_title='Z'
-            )
-        )
-
-        # Show the plot
-        fig.show()
-
-        output_file = f'test{fileID}/{count}_plot_of_iteration.html'
-        pio.write_html(fig, output_file)
-
-        print(f"Plotted iteration")
-        return
-    
-
     def moveMeshVertices(self, trimeshSolid, gradient, delta):
         """
         function for how we want to adjust mesh vertices, depending on what the gradient is 
         """
-
         return trimeshSolid.vertices - (delta * gradient)
 
 
@@ -294,36 +140,41 @@ class OptModel_MeshHF:
         if we want a different manipulation, or add more stuff to the functions
         """
         #TODO: add constraints somehow - take in list of criteria? eg. don't move face if x=0 or y=0 or x=10 or y=10?
-        #TODO: 
 
         #assuming input is already a trimesh, ie. processing the solid was done already
         trimeshSolid = meshObj
+
         count = 0
+
         all_objective_function_values = [hfObjectiveFcn(trimeshSolid)]
         max_hf_each_run = [calcMaxHF(trimeshSolid)]
-        sum_hf_each_run = [calcHFSum(trimeshSolid)] #[hfAllMesh(trimeshSolid)]
+        sum_hf_each_run = [calcHFSum(trimeshSolid)] 
 
         print("Starting the mesh HF opt")
 
         print(f"Starting objective function value: {hfObjectiveFcn(trimeshSolid)}")
-        trimeshSolid.export(f"test{id}/original.stl")
+        #trimeshSolid.export(f"test{id}/original.stl")
 
         prev_objVal = 2000
         curr_objVal = 0
 
-        while abs(prev_objVal - curr_objVal) > threshold: #and prev_objVal > curr_objVal: #or not(constraints(trimeshSolid)): 
+        t0 = time.time()
 
-        #objective fcn should take in a trimesh mesh object --> below was original threshold
-        #while hfObjectiveFcn(trimeshSolid) > threshold:
+        while abs(prev_objVal - curr_objVal) > threshold: 
 
             hf_all_mesh = calcHFAllMesh(trimeshSolid)
+
+            print(f"Time elapsed for calc: {time.time() - t0}")
             
             #calc the gradient
-            newTrimesh = self.gradientDesignHFV3(trimeshSolid, hfObjectiveFcn, hf_all_mesh, delta, f"test{id}", count)
+            newTrimesh = self.gradientDescentHF(trimeshSolid, hfObjectiveFcn, hf_all_mesh, delta, f"test{id}", count)
+
+            print(f"Time elapsed for GD {count}: {time.time() - t0}")
 
             trimeshSolid = newTrimesh
 
             trimeshSolid.export(f"test{id}/{count}.stl")
+
 
             new_objVal = hfObjectiveFcn(trimeshSolid)
             all_objective_function_values.append(new_objVal)
@@ -370,6 +221,7 @@ class OptModel_MeshHF:
                 # #make VTK to display HF on surface
                 # self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"test{id}")
 
+            print(f"Time elapsed for iteration {count}: {time.time() - t0}")
 
             count += 1
         
@@ -381,11 +233,8 @@ class OptModel_MeshHF:
 
     def plotHFVTK(self, hfValues, trimeshSolid, fileDir, count):
         """
-        attempt at making a VTK for visualizing HF on mesh elements for each iteration
+        Make and export VTK for visualizing HF on mesh elements for each iteration
         """
-
-        # Normalize hfValues to be between 0 and 1 for coloring
-        #hfValues = (hfValues - np.min(hfValues)) / (np.max(hfValues) - np.min(hfValues))
 
         # Now, we'll use VTK to create a colored mesh
         points = vtkPoints()
@@ -421,14 +270,11 @@ class OptModel_MeshHF:
         writer.Write()
 
         return 
-
-
-
     
 
     def plotRun(self, objective_function_values, max_hf_each_run, sum_hf_each_run, outputDir):
         """
-        plot values of objective function over iterations
+        plot values of objective function, as well as max HF and sum of HF's, over iterations
         """
         x_count = np.linspace(0, len(objective_function_values), len(objective_function_values))
         fig = px.scatter(x = x_count, y = objective_function_values)
@@ -454,7 +300,6 @@ class OptModel_MeshHF:
         fig.show()            
         output_file = f"{outputDir}/sum_hf_each_run.html"
         pio.write_html(fig, output_file)
-
 
         return 
 

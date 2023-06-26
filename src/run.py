@@ -58,7 +58,7 @@ class RunSetup_MeshHF:
 
         return
 
-    def runOptimization(self, runID="009_6"):
+    def runOptimization(self, runID="009_9"):
 
         os.makedirs(f"test{runID}")
 
@@ -92,7 +92,7 @@ class RunSetup_MeshHF:
         return self.opt.meshHFOpt(
             compoundObjective, #self.fwd.calculateHFMeshSum, #compoundObjective, 
             self.fwd.calculateAllHF,
-            self.fwd.calculateMostNegHF, #self.fwd.calculateMaxHF, #using this for now to plot components of compound obj
+            self.fwd.calculateMaxHF, #self.fwd.calculateMaxHF, #using this for now to plot components of compound obj
             self.fwd.calculateHFMeshSum,
             trimeshSolid, 
             self.opt.moveMeshVertices, 
