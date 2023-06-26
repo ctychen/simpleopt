@@ -10,48 +10,37 @@ class ForwardModel_MeshHF:
         self.q_dir = q_dir #direction of applied q, [x,y,z] [m]
         return
     
-    def calculateHFMeshElements(self, trimeshSolid):
-        """
-        Calculate heat flux on every mesh element and return them all in a list
-        """
-        normals, centers, areas = self.solidObj.normalsCentersAreas_Trimesh(trimeshSolid)
-        q_mesh_all = []
-        for i in range(len(normals)):
-            n = normals[i] 
-            dotprod = np.dot(self.q_dir, n)
-            # if dotprod > 0.0 and dotprod <= 1.0:
+    
+    #overall: can't have HF on backface - and doesn't make sense to have negative HF. 
+    #so should be setting backfaces (negative HF) to 0
+    #this might also eliminate some weirdness with back face corners/edges moving
+    #calc: -q*(b dot n)
+    #then take any values where -(-q*(b dot n)) > 0, ie. HF's aren't physical
+    #and set those to 0
 
-            if dotprod < 0.0 and abs(dotprod) <= 1.0: #not a backface/shadowed since shadowed would be if b dot n > 0
-                q_i = abs(dotprod) * self.q_mag
-                q_mesh_all.append(q_i)
-        return q_mesh_all
-    
-    # def calculateAllHF(self, trimeshSolid):
-    #     """
-    #     Calculate HF on every mesh element, with no exclusions, and returning them all in a list
-    #     """
-    #     normals, centers, areas = self.solidObj.normalsCentersAreas_Trimesh(trimeshSolid)
-    #     q_mesh_all = []
-    #     for i in range(len(normals)):
-    #         n = normals[i] 
-    #         dotprod = np.dot(self.q_dir, n)
-    #         #q_i = abs(dotprod) * self.q_mag
-    #         q_i = dotprod * self.q_mag
-    #         q_mesh_all.append(q_i)
-    #     return q_mesh_all
-    
-    def calculateAllHF(self, trimeshSolid):
+
+    def calculateAllHF_AllVals(self, trimeshSolid):
         """
         Calculate HF on every mesh element, with no exclusions, and returning them all in a list
         """
         normals, centers, areas = self.solidObj.normalsCentersAreas_Trimesh(trimeshSolid)
-        q_mesh_all = (np.dot(normals, self.q_dir)) * self.q_mag
+        q_mesh_all = -1 * (np.dot(normals, self.q_dir)) * self.q_mag
         return q_mesh_all
+    
+
+    def calculateAllHF(self, trimeshSolid):
+        """
+        Calculate HF on every mesh element, but set negative values to 0 (remove nonphysical element values)
+        """
+        q_mesh_all = self.calculateAllHF_AllVals(trimeshSolid)
+        q_mesh_all[q_mesh_all < 0] = 0
+        return q_mesh_all
+    
     
     def calculateHFDistribution(self, trimeshSolid):
         #q_mesh_all = np.array(self.calculateHFMeshElements(trimeshSolid))
         normals, centers, areas = self.solidObj.normalsCentersAreas_Trimesh(trimeshSolid)
-        q_mesh_all = (np.dot(normals, self.q_dir)) * self.q_mag
+        q_mesh_all = -1 * (np.dot(normals, self.q_dir)) * self.q_mag
 
         hfMean = np.mean(q_mesh_all)
         hfVariance = np.var(q_mesh_all)
@@ -71,28 +60,6 @@ class ForwardModel_MeshHF:
     def distForObj(self, trimeshSolid):
         return self.calculateHFDistribution(trimeshSolid)[3]
     
-    # def calculateHFMeshSum(self, trimeshSolid):
-    #     """
-    #     Calculate sum of heat flux from all mesh elements
-    #     """
-    #     q_mesh_sum = 0
-    #     normals, centers, areas = self.solidObj.normalsCentersAreas_Trimesh(trimeshSolid)
-
-    #     for i in range(len(normals)):
-            
-    #         n = normals[i] 
-    #         #dotprod >= 0.0 and dotprod <= 1.0
-    #         dotprod = np.dot(self.q_dir, n)
-    #         #if dotprod > 0.0 and dotprod <= 1.0: 
-
-    #         #this condition is bc highest fluxes would be expected to be on faces facing into the flux
-    #         #ie, where q dot n is negative
-    #         if dotprod < 0.0 and abs(dotprod) <= 1.0:
-    #             q_i = abs(dotprod) * self.q_mag
-    #             q_mesh_sum += q_i
-
-    #     #return np.sum(self.calculateHFMeshElements(trimeshSolid))
-    #     return q_mesh_sum
     
     def calculateHFMeshSum(self, trimeshSolid):
         """
@@ -100,9 +67,9 @@ class ForwardModel_MeshHF:
         """
 
         normals, centers, areas = self.solidObj.normalsCentersAreas_Trimesh(trimeshSolid)
-        q_mesh_all = (np.dot(normals, self.q_dir)) * self.q_mag
+        q_mesh_all = -1 * (np.dot(normals, self.q_dir)) * self.q_mag
 
-        dotprods = filter(lambda x: x < 0, q_mesh_all)
+        dotprods = filter(lambda x: x > 0, q_mesh_all)
         q_mesh_sum = sum(abs(x) for x in dotprods)
 
         return q_mesh_sum
@@ -111,13 +78,14 @@ class ForwardModel_MeshHF:
         """
         Find single highest heat flux from all mesh element heat fluxes
         """
-        q_mesh_all = self.calculateAllHF(trimeshSolid) #self.calculateHFMeshElements(trimeshSolid)
+        q_mesh_all = self.calculateAllHF(trimeshSolid)
         maxHF = np.max(q_mesh_all)
         return maxHF
     
     def calculateMostNegHF(self, trimeshSolid):
         #changing this bc the negative HFs' are the worst case scenarios, and so that magnitude should be minimized
         q_mesh_all = self.calculateAllHF(trimeshSolid)
-        return np.min(q_mesh_all)
+        # return np.min(q_mesh_all)
+        return np.max(q_mesh_all)
     
     

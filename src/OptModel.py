@@ -342,19 +342,6 @@ class OptModel_MeshHF:
 
             print(f"New objective function value: {new_objVal}")
 
-            # #Plotting process, for anything using means/distributions
-            # q_mesh_all = hfAllMesh(trimeshSolid)
-            # fig = go.Figure(data=[go.Histogram(x=q_mesh_all)])
-            # fig.show()
-            # output_file = f"test{id}/{count}_run_entiredistribution.html"
-            # pio.write_html(fig, output_file)
-
-            # q_mesh_objective = calcMaxHF(trimeshSolid)
-            # fig = go.Figure(data=[go.Histogram(x=q_mesh_objective)])
-            # fig.show()
-            # output_file = f"test{id}/{count}_run_distributionforobjective.html"
-            # pio.write_html(fig, output_file)
-
             if count and count % 5 == 0: 
                 x_count = np.linspace(0, len(all_objective_function_values), len(all_objective_function_values))
                 fig = px.scatter(x = x_count, y = all_objective_function_values)
