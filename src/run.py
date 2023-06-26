@@ -65,15 +65,6 @@ class RunSetup_MeshHF:
         self.box.processSolid()
         trimeshSolid = self.box.trimeshSolid
         trimeshSolid.export(f"test{runID}/initial.stl")
-
-        def constraintFcn(trimeshSolid):
-            #return true if maxHF is below threshold, false if it's above threshold. 
-            #we want to keep running opt until we reach solns that satisfy this
-            return (self.fwd.calculateMaxHF(trimeshSolid) < 9.0)
-        
-        def newObjective(trimeshSolid):
-            #giving this an attempt since the distribution is really shifted
-            return self.fwd.meanHF(trimeshSolid) + self.fwd.stdHF(trimeshSolid)
         
         def compoundObjective(trimeshSolid):
             #weighting for now, lets try it: 

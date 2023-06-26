@@ -58,69 +58,27 @@ class OptModel_MeshHF:
         sortedHFs = list(sortedHFs)
         sortedFaceIndices = list(sortedFaceIndices)
 
-
         gradient = np.zeros_like(tri_mesh.vertices)
-
-        
-        
-        # t0 = time.time()
 
         for idx in sortedFaceIndices: #idx is FACE INDICES!
             #each element of face is [p1idx, p2idx, p3idx] 
             face = tri_mesh.faces[idx]
             obj_beforeMoving = objectiveFunction(tri_mesh)
-            # print(tri_mesh.vertices)
-            # input()
-
-            # tri_mesh.vertices[vertexIdx, :] += delta
-            # print(f"Time elapsed for obj after moving calc: {time.time() - t0}")
-            # obj_afterMoving = objectiveFunction(tri_mesh)
-            # tri_mesh.vertices[vertexIdx, :] -= delta
-            # obj_beforeMoving = objectiveFunction(tri_mesh)
-            # print(f"Time elapsed for obj before moving calc: {time.time() - t0}")
-            # gradient[vertexIdx, :] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
 
             for vertexIdx in face:  #vertexIdx is VERTEX INDICES
                 tri_mesh.vertices[vertexIdx, :] += delta
-                # print(f"Time elapsed for obj after moving calc: {time.time() - t0}")
+
                 obj_afterMoving = objectiveFunction(tri_mesh)
                 tri_mesh.vertices[vertexIdx, :] -= delta
                 
-                # print(f"Time elapsed for obj before moving calc: {time.time() - t0}")
                 gradient[vertexIdx, :] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
-
-                # for j in range(3):
-
-                #     tri_mesh.vertices[vertexIdx, j] += delta
-                #     obj_afterMoving = objectiveFunction(tri_mesh)
-
-                #     print(f"Time elapsed for obj after moving calc: {time.time() - t0}")
-
-                #     tri_mesh.vertices[vertexIdx, j] -= delta
-                #     obj_beforeMoving = objectiveFunction(tri_mesh)
-
-                #     print(f"Time elapsed for obj before moving calc: {time.time() - t0}")
-
-                #     gradient[vertexIdx, j] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
             
                 #basically - move each vertex and update it
                 tri_mesh.vertices[vertexIdx, 0] -= (delta * gradient[vertexIdx, 0])
                 tri_mesh.vertices[vertexIdx, 1] -= (delta * gradient[vertexIdx, 1])
                 tri_mesh.vertices[vertexIdx, 2] -= (delta * gradient[vertexIdx, 2])
 
-                # print(f"Time elapsed to move: {time.time() - t0}")
-
-                # tri_mesh.export(f"{filedir}/{count}_vertex_{vertexIdx}_moved.stl")
-
-                # input(f"moved vertex {vertexIdx}")
-        
-        # print(f"Time elapsed: {time.time() - t0}")
-
-        #tri_mesh.export(f"{filedir}/{count}_test.stl")
-
         return tri_mesh
-
-        #return gradient 
 
 
     def moveMeshVertices(self, trimeshSolid, gradient, delta):
@@ -164,17 +122,16 @@ class OptModel_MeshHF:
 
             hf_all_mesh = calcHFAllMesh(trimeshSolid)
 
-            print(f"Time elapsed for calc: {time.time() - t0}")
+            # print(f"Time elapsed for calc: {time.time() - t0}")
             
             #calc the gradient
             newTrimesh = self.gradientDescentHF(trimeshSolid, hfObjectiveFcn, hf_all_mesh, delta, f"test{id}", count)
 
-            print(f"Time elapsed for GD {count}: {time.time() - t0}")
+            # print(f"Time elapsed for GD {count}: {time.time() - t0}")
 
             trimeshSolid = newTrimesh
 
             trimeshSolid.export(f"test{id}/{count}.stl")
-
 
             new_objVal = hfObjectiveFcn(trimeshSolid)
             all_objective_function_values.append(new_objVal)
@@ -221,7 +178,7 @@ class OptModel_MeshHF:
                 # #make VTK to display HF on surface
                 # self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"test{id}")
 
-            print(f"Time elapsed for iteration {count}: {time.time() - t0}")
+            # print(f"Time elapsed for iteration {count}: {time.time() - t0}")
 
             count += 1
         
