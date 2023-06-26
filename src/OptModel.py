@@ -50,28 +50,31 @@ class OptModel_MeshHF:
         #can do overall process using zipped lists
         #hfFacesLists = list(zip(allmeshelementsHF, tri_mesh.faces))
 
-        # facesIndices = list(range(len(tri_mesh.faces)))
-        facesIndices = np.arange(len(tri_mesh.faces))
+        facesIndices = list(range(len(tri_mesh.faces)))
 
-        # hfFacesLists = list(zip(allmeshelementsHF, facesIndices))
+        # facesIndices = np.arange(len(tri_mesh.faces))
+
+        hfFacesLists = list(zip(allmeshelementsHF, facesIndices))
+
         # hfFacesLists = np.vstack(allmeshelementsHF, facesIndices)
 
-        # hfFacesLists.sort(key=lambda x: x[0], reverse=True)
-        sort_indices = np.argsort(allmeshelementsHF)[::-1]
+        hfFacesLists.sort(key=lambda x: x[0], reverse=True)
+
+        # sort_indices = np.argsort(allmeshelementsHF)[::-1]
         # hfFacesLists = hfFacesLists[:, sort_indices]
 
-        # sortedHFs, sortedFaceIndices = zip(*hfFacesLists) 
-        # sortedHFs = list(sortedHFs)
-        # sortedFaceIndices = list(sortedFaceIndices)
-        sortedHFs = allmeshelementsHF[sort_indices]
-        sortedFaceIndices = facesIndices[sort_indices]
+        sortedHFs, sortedFaceIndices = zip(*hfFacesLists) 
+        sortedHFs = list(sortedHFs)
+        sortedFaceIndices = list(sortedFaceIndices)
+
+        # sortedHFs = allmeshelementsHF[sort_indices]
+        # sortedFaceIndices = facesIndices[sort_indices]
 
         gradient = np.zeros_like(tri_mesh.vertices)
 
         for idx in sortedFaceIndices: #idx is FACE INDICES!
             #each element of face is [p1idx, p2idx, p3idx] 
             face = tri_mesh.faces[idx]
-            obj_beforeMoving = objectiveFunction(tri_mesh)
 
             for vertexIdx in face:  #vertexIdx is VERTEX INDICES
 
