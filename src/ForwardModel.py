@@ -32,7 +32,9 @@ class ForwardModel_MeshHF:
         Calculate HF on every mesh element, but set negative values to 0 (remove nonphysical element values)
         """
         q_mesh_all = self.calculateAllHF_AllVals(trimeshSolid)
-        q_mesh_all[q_mesh_all < 0] = 0
+
+        #q_mesh_all[q_mesh_all < 0] = 0 #actually don't do this
+        #TODO fix logic
         return q_mesh_all
     
     

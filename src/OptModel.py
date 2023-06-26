@@ -53,14 +53,18 @@ class OptModel_MeshHF:
         # facesIndices = list(range(len(tri_mesh.faces)))
         facesIndices = np.arange(len(tri_mesh.faces))
 
-        hfFacesLists = list(zip(allmeshelementsHF, facesIndices))
-        
+        # hfFacesLists = list(zip(allmeshelementsHF, facesIndices))
+        # hfFacesLists = np.vstack(allmeshelementsHF, facesIndices)
 
-        hfFacesLists.sort(key=lambda x: x[0], reverse=True)
+        # hfFacesLists.sort(key=lambda x: x[0], reverse=True)
+        sort_indices = np.argsort(allmeshelementsHF)[::-1]
+        # hfFacesLists = hfFacesLists[:, sort_indices]
 
-        sortedHFs, sortedFaceIndices = zip(*hfFacesLists) 
-        sortedHFs = list(sortedHFs)
-        sortedFaceIndices = list(sortedFaceIndices)
+        # sortedHFs, sortedFaceIndices = zip(*hfFacesLists) 
+        # sortedHFs = list(sortedHFs)
+        # sortedFaceIndices = list(sortedFaceIndices)
+        sortedHFs = allmeshelementsHF[sort_indices]
+        sortedFaceIndices = facesIndices[sort_indices]
 
         gradient = np.zeros_like(tri_mesh.vertices)
 
