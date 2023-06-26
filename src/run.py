@@ -86,15 +86,12 @@ class RunSetup_MeshHF:
         #optimizer setup
         # return self.opt.meshHFOpt(self.fwd.calculateHFMeshSum, trimeshSolid, self.opt.moveMeshVertices, threshold=100, delta=0.05, id=runID)
         
+        #args:
+        #hfObjectiveFcn, calcHFAllMesh, calcMaxHF, calcHFSum, meshObj, changeMeshFcn, threshold, delta, id
+
         return self.opt.meshHFOpt(
-            #self.fwd.meanHF, 
-            #newObjective,
-            #self.fwd.calculateHFMeshSum,
             compoundObjective, #self.fwd.calculateHFMeshSum, #compoundObjective, 
             self.fwd.calculateAllHF,
-            #self.fwd.calculateHFMeshElements, 
-            #self.fwd.calculateHFMeshSum, #using this for now to plot components of compound obj
-            #self.fwd.distForObj, 
             self.fwd.calculateMostNegHF, #self.fwd.calculateMaxHF, #using this for now to plot components of compound obj
             self.fwd.calculateHFMeshSum,
             trimeshSolid, 
