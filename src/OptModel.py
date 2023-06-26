@@ -12,9 +12,8 @@ import plotly.express as px
 
 
 import vtk
-from mayavi import mlab
+from vtk import vtkPolyData, vtkPoints, vtkCellArray, vtkDoubleArray, vtkPolyDataWriter, vtkTriangle
 from tvtk.api import tvtk
-import vtk
 
 class OptModel_MeshHF: 
     """
@@ -338,6 +337,9 @@ class OptModel_MeshHF:
             new_sum_hf = calcHFSum(trimeshSolid) #hfAllMesh(trimeshSolid)
             sum_hf_each_run.append(new_sum_hf)
 
+            #make VTK to display HF on surface
+            self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"test{id}", count)
+
             print(f"New objective function value: {new_objVal}")
 
             # #Plotting process, for anything using means/distributions
@@ -378,8 +380,8 @@ class OptModel_MeshHF:
                 output_file = f"test{id}/sum_hf_up_to_run_{count}.html"
                 pio.write_html(fig, output_file)
 
-                #make VTK to display HF on surface
-                self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"test{id}")
+                # #make VTK to display HF on surface
+                # self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"test{id}")
 
 
             count += 1
@@ -390,19 +392,51 @@ class OptModel_MeshHF:
         return trimeshSolid
 
 
-    def plotHFVTK(self, hfValues, trimeshSolid, fileDir):
+    def plotHFVTK(self, hfValues, trimeshSolid, fileDir, count):
         """
         attempt at making a VTK for visualizing HF on mesh elements for each iteration
         """
-        polydata = tvtk.PolyData(points=trimeshSolid.vertices, polys=trimeshSolid.faces)
-        scalars = tvtk.DoubleArray()
-        scalars.from_array(hfValues)
 
-        writer = vtk.vtkPolyDataWriter()
-        writer.SetFileName(f"{fileDir}/hfOnMesh.vtk")
+        # Normalize hfValues to be between 0 and 1 for coloring
+        #hfValues = (hfValues - np.min(hfValues)) / (np.max(hfValues) - np.min(hfValues))
+
+        # Now, we'll use VTK to create a colored mesh
+        points = vtkPoints()
+        polys = vtkCellArray()
+        heatFluxMagnitudes = vtkDoubleArray()
+
+        # Add the vertices
+        for vertex in trimeshSolid.vertices:
+            points.InsertNextPoint(vertex)
+
+        # Add the faces (triangles)
+        for face in trimeshSolid.faces:
+            triangle = vtkTriangle()
+            triangle.GetPointIds().SetId(0, face[0])
+            triangle.GetPointIds().SetId(1, face[1])
+            triangle.GetPointIds().SetId(2, face[2])
+            polys.InsertNextCell(triangle)
+
+        # Add the colors
+        for value in hfValues:
+            heatFluxMagnitudes.InsertNextValue(value)
+
+        # Create the mesh object
+        polydata = vtkPolyData()
+        polydata.SetPoints(points)
+        polydata.SetPolys(polys)
+        polydata.GetCellData().SetScalars(heatFluxMagnitudes)
+
+        # Write to a .vtk file
+        writer = vtkPolyDataWriter()
+        writer.SetFileName(f"{fileDir}/{count}_hfOnMesh.vtk")
         writer.SetInputData(polydata)
         writer.Write()
+
         return 
+
+
+
     
 
     def plotRun(self, objective_function_values, max_hf_each_run, sum_hf_each_run, outputDir):
