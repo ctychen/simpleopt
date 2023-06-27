@@ -58,7 +58,7 @@ class RunSetup_MeshHF:
 
         return
 
-    def runOptimization(self, runID="0011_03"):
+    def runOptimization(self, runID="0011_06"):
 
         os.makedirs(f"test{runID}")
 
@@ -66,22 +66,6 @@ class RunSetup_MeshHF:
         trimeshSolid = self.box.trimeshSolid
         trimeshSolid.export(f"test{runID}/initial.stl")
 
-        def constraintFcn(trimeshSolid):
-            #return true if maxHF is below threshold, false if it's above threshold. 
-            #we want to keep running opt until we reach solns that satisfy this
-            return (self.fwd.calculateMaxHF(trimeshSolid) < 9.0)
-        
-        def newObjective(trimeshSolid):
-            #giving this an attempt since the distribution is really shifted
-            return self.fwd.meanHF(trimeshSolid) + self.fwd.stdHF(trimeshSolid)
-        
-        def compoundObjective(trimeshSolid):
-            #weighting for now, lets try it: 
-            #max val of maxHF is on the order of 10
-            #max val of sumHF is on the order of 1000 so scale down to same range
-            c1 = 0.6
-            c2 = 0.4
-            return c1*self.fwd.calculateMaxHF(trimeshSolid) + c2*self.fwd.calculateHFMeshSum(trimeshSolid)
         
         def calculateNormalsDiff(trimeshSolid):
             """
@@ -104,14 +88,18 @@ class RunSetup_MeshHF:
         
 
         def objectiveFunction(trimeshSolid):
-            c1 = 0.6 #0.0 #0.6
-            c2 = 0.4 #0.0 #0.4
-            maxHFTerm = c1*self.fwd.calculateMaxHF(trimeshSolid)
-            sumHFTerm = c2*self.fwd.calculateHFMeshSum(trimeshSolid)
+            c1 = 0.0 #0.6
+            c2 = 1.0 #0.0 #0.4
+            maxHFTerm = 0#c1*self.fwd.calculateMaxHF(trimeshSolid)
+            #sumHFTerm = c2*self.fwd.calculateHFMeshSum(trimeshSolid)
+            sumHFTerm = c2*self.fwd.calculateIntegratedEnergy(trimeshSolid)
 
-            c3 = 0.5 #1.0 #0.5
-            normalsDiff = calculateNormalsDiff(trimeshSolid)
-            normalsPenalty = np.sum(normalsDiff) * c3
+            # print(f"Integrated energy: {sumHFTerm}")
+            # input()
+
+            c3 = 0.0 #1.0 #0.5
+            #normalsDiff = calculateNormalsDiff(trimeshSolid)
+            normalsPenalty = 0 #np.sum(normalsDiff) * c3
             
             return maxHFTerm + sumHFTerm + normalsPenalty
         
@@ -147,7 +135,8 @@ class RunSetup_MeshHF:
             objectiveFunction, #compoundObjective, #self.fwd.calculateHFMeshSum, #compoundObjective, 
             self.fwd.calculateAllHF,
             self.fwd.calculateMaxHF, #self.fwd.calculateMaxHF, #using this for now to plot components of compound obj
-            self.fwd.calculateHFMeshSum,
+            #self.fwd.calculateHFMeshSum,
+            self.fwd.calculateIntegratedEnergy,
             trimeshSolid, 
             self.opt.moveMeshVertices, 
             threshold=0.000001, 
