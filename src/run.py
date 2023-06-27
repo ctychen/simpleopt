@@ -58,9 +58,10 @@ class RunSetup_MeshHF:
 
         return
 
-    def runOptimization(self, runID="009_21"):
+    def runOptimization(self, runID="010_01"):
 
         os.makedirs(f"test{runID}")
+        os.makedirs(f"test{runID}/neighbors")
 
         self.box.processSolid()
         trimeshSolid = self.box.trimeshSolid
@@ -83,23 +84,43 @@ class RunSetup_MeshHF:
             c2 = 0.4
             return c1*self.fwd.calculateMaxHF(trimeshSolid) + c2*self.fwd.calculateHFMeshSum(trimeshSolid)
 
+        #SA attempt...
+        #simulated_annealing(
+        # tri_mesh, objective_function, calcHFAllMesh, calcMaxHFMesh, 
+        # delta, initial_temperature, cooling_rate, threshold)
+    
+        return self.opt.simulated_annealing(
+            trimeshSolid,
+            compoundObjective, 
+            self.fwd.calculateAllHF,
+            self.fwd.calculateMaxHF,
+            delta=0.05,
+            initial_temperature=1000,
+            cooling_rate=0.95,
+            threshold=0.000001,
+            id=runID
+        )
+        
+        
         #optimizer setup
         # return self.opt.meshHFOpt(self.fwd.calculateHFMeshSum, trimeshSolid, self.opt.moveMeshVertices, threshold=100, delta=0.05, id=runID)
         
         #args:
         #hfObjectiveFcn, calcHFAllMesh, calcMaxHF, calcHFSum, meshObj, changeMeshFcn, threshold, delta, id
 
-        return self.opt.meshHFOpt(
-            compoundObjective, #self.fwd.calculateHFMeshSum, #compoundObjective, 
-            self.fwd.calculateAllHF,
-            self.fwd.calculateMaxHF, #self.fwd.calculateMaxHF, #using this for now to plot components of compound obj
-            self.fwd.calculateHFMeshSum,
-            trimeshSolid, 
-            self.opt.moveMeshVertices, 
-            threshold=0.000001, 
-            delta=0.01, 
-            id=runID
-        )
+        # return self.opt.meshHFOpt(
+        #     compoundObjective, #self.fwd.calculateHFMeshSum, #compoundObjective, 
+        #     self.fwd.calculateAllHF,
+        #     self.fwd.calculateMaxHF, #self.fwd.calculateMaxHF, #using this for now to plot components of compound obj
+        #     self.fwd.calculateHFMeshSum,
+        #     trimeshSolid, 
+        #     self.opt.moveMeshVertices, 
+        #     threshold=0.000001, 
+        #     delta=0.01, 
+        #     id=runID
+        # )
+    
+
 
 
 if __name__ == '__main__':

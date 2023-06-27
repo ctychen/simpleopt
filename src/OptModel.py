@@ -15,7 +15,6 @@ import plotly.express as px
 
 import vtk
 from vtk import vtkPolyData, vtkPoints, vtkCellArray, vtkDoubleArray, vtkPolyDataWriter, vtkTriangle
-from tvtk.api import tvtk
 
 class OptModel_MeshHF: 
     """
@@ -27,6 +26,103 @@ class OptModel_MeshHF:
         TODO: figure out what properties we actually need for optmodel, and what can just be fcn inputs
         """
         return
+    
+    #simulated annealing attempt???
+
+    def simulated_annealing(self, tri_mesh, objective_function, calcHFAllMesh, calcMaxHFMesh, delta, initial_temperature, cooling_rate, threshold, id):
+        """
+        simulated annealing attempt for heat flux minimization
+        """
+
+        # Initialization
+        current_solution = tri_mesh
+        current_objective = objective_function(current_solution)
+        
+        temperature = initial_temperature
+        count = 0
+        all_objectives = [current_objective]
+        all_maxHF = [calcMaxHFMesh(current_solution)]
+
+        # Iteration
+        while temperature > threshold:  # Stop when the temperature is low
+            print(f"Temperature: {temperature}")
+            # Generate a neighbor
+            neighbor = self.generate_neighbor(current_solution, delta, calcHFAllMesh)
+
+            # Evaluate the neighbor
+            neighbor_objective = objective_function(neighbor)
+
+            # self.plotHFVTK(calcHFAllMesh(neighbor), neighbor, f"test{id}/neighbors/", count)
+
+            # Decide whether to move
+            if (neighbor_objective < current_objective or 
+                np.random.rand() < np.exp(-(neighbor_objective - current_objective) / temperature)):
+                current_solution = neighbor
+                current_objective = neighbor_objective
+
+                current_maxHF = calcMaxHFMesh(current_solution)
+
+                all_objectives.append(current_objective)
+                all_maxHF.append(current_maxHF)
+
+                self.plotHFVTK(calcHFAllMesh(current_solution), current_solution, f"test{id}", count)
+
+            # Update the temperature according to the cooling schedule
+            temperature *= cooling_rate
+
+            if count and count % 5 == 0: 
+                x_count = np.linspace(0, len(all_objectives), len(all_objectives))
+                fig = px.scatter(x = x_count, y = all_objectives)
+                fig.update_xaxes(title_text='Iterations')
+                fig.update_yaxes(title_text=f'Objective function: {objective_function.__name__}')
+                fig.show()            
+                output_file = f"test{id}/objective_up_to_run_{count}.html"
+                pio.write_html(fig, output_file)
+
+                x_count = np.linspace(0, len(all_maxHF), len(all_maxHF))
+                fig = px.scatter(x = x_count, y = all_maxHF)
+                fig.update_xaxes(title_text='Iterations')
+                fig.update_yaxes(title_text='Max HF')
+                fig.show()            
+                output_file = f"test{id}/max_hf_up_to_run_{count}.html"
+                pio.write_html(fig, output_file)
+
+            count += 1
+
+        return current_solution
+
+    def generate_neighbor(self, tri_mesh, delta, calcAllMeshHF):
+        """
+        generate neighbor solution by moving the vertices slightly
+        """
+        neighbor = tri_mesh.copy()
+
+        allmeshelementsHF = calcAllMeshHF(neighbor)
+
+        use_set = set(np.where(allmeshelementsHF > 0.0)[0])
+        # Sort indices based on allmeshelementsHF values in descending order
+        sortedFaceIndices = np.argsort(allmeshelementsHF)[::-1]
+
+        for idx in sortedFaceIndices: 
+            if idx in use_set: 
+                face = neighbor.faces[idx]
+
+                for vertexIdx in face:  #vertexIdx is VERTEX INDICES
+                    displacement = (np.random.rand(3) - 0.5) * 2 * delta 
+                    neighbor.vertices[vertexIdx, 0] += displacement[0]
+                    neighbor.vertices[vertexIdx, 1] += displacement[1]
+                    neighbor.vertices[vertexIdx, 2] += displacement[2]
+        
+        # Add a small random displacement to each vertex
+        # for vertex in neighbor.vertices:
+        #     displacement = (np.random.rand(3) - 0.5) * 2 * delta  # Random value between -delta and delta
+        #     #vertex += displacement
+        #     vertex[0] += displacement[0]
+        #     vertex[1] += displacement[1]
+        #     vertex[2] += displacement[2]
+
+        return neighbor
+
     
 
     def gradientDescentHF(self, tri_mesh, objectiveFunction, allmeshelementsHF, delta, filedir, count):
