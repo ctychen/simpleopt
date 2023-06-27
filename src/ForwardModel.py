@@ -77,6 +77,16 @@ class ForwardModel_MeshHF:
 
         return q_mesh_sum
     
+    def calculateIntegratedEnergy(self, trimeshSolid):
+        normals = trimeshSolid.face_normals
+        faceAreas = np.array(trimeshSolid.area_faces)
+        q_vals = np.array(-1 * (np.dot(normals, self.q_dir)) * self.q_mag)
+        mesh_q_dot_areas = q_vals * faceAreas
+        prods = filter(lambda x: x > 0, mesh_q_dot_areas)
+        mesh_energy = sum(abs(x) for x in prods)
+        
+        return mesh_energy
+    
     def calculateMaxHF(self, trimeshSolid):
         """
         Find single highest heat flux from all mesh element heat fluxes

@@ -53,15 +53,16 @@ class OptModel_MeshHF:
 
         gradient = np.zeros_like(tri_mesh.vertices)
 
-        #variable delta
-        max_delta = delta
-        min_delta = 1e-6
-        delta_decrease_factor = 0.5
-        delta_increase_factor = 1.01
-        successful_moves = 0
+        # #variable delta
+        # max_delta = delta * 5
+        # orig_delta = delta
+        # min_delta = 1e-6
+        # delta_decrease_factor = 0.5
+        # delta_increase_factor = 1.01
+        # successful_moves = 0
 
-        normals_threshold = 0.01
-        moves_threshold = 5
+        # normals_threshold = 0.01
+        # moves_threshold = 5
 
         # Original position and normals
         # original_vertices = tri_mesh.vertices.copy()
@@ -73,8 +74,6 @@ class OptModel_MeshHF:
                 for vertexIdx in face:  #vertexIdx is VERTEX INDICES
 
                     obj_beforeMoving = objectiveFunction(tri_mesh)
-                    original_normals = tri_mesh.face_normals
-                    # print(f"Original normals: {original_normals}")
 
                     for j in range(3): #for every dimension - move the vertex a bit and calculate the change in objectiveFunction
 
@@ -90,30 +89,6 @@ class OptModel_MeshHF:
                     tri_mesh.vertices[vertexIdx, 0] -= (delta * gradient[vertexIdx, 0])
                     tri_mesh.vertices[vertexIdx, 1] -= (delta * gradient[vertexIdx, 1])
                     tri_mesh.vertices[vertexIdx, 2] -= (delta * gradient[vertexIdx, 2])    
-
-                    #everything below is for checking if changes in normals is within amount we're ok with 
-                    proposed_normals = tri_mesh.face_normals
-                    # print(f"New normals: {proposed_normals}")
-                    
-                    max_change = np.max(np.abs(proposed_normals - original_normals))
-                    # print(f"Max change in normals: {max_change}")
-
-                    if max_change > normals_threshold:
-                        #if mmax change in normals is over the threshold, reject move, decrease delta
-                        tri_mesh.vertices[vertexIdx, 0] += (delta * gradient[vertexIdx, 0])
-                        tri_mesh.vertices[vertexIdx, 1] += (delta * gradient[vertexIdx, 1])
-                        tri_mesh.vertices[vertexIdx, 2] += (delta * gradient[vertexIdx, 2]) 
-                        delta = max(delta * delta_decrease_factor, min_delta)
-                        print(f"Delta in normals was too high: {max_change}, need to decrease delta to: {delta}")
-                        successful_moves = 0  #reset counter for good moves 
-                    else:
-                        #if max change in normals is below the threshold, accept move, potentially increase delta
-                        original_normals = proposed_normals
-                        successful_moves += 1
-                        if successful_moves >= moves_threshold:  #increase delta after several successful moves
-                            delta = min(delta * delta_increase_factor, max_delta)
-                            print(f"Hit enough successful moves and increasing delta to: {delta}")
-                            successful_moves = 0  #reset counter for good moves
 
         return tri_mesh
 
@@ -197,7 +172,7 @@ class OptModel_MeshHF:
                 x_count = np.linspace(0, len(max_hf_each_run), len(max_hf_each_run))
                 fig = px.scatter(x = x_count, y = max_hf_each_run)
                 fig.update_xaxes(title_text='Iterations')
-                fig.update_yaxes(title_text='Max HF')
+                fig.update_yaxes(title_text='f{calcMaxHF.__name__}')
                 fig.show()            
                 output_file = f"test{id}/max_hf_up_to_run_{count}.html"
                 pio.write_html(fig, output_file)
@@ -205,7 +180,7 @@ class OptModel_MeshHF:
                 x_count = np.linspace(0, len(sum_hf_each_run), len(sum_hf_each_run))
                 fig = px.scatter(x = x_count, y = sum_hf_each_run)
                 fig.update_xaxes(title_text='Iterations')
-                fig.update_yaxes(title_text='Sum HF on mesh')
+                fig.update_yaxes(title_text='f{calcHFSum.__name__}')
                 fig.show()            
                 output_file = f"test{id}/sum_hf_up_to_run_{count}.html"
                 pio.write_html(fig, output_file)
