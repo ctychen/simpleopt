@@ -22,7 +22,8 @@ class ForwardModel_MeshHF:
         """
         Calculate HF on every mesh element, with no exclusions, and returning them all in a list
         """
-        normals, centers, areas = self.solidObj.normalsCentersAreas_Trimesh(trimeshSolid)
+        
+        normals = trimeshSolid.face_normals
         q_mesh_all = -1 * (np.dot(normals, self.q_dir)) * self.q_mag
         return q_mesh_all
     
@@ -40,7 +41,8 @@ class ForwardModel_MeshHF:
         """
         Calculate mean, variance, standard deviation on all HF over mesh elements
         """
-        normals, centers, areas = self.solidObj.normalsCentersAreas_Trimesh(trimeshSolid)
+        
+        normals = trimeshSolid.face_normals
         q_mesh_all = -1 * (np.dot(normals, self.q_dir)) * self.q_mag
 
         hfMean = np.mean(q_mesh_all)
@@ -67,7 +69,7 @@ class ForwardModel_MeshHF:
         Calculate sum of heat flux from all mesh elements
         """
 
-        normals, centers, areas = self.solidObj.normalsCentersAreas_Trimesh(trimeshSolid)
+        normals = trimeshSolid.face_normals
         q_mesh_all = -1 * (np.dot(normals, self.q_dir)) * self.q_mag
 
         dotprods = filter(lambda x: x > 0, q_mesh_all)
