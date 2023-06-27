@@ -50,6 +50,10 @@ class OptModel_MeshHF:
         #can do overall process using zipped lists
         #hfFacesLists = list(zip(allmeshelementsHF, tri_mesh.faces))
 
+        use = np.where(allmeshelementsHF > 0.0)[0] #should be pos since allmeshHF is -qpar*(b dot n)
+        print(f"indices for faces to use: {use}")
+        faces = tri_mesh.faces[use] 
+
         facesIndices = list(range(len(tri_mesh.faces)))
         hfFacesLists = list(zip(allmeshelementsHF, facesIndices))
         hfFacesLists.sort(key=lambda x: x[0], reverse=True)
@@ -58,28 +62,37 @@ class OptModel_MeshHF:
         sortedHFs = list(sortedHFs)
         sortedFaceIndices = list(sortedFaceIndices)
 
+        #sortedFaceIndices = sortedFaceIndices[i for i in use]
+        
         gradient = np.zeros_like(tri_mesh.vertices)
 
         for idx in sortedFaceIndices: #idx is FACE INDICES!
-            #each element of face is [p1idx, p2idx, p3idx] 
-            face = tri_mesh.faces[idx]
-            # obj_beforeMoving = objectiveFunction(tri_mesh)
 
-            for vertexIdx in face:  #vertexIdx is VERTEX INDICES
+            if idx in use: 
 
-                tri_mesh.vertices[vertexIdx, :] += delta
-                obj_afterMoving = objectiveFunction(tri_mesh)
+                #each element of face is [p1idx, p2idx, p3idx] 
+                face = tri_mesh.faces[idx]
+                # obj_beforeMoving = objectiveFunction(tri_mesh)
 
-                tri_mesh.vertices[vertexIdx, :] -= delta
-                obj_beforeMoving = objectiveFunction(tri_mesh)
+                for vertexIdx in face:  #vertexIdx is VERTEX INDICES
+
+                    tri_mesh.vertices[vertexIdx, :] += delta
+                    obj_afterMoving = objectiveFunction(tri_mesh)
+
+                    tri_mesh.vertices[vertexIdx, :] -= delta
+                    obj_beforeMoving = objectiveFunction(tri_mesh)
+                    
+                    #THE PROBLEM? HERE IS THAT WE ARE NOT RECALCULATING THE GRADIENT FOR 3 1-D MOVES
+                    #WE ARE CALCULATING THE GRADIENT FOR 1 3-D MOVE
+                    #SO IT'S THE SAME 3D GRAD GETTING SET TO BE FOR IN 3 DIRECTIONS - 
+                    #which means could be moving more than expected. but also i think this can be handled
+                    gradient[vertexIdx, :] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
                 
-                gradient[vertexIdx, :] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
-            
-                #basically - move each vertex and update it
-                tri_mesh.vertices[vertexIdx, :] -= (delta * gradient[vertexIdx, :])
-                #tri_mesh.vertices[vertexIdx, 0] -= (delta * gradient[vertexIdx, 0])
-                #tri_mesh.vertices[vertexIdx, 1] -= (delta * gradient[vertexIdx, 1])
-                #tri_mesh.vertices[vertexIdx, 2] -= (delta * gradient[vertexIdx, 2])
+                    #basically - move each vertex and update it
+
+                    tri_mesh.vertices[vertexIdx, 0] -= (delta * gradient[vertexIdx, 0])
+                    tri_mesh.vertices[vertexIdx, 1] -= (delta * gradient[vertexIdx, 1])
+                    tri_mesh.vertices[vertexIdx, 2] -= (delta * gradient[vertexIdx, 2])
 
         return tri_mesh
 
