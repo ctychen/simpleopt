@@ -46,47 +46,15 @@ class OptModel_MeshHF:
         #this way the faces with the highest hf's get moved/gradients calculated first 
         #
 
-        #take all HFs on elements and sort them st. faces are also rearranged to match
-        #can do overall process using zipped lists
-        #hfFacesLists = list(zip(allmeshelementsHF, tri_mesh.faces))
+        use_set = set(np.where(allmeshelementsHF > 0.0)[0])
 
-        # facesIndices = list(range(len(tri_mesh.faces)))
-
-        # # facesIndices = np.arange(len(tri_mesh.faces))
-
-        # hfFacesLists = list(zip(allmeshelementsHF, facesIndices))
-
-        # # hfFacesLists = np.vstack(allmeshelementsHF, facesIndices)
-
-        # hfFacesLists.sort(key=lambda x: x[0], reverse=True)
-
-        # # sort_indices = np.argsort(allmeshelementsHF)[::-1]
-        # # hfFacesLists = hfFacesLists[:, sort_indices]
-
-        # sortedHFs, sortedFaceIndices = zip(*hfFacesLists) 
-        # sortedHFs = list(sortedHFs)
-        # sortedFaceIndices = list(sortedFaceIndices)
-
-        # # sortedHFs = allmeshelementsHF[sort_indices]
-        # # sortedFaceIndices = facesIndices[sort_indices]
-
-        use = np.where(allmeshelementsHF > 0.0)[0] #should be pos since allmeshHF is -qpar*(b dot n)
-
-        facesIndices = list(range(len(tri_mesh.faces)))
-        hfFacesLists = list(zip(allmeshelementsHF, facesIndices))
-        hfFacesLists.sort(key=lambda x: x[0], reverse=True)
-
-        sortedHFs, sortedFaceIndices = zip(*hfFacesLists) 
-        sortedHFs = list(sortedHFs)
-        sortedFaceIndices = list(sortedFaceIndices)
+        # Sort indices based on allmeshelementsHF values in descending order
+        sortedFaceIndices = np.argsort(allmeshelementsHF)[::-1]
 
         gradient = np.zeros_like(tri_mesh.vertices)
 
-        for idx in sortedFaceIndices: #idx is FACE INDICES!
-
-            if idx in use: 
-
-            #each element of face is [p1idx, p2idx, p3idx] 
+        for idx in sortedFaceIndices: 
+            if idx in use_set: 
                 face = tri_mesh.faces[idx]
 
                 for vertexIdx in face:  #vertexIdx is VERTEX INDICES
@@ -105,7 +73,7 @@ class OptModel_MeshHF:
                     #basically - move each vertex and update it
                     tri_mesh.vertices[vertexIdx, 0] -= (delta * gradient[vertexIdx, 0])
                     tri_mesh.vertices[vertexIdx, 1] -= (delta * gradient[vertexIdx, 1])
-                    tri_mesh.vertices[vertexIdx, 2] -= (delta * gradient[vertexIdx, 2])
+                    tri_mesh.vertices[vertexIdx, 2] -= (delta * gradient[vertexIdx, 2])    
 
         return tri_mesh
 
