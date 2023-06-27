@@ -50,51 +50,64 @@ class OptModel_MeshHF:
         #can do overall process using zipped lists
         #hfFacesLists = list(zip(allmeshelementsHF, tri_mesh.faces))
 
+        # facesIndices = list(range(len(tri_mesh.faces)))
+
+        # # facesIndices = np.arange(len(tri_mesh.faces))
+
+        # hfFacesLists = list(zip(allmeshelementsHF, facesIndices))
+
+        # # hfFacesLists = np.vstack(allmeshelementsHF, facesIndices)
+
+        # hfFacesLists.sort(key=lambda x: x[0], reverse=True)
+
+        # # sort_indices = np.argsort(allmeshelementsHF)[::-1]
+        # # hfFacesLists = hfFacesLists[:, sort_indices]
+
+        # sortedHFs, sortedFaceIndices = zip(*hfFacesLists) 
+        # sortedHFs = list(sortedHFs)
+        # sortedFaceIndices = list(sortedFaceIndices)
+
+        # # sortedHFs = allmeshelementsHF[sort_indices]
+        # # sortedFaceIndices = facesIndices[sort_indices]
+
+        use = np.where(allmeshelementsHF > 0.0)[0] #should be pos since allmeshHF is -qpar*(b dot n)
+
         facesIndices = list(range(len(tri_mesh.faces)))
-
-        # facesIndices = np.arange(len(tri_mesh.faces))
-
         hfFacesLists = list(zip(allmeshelementsHF, facesIndices))
-
-        # hfFacesLists = np.vstack(allmeshelementsHF, facesIndices)
-
         hfFacesLists.sort(key=lambda x: x[0], reverse=True)
-
-        # sort_indices = np.argsort(allmeshelementsHF)[::-1]
-        # hfFacesLists = hfFacesLists[:, sort_indices]
 
         sortedHFs, sortedFaceIndices = zip(*hfFacesLists) 
         sortedHFs = list(sortedHFs)
         sortedFaceIndices = list(sortedFaceIndices)
 
-        # sortedHFs = allmeshelementsHF[sort_indices]
-        # sortedFaceIndices = facesIndices[sort_indices]
-
         gradient = np.zeros_like(tri_mesh.vertices)
 
         for idx in sortedFaceIndices: #idx is FACE INDICES!
+
+            if idx in use: 
+
             #each element of face is [p1idx, p2idx, p3idx] 
-            face = tri_mesh.faces[idx]
+                face = tri_mesh.faces[idx]
 
-            for vertexIdx in face:  #vertexIdx is VERTEX INDICES
+                for vertexIdx in face:  #vertexIdx is VERTEX INDICES
 
-                for j in range(3):
-
-                    tri_mesh.vertices[vertexIdx, j] += delta
-                    obj_afterMoving = objectiveFunction(tri_mesh)
-
-                    tri_mesh.vertices[vertexIdx, j] -= delta
                     obj_beforeMoving = objectiveFunction(tri_mesh)
 
-                    gradient[vertexIdx, j] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
-            
-                #basically - move each vertex and update it
-                tri_mesh.vertices[vertexIdx, 0] -= (delta * gradient[vertexIdx, 0])
-                tri_mesh.vertices[vertexIdx, 1] -= (delta * gradient[vertexIdx, 1])
-                tri_mesh.vertices[vertexIdx, 2] -= (delta * gradient[vertexIdx, 2])
+                    for j in range(3): #for every dimension - move the vertex a bit and calculate the change in objectiveFunction
+
+                        tri_mesh.vertices[vertexIdx, j] += delta
+                        obj_afterMoving = objectiveFunction(tri_mesh)
+
+                        tri_mesh.vertices[vertexIdx, j] -= delta
+
+                        gradient[vertexIdx, j] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
+                
+                    #basically - move each vertex and update it
+                    tri_mesh.vertices[vertexIdx, 0] -= (delta * gradient[vertexIdx, 0])
+                    tri_mesh.vertices[vertexIdx, 1] -= (delta * gradient[vertexIdx, 1])
+                    tri_mesh.vertices[vertexIdx, 2] -= (delta * gradient[vertexIdx, 2])
 
         return tri_mesh
-
 
 
     def moveMeshVertices(self, trimeshSolid, gradient, delta):
@@ -137,8 +150,6 @@ class OptModel_MeshHF:
         while abs(prev_objVal - curr_objVal) > threshold: 
 
             hf_all_mesh = calcHFAllMesh(trimeshSolid)
-
-            print(f"Time elapsed for calc: {time.time() - t0}")
             
             #calc the gradient
             newTrimesh = self.gradientDescentHF(trimeshSolid, hfObjectiveFcn, hf_all_mesh, delta, f"test{id}", count)
@@ -147,8 +158,7 @@ class OptModel_MeshHF:
 
             trimeshSolid = newTrimesh
 
-            trimeshSolid.export(f"test{id}/{count}.stl")
-
+            # trimeshSolid.export(f"test{id}/{count}.stl")
 
             new_objVal = hfObjectiveFcn(trimeshSolid)
             all_objective_function_values.append(new_objVal)
@@ -194,8 +204,6 @@ class OptModel_MeshHF:
 
                 # #make VTK to display HF on surface
                 # self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"test{id}")
-
-            print(f"Time elapsed for iteration {count}: {time.time() - t0}")
 
             count += 1
         
