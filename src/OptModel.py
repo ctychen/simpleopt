@@ -28,7 +28,7 @@ class OptModel_MeshHF:
         return
     
 
-    def gradientDescentHF(self, tri_mesh, objectiveFunction, allmeshelementsHF, delta, filedir, count):
+    def gradientDescentHF(self, tri_mesh, objectiveFunction, allmeshelementsHF, unconstrainedFaces, delta, filedir, count):
         """
         gradient descent implementation for heat flux minimization
         takes in trimesh object and sorts elements by HF to deal with worst elements first
@@ -67,27 +67,28 @@ class OptModel_MeshHF:
         # original_vertices = tri_mesh.vertices.copy()
 
         for idx in sortedFaceIndices: 
-            if idx in use_set: 
-                face = tri_mesh.faces[idx]
+            if idx in unconstrainedFaces: 
+                if idx in use_set: 
+                    face = tri_mesh.faces[idx]
 
-                for vertexIdx in face:  #vertexIdx is VERTEX INDICES
+                    for vertexIdx in face:  #vertexIdx is VERTEX INDICES
 
-                    obj_beforeMoving = objectiveFunction(tri_mesh)
+                        obj_beforeMoving = objectiveFunction(tri_mesh)
 
-                    for j in range(3): #for every dimension - move the vertex a bit and calculate the change in objectiveFunction
+                        for j in range(3): #for every dimension - move the vertex a bit and calculate the change in objectiveFunction
 
-                        tri_mesh.vertices[vertexIdx, j] += delta
-                        obj_afterMoving = objectiveFunction(tri_mesh)
+                            tri_mesh.vertices[vertexIdx, j] += delta
+                            obj_afterMoving = objectiveFunction(tri_mesh)
 
-                        tri_mesh.vertices[vertexIdx, j] -= delta
+                            tri_mesh.vertices[vertexIdx, j] -= delta
 
-                        gradient[vertexIdx, j] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
-                
-                    #basically - move each vertex and update it
+                            gradient[vertexIdx, j] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
+                    
+                        #basically - move each vertex and update it
 
-                    tri_mesh.vertices[vertexIdx, 0] -= (delta * gradient[vertexIdx, 0])
-                    tri_mesh.vertices[vertexIdx, 1] -= (delta * gradient[vertexIdx, 1])
-                    tri_mesh.vertices[vertexIdx, 2] -= (delta * gradient[vertexIdx, 2])    
+                        tri_mesh.vertices[vertexIdx, 0] -= (delta * gradient[vertexIdx, 0])
+                        tri_mesh.vertices[vertexIdx, 1] -= (delta * gradient[vertexIdx, 1])
+                        tri_mesh.vertices[vertexIdx, 2] -= (delta * gradient[vertexIdx, 2])    
 
         return tri_mesh
 
@@ -119,6 +120,13 @@ class OptModel_MeshHF:
         max_hf_each_run = [calcMaxHF(trimeshSolid)]
         sum_hf_each_run = [calcHFSum(trimeshSolid)] 
 
+        #determine faces where constraint holds
+        #constraint: don't move mesh element if its centroid is too low (not on the top/y=10 face)
+        #check for this when we first run the code - no need to recalculate this a bunch of times, in theory
+        mesh_centers = trimeshSolid.triangles_center
+        mesh_center_yvals = mesh_centers[:, 1]
+        unconstrainedFaces = set(np.where(mesh_center_yvals == 10.0)[0]) #this should isolate the y-vaues but should check
+
         print("Starting the mesh HF opt")
 
         print(f"Starting objective function value: {hfObjectiveFcn(trimeshSolid)}")
@@ -134,7 +142,7 @@ class OptModel_MeshHF:
             hf_all_mesh = calcHFAllMesh(trimeshSolid)
             
             #calc the gradient
-            newTrimesh = self.gradientDescentHF(trimeshSolid, hfObjectiveFcn, hf_all_mesh, delta, f"test{id}", count)
+            newTrimesh = self.gradientDescentHF(trimeshSolid, hfObjectiveFcn, hf_all_mesh, unconstrainedFaces, delta, f"test{id}", count)
 
             print(f"Time elapsed for GD {count}: {time.time() - t0}")
 

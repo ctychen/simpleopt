@@ -58,7 +58,7 @@ class RunSetup_MeshHF:
 
         return
 
-    def runOptimization(self, runID="0011_longrun"):
+    def runOptimization(self, runID="0012_01"):
 
         os.makedirs(f"test{runID}")
 
@@ -92,7 +92,7 @@ class RunSetup_MeshHF:
 
         def objectiveFunction(trimeshSolid):
             c1 = 5.0 #0.6
-            c2 = 0.1 #1.0 #0.0 #0.4
+            c2 = 0.07 #0.1 #1.0 #0.0 #0.4
             maxHFTerm = c1*self.fwd.calculateMaxHF(trimeshSolid)
             sumHFTerm = c2*self.fwd.calculateHFMeshSum(trimeshSolid)
 
