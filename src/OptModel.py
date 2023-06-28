@@ -15,7 +15,6 @@ import plotly.express as px
 
 import vtk
 from vtk import vtkPolyData, vtkPoints, vtkCellArray, vtkDoubleArray, vtkPolyDataWriter, vtkTriangle
-from tvtk.api import tvtk
 
 class OptModel_MeshHF: 
     """
@@ -152,11 +151,12 @@ class OptModel_MeshHF:
             new_max_hf = calcMaxHF(trimeshSolid)
             max_hf_each_run.append(new_max_hf)
 
-            new_sum_hf = calcHFSum(trimeshSolid) #hfAllMesh(trimeshSolid)
-            sum_hf_each_run.append(new_sum_hf)
+            # new_sum_hf = calcHFSum(trimeshSolid) #hfAllMesh(trimeshSolid)
+            # sum_hf_each_run.append(new_sum_hf)
 
             #make VTK to display HF on surface
-            self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"test{id}", count)
+            if count % 2 == 0:
+                self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"test{id}", count)
 
             print(f"New objective function value: {new_objVal}")
 
@@ -177,13 +177,13 @@ class OptModel_MeshHF:
                 output_file = f"test{id}/max_hf_up_to_run_{count}.html"
                 pio.write_html(fig, output_file)
 
-                x_count = np.linspace(0, len(sum_hf_each_run), len(sum_hf_each_run))
-                fig = px.scatter(x = x_count, y = sum_hf_each_run)
-                fig.update_xaxes(title_text='Iterations')
-                fig.update_yaxes(title_text=f'{calcHFSum.__name__}')
-                fig.show()            
-                output_file = f"test{id}/sum_hf_up_to_run_{count}.html"
-                pio.write_html(fig, output_file)
+                # x_count = np.linspace(0, len(sum_hf_each_run), len(sum_hf_each_run))
+                # fig = px.scatter(x = x_count, y = sum_hf_each_run)
+                # fig.update_xaxes(title_text='Iterations')
+                # fig.update_yaxes(title_text=f'{calcHFSum.__name__}')
+                # fig.show()            
+                # output_file = f"test{id}/sum_hf_up_to_run_{count}.html"
+                # pio.write_html(fig, output_file)
 
                 # #make VTK to display HF on surface
                 # self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"test{id}")
@@ -230,7 +230,7 @@ class OptModel_MeshHF:
 
         # Write to a .vtk file
         writer = vtkPolyDataWriter()
-        writer.SetFileName(f"{fileDir}/{count}_hfOnMesh.vtk")
+        writer.SetFileName(f"{fileDir}/{count:05}.vtk")
         writer.SetInputData(polydata)
         writer.Write()
 
