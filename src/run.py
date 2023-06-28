@@ -77,11 +77,14 @@ class RunSetup_MeshHF:
             normals = trimeshSolid.face_normals
             normalsDiff = normals[adjacency[:, 0]] - normals[adjacency[:, 1]]
 
+
+            ##below lines are if we want to detect faces that belonged to cube edges
+            ##and then we can exclude those when we use the normals for the objective fcn
             # num_adjacentFaces = np.bincount(adjacency.flatten())
             # internalFaces = np.where(num_adjacentFaces == 3)[0]
             # internalFacesOnly = np.isin(adjacency, internalFaces).all(axis=1)
-
             # normalsDiff = normalsDiff[internalFacesOnly]
+
             normalsDiffMagnitude = np.linalg.norm(normalsDiff, axis=1)
 
             return normalsDiffMagnitude
@@ -93,9 +96,6 @@ class RunSetup_MeshHF:
             maxHFTerm = c1*self.fwd.calculateMaxHF(trimeshSolid)
             sumHFTerm = c2*self.fwd.calculateHFMeshSum(trimeshSolid)
 
-            # print(f"Integrated energy: {sumHFTerm}")
-            # input()
-
             c3 = 0.5 #0.0 #1.0 #0.5
             normalsDiff = calculateNormalsDiff(trimeshSolid)
             normalsPenalty = np.sum(normalsDiff) * c3
@@ -104,28 +104,6 @@ class RunSetup_MeshHF:
             energyTerm = c4*self.fwd.calculateIntegratedEnergy(trimeshSolid)
             
             return maxHFTerm + sumHFTerm + normalsPenalty + energyTerm
-        
-
-# def objectiveFunctionWithNormalsConstraint(tri_mesh, smooth_surface, max_normals_change):
-#     # Calculate some measure of the heat flux (your original objective function)
-#     heat_flux = ...
-
-#     # Calculate the distance of each point to the smooth surface
-#     distances = np.linalg.norm(tri_mesh.vertices - smooth_surface.evaluate(tri_mesh.vertices), axis=1)
-
-#     # Calculate the penalty term
-#     penalty = np.sum(distances**2)
-
-#     # Calculate the normals change
-#     normals_change = calculate_normals_change(tri_mesh)
-
-#     # Add a penalty if the max normals change exceeds the allowed max
-#     if np.max(normals_change) > max_normals_change:
-#         penalty += np.sum(normals_change)
-
-#     # Return the objective function value
-#     return heat_flux + lambda * penalty
-
 
         #optimizer setup
         # return self.opt.meshHFOpt(self.fwd.calculateHFMeshSum, trimeshSolid, self.opt.moveMeshVertices, threshold=100, delta=0.05, id=runID)
