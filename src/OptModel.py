@@ -172,7 +172,7 @@ class OptModel_MeshHF:
                 x_count = np.linspace(0, len(max_hf_each_run), len(max_hf_each_run))
                 fig = px.scatter(x = x_count, y = max_hf_each_run)
                 fig.update_xaxes(title_text='Iterations')
-                fig.update_yaxes(title_text='f{calcMaxHF.__name__}')
+                fig.update_yaxes(title_text=f'{calcMaxHF.__name__}')
                 fig.show()            
                 output_file = f"test{id}/max_hf_up_to_run_{count}.html"
                 pio.write_html(fig, output_file)
@@ -180,7 +180,7 @@ class OptModel_MeshHF:
                 x_count = np.linspace(0, len(sum_hf_each_run), len(sum_hf_each_run))
                 fig = px.scatter(x = x_count, y = sum_hf_each_run)
                 fig.update_xaxes(title_text='Iterations')
-                fig.update_yaxes(title_text='f{calcHFSum.__name__}')
+                fig.update_yaxes(title_text=f'{calcHFSum.__name__}')
                 fig.show()            
                 output_file = f"test{id}/sum_hf_up_to_run_{count}.html"
                 pio.write_html(fig, output_file)

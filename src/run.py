@@ -58,7 +58,7 @@ class RunSetup_MeshHF:
 
         return
 
-    def runOptimization(self, runID="0011_06"):
+    def runOptimization(self, runID="0011_07"):
 
         os.makedirs(f"test{runID}")
 
@@ -88,20 +88,22 @@ class RunSetup_MeshHF:
         
 
         def objectiveFunction(trimeshSolid):
-            c1 = 0.0 #0.6
-            c2 = 1.0 #0.0 #0.4
-            maxHFTerm = 0#c1*self.fwd.calculateMaxHF(trimeshSolid)
-            #sumHFTerm = c2*self.fwd.calculateHFMeshSum(trimeshSolid)
-            sumHFTerm = c2*self.fwd.calculateIntegratedEnergy(trimeshSolid)
+            c1 = 5.0 #0.6
+            c2 = 0.2 #1.0 #0.0 #0.4
+            maxHFTerm = c1*self.fwd.calculateMaxHF(trimeshSolid)
+            sumHFTerm = c2*self.fwd.calculateHFMeshSum(trimeshSolid)
 
             # print(f"Integrated energy: {sumHFTerm}")
             # input()
 
-            c3 = 0.0 #1.0 #0.5
-            #normalsDiff = calculateNormalsDiff(trimeshSolid)
-            normalsPenalty = 0 #np.sum(normalsDiff) * c3
+            c3 = 0.5 #0.0 #1.0 #0.5
+            normalsDiff = calculateNormalsDiff(trimeshSolid)
+            normalsPenalty = np.sum(normalsDiff) * c3
+
+            c4 = 0.2
+            energyTerm = c4*self.fwd.calculateIntegratedEnergy(trimeshSolid)
             
-            return maxHFTerm + sumHFTerm + normalsPenalty
+            return maxHFTerm + sumHFTerm + normalsPenalty + energyTerm
         
 
 # def objectiveFunctionWithNormalsConstraint(tri_mesh, smooth_surface, max_normals_change):
