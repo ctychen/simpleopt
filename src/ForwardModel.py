@@ -1,56 +1,98 @@
 import numpy as np
+import plotly.graph_objects as go
+import plotly.io as pio
 
-class ForwardModel_Box: 
-    def __init__(self, g_x, solid, q_mag, q_dir): #some arbitrary starting values todo
-        self.solid = solid
+class ForwardModel_MeshHF: 
+
+    def __init__(self, solidObj, q_mag, q_dir): 
+        self.solidObj = solidObj
         self.q_mag = q_mag #magnitude of applied q [W/m^2]
         self.q_dir = q_dir #direction of applied q, [x,y,z] [m]
-        self.g_x = g_x #objective function, can swap out
-        return
-
-    #right now it's simple but ultimately this fcn could have whatever in it - formerly processCADModel()
-    def process(self):
-        self.solid.processModel()
         return
     
-    def calcQMesh(self):
-        #for every mesh element, calculate q and store in list/arr with same length as mesh elem list
-        q_mesh_all = []
-        for i in range(len(self.norms[0])): 
-            norm = self.norms[0][i]
-            # print(norm)
-            q_i = np.dot(self.q_dir, norm) * self.q_mag
-            q_mesh_all.append(q_i)
-        # print(q_mesh_all)
-        return q_mesh_all
     
-    def calcQMesh_Vector(self): #version to use for list of vertices
-        q_mesh_all = []
-        for i in range(len(self.solid.norms)): 
-            norm = self.solid.norms[i]
-            # print(norm)
-            q_i = np.dot(self.q_dir, norm) * self.q_mag
-            q_mesh_all.append(q_i)
-        return q_mesh_all
-    
-    def calcQMesh_Vector(self, vertices):
-        q_mesh_all = []
-        norms = self.solid.normsCentersAreas_VectorAny(vertices)[0]
-        #want to calculate norms of the generated mesh... 
+    #overall: can't have HF on backface - and doesn't make sense to have negative HF. 
+    #so should be setting backfaces (negative HF) to 0
+    #this might also eliminate some weirdness with back face corners/edges moving
+    #calc: -q*(b dot n)
+    #then take any values where -(-q*(b dot n)) > 0, ie. HF's aren't physical
+    #and set those to 0
 
-        for norm in norms:
-            dotprod = np.dot(self.q_dir, norm)
-            if dotprod >= 0.0 and dotprod <= 1.0:
-                q_i = dotprod * self.q_mag
-                q_mesh_all.append(q_i) 
-
-        # print(f"Q mesh all: {q_mesh_all}")
+    def calculateAllHF_AllVals(self, trimeshSolid):
+        """
+        Calculate HF on every mesh element, with no exclusions, and returning them all in a list
+        """
+        
+        normals = trimeshSolid.face_normals
+        q_mesh_all = -1 * (np.dot(normals, self.q_dir)) * self.q_mag
         return q_mesh_all
     
-    def calcQMesh_Vec(self, vector):
-        return np.dot(self.fwd.q_dir, vector) * self.fwd.q_mag
+
+    def calculateAllHF(self, trimeshSolid):
+        """
+        Calculate HF on every mesh element, but set negative values to 0 (remove nonphysical element values)
+        """
+        q_mesh_all = self.calculateAllHF_AllVals(trimeshSolid)
+
+        return q_mesh_all
     
-    def calcObjective(self, q_mesh_all): 
-        #takes in objective function
-        return self.g_x(q_mesh_all)
+    
+    def calculateHFDistribution(self, trimeshSolid):
+        """
+        Calculate mean, variance, standard deviation on all HF over mesh elements
+        """
+        
+        normals = trimeshSolid.face_normals
+        q_mesh_all = -1 * (np.dot(normals, self.q_dir)) * self.q_mag
+
+        hfMean = np.mean(q_mesh_all)
+        hfVariance = np.var(q_mesh_all)
+        hfStd = np.std(q_mesh_all)
+
+        return hfMean, hfVariance, hfStd, q_mesh_all
+    
+    def meanHF(self, trimeshSolid):
+        return self.calculateHFDistribution(trimeshSolid)[0]
+    
+    def varianceHF(self, trimeshSolid):
+        return self.calculateHFDistribution(trimeshSolid)[1]
+    
+    def stdHF(self, trimeshSolid):
+        return self.calculateHFDistribution(trimeshSolid)[2]
+    
+    def distForObj(self, trimeshSolid):
+        return self.calculateHFDistribution(trimeshSolid)[3]
+    
+    
+    def calculateHFMeshSum(self, trimeshSolid):
+        """
+        Calculate sum of heat flux from all mesh elements
+        """
+
+        normals = trimeshSolid.face_normals
+        q_mesh_all = -1 * (np.dot(normals, self.q_dir)) * self.q_mag
+
+        dotprods = filter(lambda x: x > 0, q_mesh_all)
+        q_mesh_sum = sum(abs(x) for x in dotprods)
+
+        return q_mesh_sum
+    
+    def calculateIntegratedEnergy(self, trimeshSolid):
+        normals = trimeshSolid.face_normals
+        faceAreas = np.array(trimeshSolid.area_faces)
+        q_vals = np.array(-1 * (np.dot(normals, self.q_dir)) * self.q_mag)
+        mesh_q_dot_areas = q_vals * faceAreas
+        prods = filter(lambda x: x > 0, mesh_q_dot_areas)
+        mesh_energy = sum(abs(x) for x in prods)
+        
+        return mesh_energy
+    
+    def calculateMaxHF(self, trimeshSolid):
+        """
+        Find single highest heat flux from all mesh element heat fluxes
+        """
+        q_mesh_all = self.calculateAllHF(trimeshSolid)
+        return np.max(q_mesh_all)
+    
+    
     
