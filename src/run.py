@@ -58,7 +58,7 @@ class RunSetup_MeshHF:
 
         return
 
-    def runOptimization(self, runID="0012_01"):
+    def runOptimization(self, runID="0012"):
 
         os.makedirs(f"test{runID}")
 
@@ -89,10 +89,17 @@ class RunSetup_MeshHF:
 
             return normalsDiffMagnitude
         
+        #np.random.rand() returns [0, 1)
+        c1 = 5.0 #np.random.rand() * 10
+        c2 = 0.1 #np.random.rand() / 2.0
+        c3 = 0.5 #np.random.rand() / 2.0
+        c4 = 0.2 #np.random.rand() * 10
+
+        runName = runID + f"_c1_{c1}_c2_{c2}_c3_{c3}_c4_{c4}"
 
         def objectiveFunction(trimeshSolid):
-            c1 = 5.0 #0.6
-            c2 = 0.07 #0.1 #1.0 #0.0 #0.4
+            # c1 = 5.0 #0.6
+            # c2 = 0.1 #0.1 #1.0 #0.0 #0.4
             maxHFTerm = c1*self.fwd.calculateMaxHF(trimeshSolid)
             sumHFTerm = c2*self.fwd.calculateHFMeshSum(trimeshSolid)
 
@@ -121,7 +128,7 @@ class RunSetup_MeshHF:
             self.opt.moveMeshVertices, 
             threshold=0.000001, 
             delta=0.01, 
-            id=runID
+            id=runName #runID
         )
 
 
