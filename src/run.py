@@ -70,13 +70,6 @@ class RunSetup_MeshHF:
             normals = trimeshSolid.face_normals
             normalsDiff = normals[adjacency[:, 0]] - normals[adjacency[:, 1]]
 
-            ##below lines are if we want to detect faces that belonged to cube edges
-            ##and then we can exclude those when we use the normals for the objective fcn
-            # num_adjacentFaces = np.bincount(adjacency.flatten())
-            # internalFaces = np.where(num_adjacentFaces == 3)[0]
-            # internalFacesOnly = np.isin(adjacency, internalFaces).all(axis=1)
-            # normalsDiff = normalsDiff[internalFacesOnly]
-
             normalsDiffMagnitude = np.linalg.norm(normalsDiff, axis=1)
 
             return normalsDiffMagnitude
@@ -88,11 +81,11 @@ class RunSetup_MeshHF:
         # c4 = 0 #0.2 #np.random.rand() / 1.5 #0.2 #for energy
         # c5 = 10 #np.random.rand() * 5 #for distances from original mesh
 
-        c1 = 0 #np.random.rand() * 10
-        c2 = 0.1 #np.random.rand()
-        c3 = 0 #np.random.rand() 
-        c4 = 0 #np.random.rand() 
-        c5 = 15 #np.random.rand() * 15
+        c1 = np.random.rand() * 10
+        c2 = np.random.rand() / 2.0
+        c3 = np.random.rand() 
+        c4 = np.random.rand() 
+        c5 = np.random.rand() * 100
 
         runName = runID + f'_c1_{c1:.2f}_c2_{c2:.2f}_c3_{c3:.2f}_c4_{c4:.2f}_c5_{c5:.2f}'  #runID + f"_c1_{c1.2f}_c2_{c2:03}_c3_{c3:03}_c4_{c4:03}"
         runName = runName.replace(".", "-")
@@ -117,13 +110,13 @@ class RunSetup_MeshHF:
         # def objectiveFunction(trimeshSolid):
         def objectiveFunction(trimeshSolid, unconstrainedFaces):
             
-            maxHFTerm = 0 #c1*self.fwd.calculateMaxHF(trimeshSolid)
+            maxHFTerm = c1*self.fwd.calculateMaxHF(trimeshSolid)
             sumHFTerm = c2*self.fwd.calculateHFMeshSum(trimeshSolid)
 
-            normalsDiff = 0 #calculateNormalsDiff(trimeshSolid)
-            normalsPenalty = 0 #np.sum(normalsDiff) * c3
+            normalsDiff = calculateNormalsDiff(trimeshSolid)
+            normalsPenalty = np.sum(normalsDiff) * c3
 
-            energyTerm = 0 #c4*self.fwd.calculateIntegratedEnergy(trimeshSolid)
+            energyTerm = c4*self.fwd.calculateIntegratedEnergy(trimeshSolid)
 
             #calc distance of each vertex to the original mesh
             #calc penalty for being too close to the original surface ()
@@ -155,7 +148,7 @@ class RunSetup_MeshHF:
             #self.fwd.calculateHFMeshSum,
             self.fwd.calculateIntegratedEnergy,
             trimeshSolid, 
-            self.opt.moveMeshVertices, 
+            # self.opt.moveMeshVertices, 
             threshold=0.000001, 
             delta=0.01, 
             id=directoryName#runName #runID

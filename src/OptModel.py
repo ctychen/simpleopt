@@ -88,7 +88,7 @@ class OptModel_MeshHF:
         return trimeshSolid.vertices - (delta * gradient)
 
 
-    def meshHFOpt(self, hfObjectiveFcn, calcHFAllMesh, calcMaxHF, calcHFSum, meshObj, changeMeshFcn, threshold, delta, id):
+    def meshHFOpt(self, hfObjectiveFcn, calcHFAllMesh, calcMaxHF, calcHFSum, meshObj, threshold, delta, id):
     # def meshHFOpt(self, hfFunction, hfObjectiveFcn, meshObj, threshold, step, id):
         """
         runs optimization process until objective fcn value reaches stopping condition @ minimum
