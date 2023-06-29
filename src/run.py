@@ -59,13 +59,6 @@ class RunSetup_MeshHF:
         return
 
     def runOptimization(self, runID="0012"):
-
-        os.makedirs(f"test{runID}")
-
-        self.box.processSolid()
-        trimeshSolid = self.box.trimeshSolid
-        trimeshSolid.export(f"test{runID}/initial.stl")
-
         
         def calculateNormalsDiff(trimeshSolid):
             """
@@ -89,13 +82,32 @@ class RunSetup_MeshHF:
 
             return normalsDiffMagnitude
         
-        #np.random.rand() returns [0, 1)
-        c1 = 5.0 #np.random.rand() * 10
-        c2 = 0.1 #np.random.rand() / 2.0
-        c3 = 0.5 #np.random.rand() / 2.0
-        c4 = 0.2 #np.random.rand() * 10
+        
+        c1 = np.random.rand() * 10 #5.0 #for maxHF
+        c2 = np.random.rand() / 1.5 #0.1 #for sum HF
+        c3 = np.random.rand() #/ 2.0 #0.5 #for normals of surfaces
+        c4 = np.random.rand() / 1.5 #0.2 #for energy
+        c5 = np.random.rand() #for distances from original mesh
 
-        runName = runID + f"_c1_{c1}_c2_{c2}_c3_{c3}_c4_{c4}"
+        runName = runID + f'_c1_{c1:.2f}_c2_{c2:.2f}_c3_{c3:.2f}_c4_{c4:.2f}_c5_{c5:.2f}'  #runID + f"_c1_{c1.2f}_c2_{c2:03}_c3_{c3:03}_c4_{c4:03}"
+        runName = runName.replace(".", "-")
+
+        directoryName = f"{runName}" #running this within docker container means can't save to external without bindmount aaa
+
+        os.makedirs(directoryName)
+        os.makedirs(f"{directoryName}/images")
+
+        print(f"Made directory: {directoryName}")
+
+        #where we are saving generated vtk's
+        directoryName = f"{directoryName}/vtks"
+        os.makedirs(directoryName)
+
+        self.box.processSolid()
+        trimeshSolid = self.box.trimeshSolid
+        trimeshSolid.export(f"{directoryName}/initial.stl")
+
+        originalTrimesh = trimeshSolid
 
         def objectiveFunction(trimeshSolid):
             # c1 = 5.0 #0.6
@@ -103,20 +115,25 @@ class RunSetup_MeshHF:
             maxHFTerm = c1*self.fwd.calculateMaxHF(trimeshSolid)
             sumHFTerm = c2*self.fwd.calculateHFMeshSum(trimeshSolid)
 
-            c3 = 0.5 #0.0 #1.0 #0.5
+            # c3 = 0.5 #0.0 #1.0 #0.5
             normalsDiff = calculateNormalsDiff(trimeshSolid)
             normalsPenalty = np.sum(normalsDiff) * c3
 
-            c4 = 0.2
+            # c4 = 0.2
             energyTerm = c4*self.fwd.calculateIntegratedEnergy(trimeshSolid)
-            
-            return maxHFTerm + sumHFTerm + normalsPenalty + energyTerm
 
-        #optimizer setup
-        # return self.opt.meshHFOpt(self.fwd.calculateHFMeshSum, trimeshSolid, self.opt.moveMeshVertices, threshold=100, delta=0.05, id=runID)
-        
-        #args:
-        #hfObjectiveFcn, calcHFAllMesh, calcMaxHF, calcHFSum, meshObj, changeMeshFcn, threshold, delta, id
+            #calc distance of each vertex to the original mesh
+            #calc penalty for being too close to the original surface ()
+            #trimesh signed distances: 
+            #points OUTSIDE the mesh will have NEGATIVE distance
+            #points within tol.merge of the surface will have POSITIVE distance
+            #points INSIDE the mesh will have POSITIVE distance
+            #and overall we want to force the mesh to move to OUTSIDE the original mesh if we don't want it punching through bottom
+            distances = trimesh.proximity.signed_distance(originalTrimesh, trimeshSolid.vertices)
+            distancePenalty = -np.sum(np.abs(distances))
+            distancesTerm = c5*distancePenalty
+            
+            return maxHFTerm + sumHFTerm + normalsPenalty + energyTerm + distancesTerm
 
         return self.opt.meshHFOpt(
             objectiveFunction, #compoundObjective, #self.fwd.calculateHFMeshSum, #compoundObjective, 
@@ -128,7 +145,7 @@ class RunSetup_MeshHF:
             self.opt.moveMeshVertices, 
             threshold=0.000001, 
             delta=0.01, 
-            id=runName #runID
+            id=directoryName#runName #runID
         )
 
 
