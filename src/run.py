@@ -70,7 +70,6 @@ class RunSetup_MeshHF:
             normals = trimeshSolid.face_normals
             normalsDiff = normals[adjacency[:, 0]] - normals[adjacency[:, 1]]
 
-
             ##below lines are if we want to detect faces that belonged to cube edges
             ##and then we can exclude those when we use the normals for the objective fcn
             # num_adjacentFaces = np.bincount(adjacency.flatten())
@@ -83,11 +82,17 @@ class RunSetup_MeshHF:
             return normalsDiffMagnitude
         
         
-        c1 = np.random.rand() * 10 #5.0 #for maxHF
-        c2 = np.random.rand() / 1.5 #0.1 #for sum HF
-        c3 = np.random.rand() #/ 2.0 #0.5 #for normals of surfaces
-        c4 = np.random.rand() / 1.5 #0.2 #for energy
-        c5 = np.random.rand() #for distances from original mesh
+        # c1 = 0 #10 #np.random.rand() * 10 #5.0 #for maxHF
+        # c2 = 0.1 #np.random.rand() / 1.5 #0.1 #for sum HF
+        # c3 = 0 #0.5 #np.random.rand() #/ 2.0 #0.5 #for normals of surfaces
+        # c4 = 0 #0.2 #np.random.rand() / 1.5 #0.2 #for energy
+        # c5 = 10 #np.random.rand() * 5 #for distances from original mesh
+
+        c1 = 0 #np.random.rand() * 10
+        c2 = 0.1 #np.random.rand()
+        c3 = 0 #np.random.rand() 
+        c4 = 0 #np.random.rand() 
+        c5 = 15 #np.random.rand() * 15
 
         runName = runID + f'_c1_{c1:.2f}_c2_{c2:.2f}_c3_{c3:.2f}_c4_{c4:.2f}_c5_{c5:.2f}'  #runID + f"_c1_{c1.2f}_c2_{c2:03}_c3_{c3:03}_c4_{c4:03}"
         runName = runName.replace(".", "-")
@@ -109,18 +114,16 @@ class RunSetup_MeshHF:
 
         originalTrimesh = trimeshSolid
 
-        def objectiveFunction(trimeshSolid):
-            # c1 = 5.0 #0.6
-            # c2 = 0.1 #0.1 #1.0 #0.0 #0.4
-            maxHFTerm = c1*self.fwd.calculateMaxHF(trimeshSolid)
+        # def objectiveFunction(trimeshSolid):
+        def objectiveFunction(trimeshSolid, unconstrainedFaces):
+            
+            maxHFTerm = 0 #c1*self.fwd.calculateMaxHF(trimeshSolid)
             sumHFTerm = c2*self.fwd.calculateHFMeshSum(trimeshSolid)
 
-            # c3 = 0.5 #0.0 #1.0 #0.5
-            normalsDiff = calculateNormalsDiff(trimeshSolid)
-            normalsPenalty = np.sum(normalsDiff) * c3
+            normalsDiff = 0 #calculateNormalsDiff(trimeshSolid)
+            normalsPenalty = 0 #np.sum(normalsDiff) * c3
 
-            # c4 = 0.2
-            energyTerm = c4*self.fwd.calculateIntegratedEnergy(trimeshSolid)
+            energyTerm = 0 #c4*self.fwd.calculateIntegratedEnergy(trimeshSolid)
 
             #calc distance of each vertex to the original mesh
             #calc penalty for being too close to the original surface ()
@@ -129,9 +132,19 @@ class RunSetup_MeshHF:
             #points within tol.merge of the surface will have POSITIVE distance
             #points INSIDE the mesh will have POSITIVE distance
             #and overall we want to force the mesh to move to OUTSIDE the original mesh if we don't want it punching through bottom
-            distances = trimesh.proximity.signed_distance(originalTrimesh, trimeshSolid.vertices)
+
+            #unconstrainedFaces is originally a set so we have to make a list first
+            unconstrainedFaces = list(unconstrainedFaces)
+            unconstrained_vertex_indices = np.unique(trimeshSolid.faces[unconstrainedFaces].ravel())
+            unconstrainedVertices = trimeshSolid.vertices[unconstrained_vertex_indices]
+
+            distances = trimesh.proximity.signed_distance(originalTrimesh, unconstrainedVertices)
             distancePenalty = -np.sum(np.abs(distances))
-            distancesTerm = c5*distancePenalty
+            distancesTerm = c5 * distancePenalty
+
+            #initially before anything moves this is going to be 0 for everything but will eventually change when elements start moving more
+            if distancesTerm != 0.0: 
+                print(f"Distances term: {distancesTerm}")
             
             return maxHFTerm + sumHFTerm + normalsPenalty + energyTerm + distancesTerm
 

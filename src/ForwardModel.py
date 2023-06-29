@@ -63,7 +63,19 @@ class ForwardModel_MeshHF:
     def distForObj(self, trimeshSolid):
         return self.calculateHFDistribution(trimeshSolid)[3]
     
-    
+    # def calculateHFMeshSum(self, trimeshSolid):
+    #     """
+    #     Calculate sum of heat flux from all mesh elements
+    #     """
+
+    #     normals = trimeshSolid.face_normals
+    #     q_mesh_all = -1 * (np.dot(normals, self.q_dir)) * self.q_mag
+
+    #     dotprods = filter(lambda x: x > 0, q_mesh_all)
+    #     q_mesh_sum = sum(abs(x) for x in dotprods)
+
+    #     return q_mesh_sum
+
     def calculateHFMeshSum(self, trimeshSolid):
         """
         Calculate sum of heat flux from all mesh elements
@@ -72,19 +84,30 @@ class ForwardModel_MeshHF:
         normals = trimeshSolid.face_normals
         q_mesh_all = -1 * (np.dot(normals, self.q_dir)) * self.q_mag
 
-        dotprods = filter(lambda x: x > 0, q_mesh_all)
-        q_mesh_sum = sum(abs(x) for x in dotprods)
+        q_mesh_vals = np.where(q_mesh_all > 0, q_mesh_all, 0)
+        q_mesh_sum = np.sum(np.abs(q_mesh_vals))
 
         return q_mesh_sum
     
+    # def calculateIntegratedEnergy(self, trimeshSolid):
+    #     normals = trimeshSolid.face_normals
+    #     faceAreas = np.array(trimeshSolid.area_faces)
+    #     q_vals = np.array(-1 * (np.dot(normals, self.q_dir)) * self.q_mag)
+    #     mesh_q_dot_areas = q_vals * faceAreas
+    #     prods = filter(lambda x: x > 0, mesh_q_dot_areas)
+    #     mesh_energy = sum(abs(x) for x in prods)
+        
+    #     return mesh_energy
+
     def calculateIntegratedEnergy(self, trimeshSolid):
         normals = trimeshSolid.face_normals
-        faceAreas = np.array(trimeshSolid.area_faces)
-        q_vals = np.array(-1 * (np.dot(normals, self.q_dir)) * self.q_mag)
+        faceAreas = trimeshSolid.area_faces
+        q_vals = -1 * (np.dot(normals, self.q_dir)) * self.q_mag
         mesh_q_dot_areas = q_vals * faceAreas
-        prods = filter(lambda x: x > 0, mesh_q_dot_areas)
-        mesh_energy = sum(abs(x) for x in prods)
-        
+
+        prods = np.where(mesh_q_dot_areas > 0, mesh_q_dot_areas, 0)
+        mesh_energy = np.sum(np.abs(prods))
+
         return mesh_energy
     
     def calculateMaxHF(self, trimeshSolid):

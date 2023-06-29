@@ -52,20 +52,6 @@ class OptModel_MeshHF:
 
         gradient = np.zeros_like(tri_mesh.vertices)
 
-        # #variable delta
-        # max_delta = delta * 5
-        # orig_delta = delta
-        # min_delta = 1e-6
-        # delta_decrease_factor = 0.5
-        # delta_increase_factor = 1.01
-        # successful_moves = 0
-
-        # normals_threshold = 0.01
-        # moves_threshold = 5
-
-        # Original position and normals
-        # original_vertices = tri_mesh.vertices.copy()
-
         for idx in sortedFaceIndices: 
             if idx in unconstrainedFaces: 
                 if idx in use_set: 
@@ -73,12 +59,14 @@ class OptModel_MeshHF:
 
                     for vertexIdx in face:  #vertexIdx is VERTEX INDICES
 
-                        obj_beforeMoving = objectiveFunction(tri_mesh)
+                        # obj_beforeMoving = objectiveFunction(tri_mesh)
+                        obj_beforeMoving = objectiveFunction(tri_mesh, unconstrainedFaces)
 
                         for j in range(3): #for every dimension - move the vertex a bit and calculate the change in objectiveFunction
 
                             tri_mesh.vertices[vertexIdx, j] += delta
-                            obj_afterMoving = objectiveFunction(tri_mesh)
+                            # obj_afterMoving = objectiveFunction(tri_mesh)
+                            obj_afterMoving = objectiveFunction(tri_mesh, unconstrainedFaces)
 
                             tri_mesh.vertices[vertexIdx, j] -= delta
 
@@ -116,10 +104,6 @@ class OptModel_MeshHF:
 
         count = 0
 
-        all_objective_function_values = [hfObjectiveFcn(trimeshSolid)]
-        max_hf_each_run = [calcMaxHF(trimeshSolid)]
-        sum_hf_each_run = [calcHFSum(trimeshSolid)] 
-
         #determine faces where constraint holds
         #constraint: don't move mesh element if its centroid is too low (not on the top/y=10 face)
         #check for this when we first run the code - no need to recalculate this a bunch of times, in theory
@@ -127,9 +111,14 @@ class OptModel_MeshHF:
         mesh_center_yvals = mesh_centers[:, 1]
         unconstrainedFaces = set(np.where(mesh_center_yvals == 10.0)[0]) #this should isolate the y-vaues but should check
 
+        all_objective_function_values = [hfObjectiveFcn(trimeshSolid, unconstrainedFaces)]
+        max_hf_each_run = [calcMaxHF(trimeshSolid)]
+        sum_hf_each_run = [calcHFSum(trimeshSolid)] 
+
         print("Starting the mesh HF opt")
 
-        print(f"Starting objective function value: {hfObjectiveFcn(trimeshSolid)}")
+        # print(f"Starting objective function value: {hfObjectiveFcn(trimeshSolid)}")
+        print(f"Starting objective function value: {hfObjectiveFcn(trimeshSolid, unconstrainedFaces)}")
         #trimeshSolid.export(f"test{id}/original.stl")
 
         prev_objVal = 2000
@@ -146,15 +135,16 @@ class OptModel_MeshHF:
             hf_all_mesh = calcHFAllMesh(trimeshSolid)
             
             #calc the gradient
-            newTrimesh = self.gradientDescentHF(trimeshSolid, hfObjectiveFcn, hf_all_mesh, unconstrainedFaces, delta, f"test{id}", count)
+            trimeshSolid = self.gradientDescentHF(trimeshSolid, hfObjectiveFcn, hf_all_mesh, unconstrainedFaces, delta, f"test{id}", count)
 
             print(f"Time elapsed for GD {count}: {time.time() - t0}")
 
-            trimeshSolid = newTrimesh
+            #trimeshSolid = newTrimesh
 
             # trimeshSolid.export(f"test{id}/{count}.stl")
 
-            new_objVal = hfObjectiveFcn(trimeshSolid)
+            # new_objVal = hfObjectiveFcn(trimeshSolid)
+            new_objVal = hfObjectiveFcn(trimeshSolid, unconstrainedFaces)
             all_objective_function_values.append(new_objVal)
 
             prev_objVal = curr_objVal
@@ -173,7 +163,7 @@ class OptModel_MeshHF:
 
             print(f"New objective function value: {new_objVal}")
 
-            if count and count % 50 == 0:#count % 5 == 0: 
+            if count and count % 20 == 0:#count % 5 == 0: 
                 x_count = np.linspace(0, len(all_objective_function_values), len(all_objective_function_values))
                 fig = px.scatter(x = x_count, y = all_objective_function_values)
                 fig.update_xaxes(title_text='Iterations')
