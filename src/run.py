@@ -72,7 +72,7 @@ class RunSetup_MeshHF:
 
             normalsDiffMagnitude = np.linalg.norm(normalsDiff, axis=1)
 
-            reference_direction = np.array([0, 1, 0])  # This is the "upwards" direction, adjust as needed
+            reference_direction = np.array([0, 1, 0])  #"upwards" direction that we want it to move in 
             normalRefDotProducts = np.dot(normals, reference_direction)
 
             return normalsDiffMagnitude, normalRefDotProducts
@@ -84,15 +84,15 @@ class RunSetup_MeshHF:
         # c4 = 0 #0.2 #np.random.rand() / 1.5 #0.2 #for energy
         # c5 = 10 #np.random.rand() * 5 #for distances from original mesh
 
-        c1 = np.random.rand() * 20
-        c2 = np.random.rand()
-        c3 = np.random.rand() * 5
-        c4 = np.random.rand() * 5
-        c5 = np.random.rand() * 10
+        c1 = np.random.rand() * 50
+        c2 = np.random.rand() 
+        c3 = np.random.rand() * 10
+        c4 = np.random.rand() * 10
+        # c5 = np.random.rand() * 200
 
         #runName = runID + f'_c1_{c1:.2f}_c2_{c2:.2f}_c3_{c3:.2f}_c4_{c4:.2f}_c5_{c5:.2f}'  #runID + f"_c1_{c1.2f}_c2_{c2:03}_c3_{c3:03}_c4_{c4:03}"
-        # runName = runID + f'_c1_{c1:.2f}_c2_{c2:.2f}_c3_{c3:.2f}_c4_{c4:.2f}'
-        runName = runID + f'_c1_{c1:.2f}_c2_{c2:.2f}_c3_{c3:.2f}_c4_{c4:.2f}_c5_{c5:.2f}'
+        runName = runID + f'_c1_{c1:.2f}_c2_{c2:.2f}_c3_{c3:.2f}_c4_{c4:.2f}'
+        # runName = runID + f'_c1_{c1:.2f}_c2_{c2:.2f}_c3_{c3:.2f}_c4_{c4:.2f}_c5_{c5:.2f}'
         runName = runName.replace(".", "-")
 
         directoryName = f"{runName}" #running this within docker container means can't save to external without bindmount aaa
@@ -124,7 +124,9 @@ class RunSetup_MeshHF:
             energyTerm = c4 * self.fwd.calculateIntegratedEnergy(trimeshSolid)
 
             #attempting to use this to see if we can encourage the mesh to go more convex?
-            distancesTerm = c5 * np.sum(np.where(normalRefDotProducts < 0, -normalRefDotProducts, 0))
+            distancesTerm = 0#c5 * np.sum(np.where(normalRefDotProducts < 0, -normalRefDotProducts, 0))
+
+            return maxHFTerm + sumHFTerm + normalsPenalty + energyTerm + distancesTerm
 
             #calc distance of each vertex to the original mesh
             #calc penalty for being too close to the original surface ()
@@ -147,7 +149,7 @@ class RunSetup_MeshHF:
             # if distancesTerm != 0.0: 
             #     print(f"Distances term: {distancesTerm}")
             
-            return maxHFTerm + sumHFTerm + normalsPenalty + energyTerm + distancesTerm
+            
 
         return self.opt.meshHFOpt(
             objectiveFunction, #compoundObjective, #self.fwd.calculateHFMeshSum, #compoundObjective, 
