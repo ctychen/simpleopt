@@ -72,7 +72,10 @@ class RunSetup_MeshHF:
 
             normalsDiffMagnitude = np.linalg.norm(normalsDiff, axis=1)
 
-            return normalsDiffMagnitude
+            reference_direction = np.array([0, 1, 0])  # This is the "upwards" direction, adjust as needed
+            normalRefDotProducts = np.dot(normals, reference_direction)
+
+            return normalsDiffMagnitude, normalRefDotProducts
         
         
         # c1 = 0 #10 #np.random.rand() * 10 #5.0 #for maxHF
@@ -85,10 +88,11 @@ class RunSetup_MeshHF:
         c2 = np.random.rand()
         c3 = np.random.rand() * 5
         c4 = np.random.rand() * 5
-        # c5 = np.random.rand() * 100
+        c5 = np.random.rand() * 10
 
         #runName = runID + f'_c1_{c1:.2f}_c2_{c2:.2f}_c3_{c3:.2f}_c4_{c4:.2f}_c5_{c5:.2f}'  #runID + f"_c1_{c1.2f}_c2_{c2:03}_c3_{c3:03}_c4_{c4:03}"
-        runName = runID + f'_c1_{c1:.2f}_c2_{c2:.2f}_c3_{c3:.2f}_c4_{c4:.2f}'
+        # runName = runID + f'_c1_{c1:.2f}_c2_{c2:.2f}_c3_{c3:.2f}_c4_{c4:.2f}'
+        runName = runID + f'_c1_{c1:.2f}_c2_{c2:.2f}_c3_{c3:.2f}_c4_{c4:.2f}_c5_{c5:.2f}'
         runName = runName.replace(".", "-")
 
         directoryName = f"{runName}" #running this within docker container means can't save to external without bindmount aaa
@@ -114,10 +118,13 @@ class RunSetup_MeshHF:
             maxHFTerm = c1 * self.fwd.calculateMaxHF(trimeshSolid)
             sumHFTerm = c2 * self.fwd.calculateHFMeshSum(trimeshSolid)
 
-            normalsDiff = calculateNormalsDiff(trimeshSolid)
+            normalsDiff, normalRefDotProducts = calculateNormalsDiff(trimeshSolid)
             normalsPenalty = c3 * np.sum(normalsDiff)
 
             energyTerm = c4 * self.fwd.calculateIntegratedEnergy(trimeshSolid)
+
+            #attempting to use this to see if we can encourage the mesh to go more convex?
+            distancesTerm = c5 * np.sum(np.where(normalRefDotProducts < 0, -normalRefDotProducts, 0))
 
             #calc distance of each vertex to the original mesh
             #calc penalty for being too close to the original surface ()
@@ -134,7 +141,7 @@ class RunSetup_MeshHF:
 
             # distances = trimesh.proximity.signed_distance(originalTrimesh, unconstrainedVertices)
             # distancePenalty = -np.sum(np.abs(distances))
-            distancesTerm = 0 #c5 * distancePenalty
+            # distancesTerm = 0 #c5 * distancePenalty
 
             #initially before anything moves this is going to be 0 for everything but will eventually change when elements start moving more
             # if distancesTerm != 0.0: 
