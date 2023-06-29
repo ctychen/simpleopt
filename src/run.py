@@ -58,7 +58,7 @@ class RunSetup_MeshHF:
 
         return
 
-    def runOptimization(self, runID="0012"):
+    def runOptimization(self, runID="sweep"):
         
         def calculateNormalsDiff(trimeshSolid):
             """
@@ -83,11 +83,12 @@ class RunSetup_MeshHF:
 
         c1 = np.random.rand() * 10
         c2 = np.random.rand() / 2.0
-        c3 = np.random.rand() 
+        c3 = np.random.rand() * 5
         c4 = np.random.rand() 
-        c5 = np.random.rand() * 100
+        # c5 = np.random.rand() * 100
 
-        runName = runID + f'_c1_{c1:.2f}_c2_{c2:.2f}_c3_{c3:.2f}_c4_{c4:.2f}_c5_{c5:.2f}'  #runID + f"_c1_{c1.2f}_c2_{c2:03}_c3_{c3:03}_c4_{c4:03}"
+        #runName = runID + f'_c1_{c1:.2f}_c2_{c2:.2f}_c3_{c3:.2f}_c4_{c4:.2f}_c5_{c5:.2f}'  #runID + f"_c1_{c1.2f}_c2_{c2:03}_c3_{c3:03}_c4_{c4:03}"
+        runName = runID + f'_c1_{c1:.2f}_c2_{c2:.2f}_c3_{c3:.2f}_c4_{c4:.2f}'
         runName = runName.replace(".", "-")
 
         directoryName = f"{runName}" #running this within docker container means can't save to external without bindmount aaa
@@ -126,18 +127,18 @@ class RunSetup_MeshHF:
             #points INSIDE the mesh will have POSITIVE distance
             #and overall we want to force the mesh to move to OUTSIDE the original mesh if we don't want it punching through bottom
 
-            #unconstrainedFaces is originally a set so we have to make a list first
-            unconstrainedFaces = list(unconstrainedFaces)
-            unconstrained_vertex_indices = np.unique(trimeshSolid.faces[unconstrainedFaces].ravel())
-            unconstrainedVertices = trimeshSolid.vertices[unconstrained_vertex_indices]
+            ## unconstrainedFaces is originally a set so we have to make a list first
+            # unconstrainedFaces = list(unconstrainedFaces)
+            # unconstrained_vertex_indices = np.unique(trimeshSolid.faces[unconstrainedFaces].ravel())
+            # unconstrainedVertices = trimeshSolid.vertices[unconstrained_vertex_indices]
 
-            distances = trimesh.proximity.signed_distance(originalTrimesh, unconstrainedVertices)
-            distancePenalty = -np.sum(np.abs(distances))
-            distancesTerm = c5 * distancePenalty
+            # distances = trimesh.proximity.signed_distance(originalTrimesh, unconstrainedVertices)
+            # distancePenalty = -np.sum(np.abs(distances))
+            distancesTerm = 0 #c5 * distancePenalty
 
             #initially before anything moves this is going to be 0 for everything but will eventually change when elements start moving more
-            if distancesTerm != 0.0: 
-                print(f"Distances term: {distancesTerm}")
+            # if distancesTerm != 0.0: 
+            #     print(f"Distances term: {distancesTerm}")
             
             return maxHFTerm + sumHFTerm + normalsPenalty + energyTerm + distancesTerm
 
