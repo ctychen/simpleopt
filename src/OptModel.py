@@ -2,7 +2,6 @@ import FreeCAD
 import Part
 import Mesh
 import MeshPart
-from FreeCAD import Base
 import numpy as np
 
 import time
@@ -15,6 +14,10 @@ import plotly.express as px
 
 import vtk
 from vtk import vtkPolyData, vtkPoints, vtkCellArray, vtkDoubleArray, vtkPolyDataWriter, vtkTriangle
+
+from vtk.util.numpy_support import numpy_to_vtk
+from scipy.optimize import curve_fit
+from vtk.util import numpy_support
 
 class OptModel_MeshHF: 
     """
@@ -110,6 +113,11 @@ class OptModel_MeshHF:
         mesh_centers = trimeshSolid.triangles_center
         mesh_center_yvals = mesh_centers[:, 1]
         unconstrainedFaces = set(np.where(mesh_center_yvals == 10.0)[0]) #this should isolate the y-vaues but should check
+        unconstrainedVIdx = np.unique(trimeshSolid.faces[list(unconstrainedFaces)].ravel())
+        #np.unique(trimeshSolid.faces[list(unconstrainedFaces).ravel()])
+        #np.unique(trimeshSolid.faces[unconstrainedFaces].ravel())
+        unconstrainedVertices = trimeshSolid.vertices[unconstrainedVIdx]
+
 
         all_objective_function_values = [hfObjectiveFcn(trimeshSolid, unconstrainedFaces)]
         max_hf_each_run = [calcMaxHF(trimeshSolid)]
@@ -158,8 +166,10 @@ class OptModel_MeshHF:
 
             #make VTK to display HF on surface
             self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"{id}", count)
-            # if count % 2 == 0:
-                # self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"test{id}", count)
+
+            if count % 5 == 0:
+                #self.makePolyFitSurface(unconstrainedVertices, f"{id}", count)
+                self.makePolyFitSurface(trimeshSolid.vertices[unconstrainedVIdx], f"{id}", count)
 
             print(f"New objective function value: {new_objVal}")
 
@@ -235,6 +245,64 @@ class OptModel_MeshHF:
         writer = vtkPolyDataWriter()
         writer.SetFileName(f"{fileDir}/{count:05}.vtk")
         writer.SetInputData(polydata)
+        writer.Write()
+
+        return 
+    
+    def makePolyFitSurface(self, verticesToUse, fileDir, count):
+
+        def poly_surface(coord, a, b, c, d, e, f):
+            x, y = coord
+            return a * x**2 + b * y**2 + c * x * y + d * x + e * y + f
+        
+        # Create a 2D coordinate grid
+        x = verticesToUse[:, 0]
+        z = verticesToUse[:, 2]
+        coord = np.vstack((x, z))
+
+        # y values are the heights for the surface
+        y = verticesToUse[:, 1]
+
+        # Fit the surface using SciPy's curve_fit function
+        popt, pcov = curve_fit(poly_surface, coord, y)
+
+        # Calculate distances from the points to the fitted surface
+        y_fit = poly_surface(coord, *popt)
+        distances = np.abs(y - y_fit)
+
+        # print("Distances: ", distances)
+
+        # Visualization using VTK
+
+        # Create a structured grid
+        grid = vtk.vtkStructuredGrid()
+
+        # Generate a grid over the x and z values
+        x_grid, z_grid = np.meshgrid(np.linspace(x.min(), x.max(), 100), np.linspace(z.min(), z.max(), 100))
+
+        # Compute y values over the grid
+        #curvefit returns values of params, so [a, b, c, d, e, f] coefficients
+        y_fit_grid = poly_surface((x_grid.ravel(), z_grid.ravel()), *popt)
+
+        # Combine x, y, z arrays to a single 3D array for the VTK grid
+        points = np.column_stack([x_grid.ravel(), y_fit_grid, z_grid.ravel()])
+        points_vtk = numpy_to_vtk(points, deep=1)
+
+        # Define points and grid
+        points = vtk.vtkPoints()
+        points.SetData(points_vtk)
+        grid.SetPoints(points)
+
+        # Set dimensions of the grid
+        grid.SetDimensions(x_grid.shape[0], x_grid.shape[1], 1)
+
+        # Save grid to a .vts file
+        writer = vtk.vtkXMLStructuredGridWriter()
+        writer.SetFileName(f"{fileDir}/polyfit_{count:05}.vts")
+        if vtk.VTK_MAJOR_VERSION <= 5:
+            writer.SetInput(grid)
+        else:
+            writer.SetInputData(grid)
         writer.Write()
 
         return 

@@ -81,10 +81,10 @@ class RunSetup_MeshHF:
         # c4 = 0 #0.2 #np.random.rand() / 1.5 #0.2 #for energy
         # c5 = 10 #np.random.rand() * 5 #for distances from original mesh
 
-        c1 = np.random.rand() * 10
-        c2 = np.random.rand() / 2.0
+        c1 = np.random.rand() * 20
+        c2 = np.random.rand()
         c3 = np.random.rand() * 5
-        c4 = np.random.rand() 
+        c4 = np.random.rand() * 5
         # c5 = np.random.rand() * 100
 
         #runName = runID + f'_c1_{c1:.2f}_c2_{c2:.2f}_c3_{c3:.2f}_c4_{c4:.2f}_c5_{c5:.2f}'  #runID + f"_c1_{c1.2f}_c2_{c2:03}_c3_{c3:03}_c4_{c4:03}"
@@ -111,13 +111,13 @@ class RunSetup_MeshHF:
         # def objectiveFunction(trimeshSolid):
         def objectiveFunction(trimeshSolid, unconstrainedFaces):
             
-            maxHFTerm = c1*self.fwd.calculateMaxHF(trimeshSolid)
-            sumHFTerm = c2*self.fwd.calculateHFMeshSum(trimeshSolid)
+            maxHFTerm = c1 * self.fwd.calculateMaxHF(trimeshSolid)
+            sumHFTerm = c2 * self.fwd.calculateHFMeshSum(trimeshSolid)
 
             normalsDiff = calculateNormalsDiff(trimeshSolid)
-            normalsPenalty = np.sum(normalsDiff) * c3
+            normalsPenalty = c3 * np.sum(normalsDiff)
 
-            energyTerm = c4*self.fwd.calculateIntegratedEnergy(trimeshSolid)
+            energyTerm = c4 * self.fwd.calculateIntegratedEnergy(trimeshSolid)
 
             #calc distance of each vertex to the original mesh
             #calc penalty for being too close to the original surface ()
