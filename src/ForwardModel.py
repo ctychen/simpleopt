@@ -36,6 +36,38 @@ class ForwardModel_MeshHF:
 
         return q_mesh_all
     
+        # from scipy.special import erfc
+        # # Convert to meters
+        # lq *= 1e-3
+        # S *= 1e-3
+        # psiaxis = PFC.ep.g['psiAxis']
+        # psiedge = PFC.ep.g['psiSep']
+        # deltaPsi = np.abs(psiedge - psiaxis)
+        # s_hat = psiN - PFC.psiMinLCFS
+        # # Gradient
+        # gradPsi = Bp*R
+        # xfm = gradPsi / deltaPsi
+        # # Decay width mapped to flux coordinates
+        # lq_hat = lq * xfm
+        # rho = s_hat/lq_hat
+        # rho_0 = S/(2.0*lq)
+        # #===Eich Profile as a function of psi
+        # q1 = 0.5 * np.exp(rho_0**2 - rho) * erfc(rho_0 - rho/(2*rho_0))
+
+    def calculateHFProfileMagnitudes(self, trimeshSolid):
+        from scipy.special import erfc
+        centers = trimeshSolid.triangles_center
+        #want to get x-vals of centers
+        x_centers = centers[:,0]
+        mean = 5.0
+        sigma = 1.0
+        l = 1.0
+
+        # q_all = 0.5 * np.exp(rho_0**2 - rho) * erfc(rho_0 - rho/(2*rho_0))
+        q_mag_all_centers = (l / 2) * np.exp((l/2)*(2*mean + l*sigma**2 - 2*x_centers)) * erfc((mean + l*sigma**2 - x_centers)/(np.sqrt(2) * sigma))
+        print(f"q magnitude on centers: {q_mag_all_centers}")
+        return q_mag_all_centers
+    
     
     def calculateHFDistribution(self, trimeshSolid):
         """
