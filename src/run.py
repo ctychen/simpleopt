@@ -58,7 +58,7 @@ class RunSetup_MeshHF:
 
         return
 
-    def runOptimization(self, runID="sweep"):
+    def runOptimization(self, runID="sweep3"):
         
         def calculateNormalsDiff(trimeshSolid):
             """
@@ -84,15 +84,21 @@ class RunSetup_MeshHF:
         # c4 = 0 #0.2 #np.random.rand() / 1.5 #0.2 #for energy
         # c5 = 10 #np.random.rand() * 5 #for distances from original mesh
 
-        c1 = np.random.rand() * 50
-        c2 = np.random.rand() 
-        c3 = np.random.rand() * 10
-        c4 = np.random.rand() * 10
-        # c5 = np.random.rand() * 200
+        # c1 = np.random.rand() * 50
+        # c2 = np.random.rand() 
+        # c3 = np.random.rand() * 10
+        # c4 = np.random.rand() * 10
+        # c5 = np.random.rand() * 100
+
+        c1 = 21.16
+        c2 = 0.0 #0.53
+        c3 = 8.95
+        c4 = 4.55
+        c5 = 0.0 #70.0 #35.0 #65.0 #60.23
 
         #runName = runID + f'_c1_{c1:.2f}_c2_{c2:.2f}_c3_{c3:.2f}_c4_{c4:.2f}_c5_{c5:.2f}'  #runID + f"_c1_{c1.2f}_c2_{c2:03}_c3_{c3:03}_c4_{c4:03}"
-        runName = runID + f'_c1_{c1:.2f}_c2_{c2:.2f}_c3_{c3:.2f}_c4_{c4:.2f}'
-        # runName = runID + f'_c1_{c1:.2f}_c2_{c2:.2f}_c3_{c3:.2f}_c4_{c4:.2f}_c5_{c5:.2f}'
+        # runName = runID + f'_c1_{c1:.2f}_c2_{c2:.2f}_c3_{c3:.2f}_c4_{c4:.2f}'
+        runName = runID + f'_c1_{c1:.2f}_c2_{c2:.2f}_c3_{c3:.2f}_c4_{c4:.2f}_c5_{c5:.2f}'
         runName = runName.replace(".", "-")
 
         directoryName = f"{runName}" #running this within docker container means can't save to external without bindmount aaa
@@ -124,7 +130,7 @@ class RunSetup_MeshHF:
             energyTerm = c4 * self.fwd.calculateIntegratedEnergy(trimeshSolid)
 
             #attempting to use this to see if we can encourage the mesh to go more convex?
-            distancesTerm = 0#c5 * np.sum(np.where(normalRefDotProducts < 0, -normalRefDotProducts, 0))
+            distancesTerm = c5 * np.sum(np.where(normalRefDotProducts < 0, -normalRefDotProducts, 0))
 
             return maxHFTerm + sumHFTerm + normalsPenalty + energyTerm + distancesTerm
 
