@@ -31,7 +31,7 @@ class OptModel_MeshHF:
         return
     
 
-    def gradientDescentHF(self, tri_mesh, objectiveFunction, allmeshelementsHF, unconstrainedFaces, delta, filedir, count):
+    def gradientDescentHF(self, tri_mesh, objectiveFunction, allmeshelementsHF, unconstrainedFaces, coefficientsList, delta, filedir, count):
         """
         gradient descent implementation for heat flux minimization
         takes in trimesh object and sorts elements by HF to deal with worst elements first
@@ -63,13 +63,15 @@ class OptModel_MeshHF:
                     for vertexIdx in face:  #vertexIdx is VERTEX INDICES
 
                         # obj_beforeMoving = objectiveFunction(tri_mesh)
-                        obj_beforeMoving = objectiveFunction(tri_mesh, unconstrainedFaces)
+                        obj_beforeMoving = objectiveFunction(tri_mesh, coefficientsList)
+                        # obj_beforeMoving = objectiveFunction(tri_mesh, unconstrainedFaces)
 
                         for j in range(3): #for every dimension - move the vertex a bit and calculate the change in objectiveFunction
 
                             tri_mesh.vertices[vertexIdx, j] += delta
                             # obj_afterMoving = objectiveFunction(tri_mesh)
-                            obj_afterMoving = objectiveFunction(tri_mesh, unconstrainedFaces)
+                            # obj_afterMoving = objectiveFunction(tri_mesh, unconstrainedFaces)
+                            obj_afterMoving = objectiveFunction(tri_mesh, coefficientsList)
 
                             tri_mesh.vertices[vertexIdx, j] -= delta
 
@@ -91,7 +93,7 @@ class OptModel_MeshHF:
         return trimeshSolid.vertices - (delta * gradient)
 
 
-    def meshHFOpt(self, hfObjectiveFcn, calcHFAllMesh, calcMaxHF, calcHFSum, meshObj, threshold, delta, id):
+    def meshHFOpt(self, hfObjectiveFcn, calcHFAllMesh, calcMaxHF, calcHFSum, meshObj, coefficientsList, threshold, delta, id):
     # def meshHFOpt(self, hfFunction, hfObjectiveFcn, meshObj, threshold, step, id):
         """
         runs optimization process until objective fcn value reaches stopping condition @ minimum
@@ -119,21 +121,20 @@ class OptModel_MeshHF:
 
         # unconstrainedVertices = trimeshSolid.vertices[unconstrainedVIdx]
 
-
-        all_objective_function_values = [hfObjectiveFcn(trimeshSolid, unconstrainedFaces)]
+        #all_objective_function_values = [hfObjectiveFcn(trimeshSolid, unconstrainedFaces)]a
+        all_objective_function_values = [hfObjectiveFcn(trimeshSolid, coefficientsList)]
         max_hf_each_run = [calcMaxHF(trimeshSolid)]
         sum_hf_each_run = [calcHFSum(trimeshSolid)] 
 
         print("Starting the mesh HF opt")
 
-        # print(f"Starting objective function value: {hfObjectiveFcn(trimeshSolid)}")
-        print(f"Starting objective function value: {hfObjectiveFcn(trimeshSolid, unconstrainedFaces)}")
-        #trimeshSolid.export(f"test{id}/original.stl")
+        # print(f"Starting objective function value: {hfObjectiveFcn(trimeshSolid, unconstrainedFaces)}")
+        print(f"Starting objective function value: {hfObjectiveFcn(trimeshSolid, coefficientsList)}")
 
         prev_objVal = 2000
         curr_objVal = 0
 
-        t0 = time.time()
+        # t0 = time.time()
 
         #adding the count < 200 for quick testing temporarily - 
         #want to check convergence really, really fast for a bunch of random options
@@ -144,16 +145,12 @@ class OptModel_MeshHF:
             hf_all_mesh = calcHFAllMesh(trimeshSolid)
             
             #calc the gradient
-            trimeshSolid = self.gradientDescentHF(trimeshSolid, hfObjectiveFcn, hf_all_mesh, unconstrainedFaces, delta, f"test{id}", count)
+            trimeshSolid = self.gradientDescentHF(trimeshSolid, hfObjectiveFcn, hf_all_mesh, unconstrainedFaces, coefficientsList, delta, f"test{id}", count)
 
-            print(f"Time elapsed for GD {count}: {time.time() - t0}")
+            # print(f"Time elapsed for GD {count}: {time.time() - t0}")
 
-            #trimeshSolid = newTrimesh
-
-            # trimeshSolid.export(f"test{id}/{count}.stl")
-
-            # new_objVal = hfObjectiveFcn(trimeshSolid)
-            new_objVal = hfObjectiveFcn(trimeshSolid, unconstrainedFaces)
+            # new_objVal = hfObjectiveFcn(trimeshSolid, unconstrainedFaces)
+            new_objVal = hfObjectiveFcn(trimeshSolid, coefficientsList)
             all_objective_function_values.append(new_objVal)
 
             prev_objVal = curr_objVal
@@ -172,34 +169,41 @@ class OptModel_MeshHF:
             # if count % 5 == 0:
             #     self.makePolyFitSurface(trimeshSolid.vertices[unconstrainedVIdx], f"{id}", count)
 
-            print(f"New objective function value: {new_objVal}")
+            # print(f"New objective function value: {new_objVal}")
 
-            if count and count % 20 == 0:#count % 5 == 0: 
-                x_count = np.linspace(0, len(all_objective_function_values), len(all_objective_function_values))
-                fig = px.scatter(x = x_count, y = all_objective_function_values)
-                fig.update_xaxes(title_text='Iterations')
-                fig.update_yaxes(title_text=f'Objective function: {hfObjectiveFcn.__name__}')
-                fig.show()            
-                output_file = f"{id}/objective_up_to_run_{count}.html"
-                pio.write_html(fig, output_file)
+            # if count and count % 20 == 0:#count % 5 == 0: 
+            #     x_count = np.linspace(0, len(all_objective_function_values), len(all_objective_function_values))
+            #     fig = px.scatter(x = x_count, y = all_objective_function_values)
+            #     fig.update_xaxes(title_text='Iterations')
+            #     fig.update_yaxes(title_text=f'Objective function: {hfObjectiveFcn.__name__}')
+            #     fig.show()            
+            #     output_file = f"{id}/objective_up_to_run_{count}.html"
+            #     pio.write_html(fig, output_file)
 
-                x_count = np.linspace(0, len(max_hf_each_run), len(max_hf_each_run))
-                fig = px.scatter(x = x_count, y = max_hf_each_run)
-                fig.update_xaxes(title_text='Iterations')
-                fig.update_yaxes(title_text=f'{calcMaxHF.__name__}')
-                fig.show()            
-                output_file = f"{id}/max_hf_up_to_run_{count}.html"
-                pio.write_html(fig, output_file)
+            #     x_count = np.linspace(0, len(max_hf_each_run), len(max_hf_each_run))
+            #     fig = px.scatter(x = x_count, y = max_hf_each_run)
+            #     fig.update_xaxes(title_text='Iterations')
+            #     fig.update_yaxes(title_text=f'{calcMaxHF.__name__}')
+            #     fig.show()            
+            #     output_file = f"{id}/max_hf_up_to_run_{count}.html"
+            #     pio.write_html(fig, output_file)
 
-                # #make VTK to display HF on surface
-                # self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"test{id}")
+            #     # #make VTK to display HF on surface
+            #     # self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"test{id}")
+
+            if count == 199 or count == 100: 
+                self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"{id}", count)
 
             count += 1
         
         self.plotRun(all_objective_function_values, max_hf_each_run, sum_hf_each_run, f"{id}")
+        finalMaxHF = np.min(max_hf_each_run)
+        print(f"Finished run, maxHF is {finalMaxHF}")
         
+        return finalMaxHF, trimeshSolid
+
         #when process is done, the mesh should have been modified - so return it 
-        return trimeshSolid
+        # return trimeshSolid
 
 
     def plotHFVTK(self, hfValues, trimeshSolid, fileDir, count):
