@@ -121,15 +121,17 @@ class OptModel_MeshHF:
 
         # unconstrainedVertices = trimeshSolid.vertices[unconstrainedVIdx]
 
-        #all_objective_function_values = [hfObjectiveFcn(trimeshSolid, unconstrainedFaces)]a
+        #all_objective_function_values = [hfObjectiveFcn(trimeshSolid, unconstrainedFaces)]
+
+        print(f"Objective function with coefficients: {coefficientsList}")
         all_objective_function_values = [hfObjectiveFcn(trimeshSolid, coefficientsList)]
         max_hf_each_run = [calcMaxHF(trimeshSolid)]
         sum_hf_each_run = [calcHFSum(trimeshSolid)] 
 
-        print("Starting the mesh HF opt")
+        # print("Starting the mesh HF opt")
 
         # print(f"Starting objective function value: {hfObjectiveFcn(trimeshSolid, unconstrainedFaces)}")
-        print(f"Starting objective function value: {hfObjectiveFcn(trimeshSolid, coefficientsList)}")
+        # print(f"Starting objective function value: {hfObjectiveFcn(trimeshSolid, coefficientsList)}")
 
         prev_objVal = 2000
         curr_objVal = 0
@@ -140,7 +142,7 @@ class OptModel_MeshHF:
         #want to check convergence really, really fast for a bunch of random options
         #these runs will also be lower res, at 2.5 instead of 2.0 or 1.0
 
-        while abs(prev_objVal - curr_objVal) > threshold and count < 200: 
+        while abs(prev_objVal - curr_objVal) > threshold and count < 150: #should be =200 but also testing right now
 
             hf_all_mesh = calcHFAllMesh(trimeshSolid)
             
@@ -191,12 +193,13 @@ class OptModel_MeshHF:
             #     # #make VTK to display HF on surface
             #     # self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"test{id}")
 
-            if count == 199 or count == 100: 
+            if count == 100: 
                 self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"{id}", count)
 
             count += 1
         
         self.plotRun(all_objective_function_values, max_hf_each_run, sum_hf_each_run, f"{id}")
+        self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"{id}", count)
         finalMaxHF = np.min(max_hf_each_run)
         print(f"Finished run, maxHF is {finalMaxHF}")
         
