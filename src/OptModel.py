@@ -116,7 +116,8 @@ class OptModel_MeshHF:
         unconstrainedVIdx = np.unique(trimeshSolid.faces[list(unconstrainedFaces)].ravel())
         #np.unique(trimeshSolid.faces[list(unconstrainedFaces).ravel()])
         #np.unique(trimeshSolid.faces[unconstrainedFaces].ravel())
-        unconstrainedVertices = trimeshSolid.vertices[unconstrainedVIdx]
+
+        # unconstrainedVertices = trimeshSolid.vertices[unconstrainedVIdx]
 
 
         all_objective_function_values = [hfObjectiveFcn(trimeshSolid, unconstrainedFaces)]
@@ -164,12 +165,12 @@ class OptModel_MeshHF:
             # new_sum_hf = calcHFSum(trimeshSolid) #hfAllMesh(trimeshSolid)
             # sum_hf_each_run.append(new_sum_hf)
 
-            #make VTK to display HF on surface
-            self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"{id}", count)
+            # #make VTK to display HF on surface
+            # self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"{id}", count)
 
-            if count % 5 == 0:
-                #self.makePolyFitSurface(unconstrainedVertices, f"{id}", count)
-                self.makePolyFitSurface(trimeshSolid.vertices[unconstrainedVIdx], f"{id}", count)
+            ##this is for plotting surface fit onto mesh
+            # if count % 5 == 0:
+            #     self.makePolyFitSurface(trimeshSolid.vertices[unconstrainedVIdx], f"{id}", count)
 
             print(f"New objective function value: {new_objVal}")
 
@@ -189,14 +190,6 @@ class OptModel_MeshHF:
                 fig.show()            
                 output_file = f"{id}/max_hf_up_to_run_{count}.html"
                 pio.write_html(fig, output_file)
-
-                # x_count = np.linspace(0, len(sum_hf_each_run), len(sum_hf_each_run))
-                # fig = px.scatter(x = x_count, y = sum_hf_each_run)
-                # fig.update_xaxes(title_text='Iterations')
-                # fig.update_yaxes(title_text=f'{calcHFSum.__name__}')
-                # fig.show()            
-                # output_file = f"test{id}/sum_hf_up_to_run_{count}.html"
-                # pio.write_html(fig, output_file)
 
                 # #make VTK to display HF on surface
                 # self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"test{id}")
@@ -270,8 +263,6 @@ class OptModel_MeshHF:
         y_fit = poly_surface(coord, *popt)
         distances = np.abs(y - y_fit)
 
-        # print("Distances: ", distances)
-
         # Visualization using VTK
 
         # Create a structured grid
@@ -327,14 +318,6 @@ class OptModel_MeshHF:
         fig.update_yaxes(title_text='Max HF')
         fig.show()            
         output_file = f"{outputDir}/max_hf_each_run.html"
-        pio.write_html(fig, output_file)
-
-        x_count = np.linspace(0, len(sum_hf_each_run), len(sum_hf_each_run))
-        fig = px.scatter(x = x_count, y = sum_hf_each_run)
-        fig.update_xaxes(title_text='Iterations')
-        fig.update_yaxes(title_text='Sum HF on mesh')
-        fig.show()            
-        output_file = f"{outputDir}/sum_hf_each_run.html"
         pio.write_html(fig, output_file)
 
         return 

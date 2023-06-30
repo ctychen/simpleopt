@@ -76,19 +76,6 @@ class RunSetup_MeshHF:
             normalRefDotProducts = np.dot(normals, reference_direction)
 
             return normalsDiffMagnitude, normalRefDotProducts
-        
-        
-        # c1 = 0 #10 #np.random.rand() * 10 #5.0 #for maxHF
-        # c2 = 0.1 #np.random.rand() / 1.5 #0.1 #for sum HF
-        # c3 = 0 #0.5 #np.random.rand() #/ 2.0 #0.5 #for normals of surfaces
-        # c4 = 0 #0.2 #np.random.rand() / 1.5 #0.2 #for energy
-        # c5 = 10 #np.random.rand() * 5 #for distances from original mesh
-
-        # c1 = np.random.rand() * 50
-        # c2 = np.random.rand() 
-        # c3 = np.random.rand() * 10
-        # c4 = np.random.rand() * 10
-        # c5 = np.random.rand() * 100
 
         c1 = 21.16
         c2 = 0.0 #0.53
@@ -132,29 +119,7 @@ class RunSetup_MeshHF:
             #attempting to use this to see if we can encourage the mesh to go more convex?
             distancesTerm = c5 * np.sum(np.where(normalRefDotProducts < 0, -normalRefDotProducts, 0))
 
-            return maxHFTerm + sumHFTerm + normalsPenalty + energyTerm + distancesTerm
-
-            #calc distance of each vertex to the original mesh
-            #calc penalty for being too close to the original surface ()
-            #trimesh signed distances: 
-            #points OUTSIDE the mesh will have NEGATIVE distance
-            #points within tol.merge of the surface will have POSITIVE distance
-            #points INSIDE the mesh will have POSITIVE distance
-            #and overall we want to force the mesh to move to OUTSIDE the original mesh if we don't want it punching through bottom
-
-            ## unconstrainedFaces is originally a set so we have to make a list first
-            # unconstrainedFaces = list(unconstrainedFaces)
-            # unconstrained_vertex_indices = np.unique(trimeshSolid.faces[unconstrainedFaces].ravel())
-            # unconstrainedVertices = trimeshSolid.vertices[unconstrained_vertex_indices]
-
-            # distances = trimesh.proximity.signed_distance(originalTrimesh, unconstrainedVertices)
-            # distancePenalty = -np.sum(np.abs(distances))
-            # distancesTerm = 0 #c5 * distancePenalty
-
-            #initially before anything moves this is going to be 0 for everything but will eventually change when elements start moving more
-            # if distancesTerm != 0.0: 
-            #     print(f"Distances term: {distancesTerm}")
-            
+            return maxHFTerm + sumHFTerm + normalsPenalty + energyTerm + distancesTerm            
             
 
         return self.opt.meshHFOpt(
