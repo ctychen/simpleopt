@@ -28,7 +28,7 @@ class ForwardModel_MeshHF:
         for magnitude in all_HF_magnitudes:
             all_center_HFs.append([magnitude, directionVector])
 
-        print(f"Made HF profile: {all_center_HFs}")
+        # print(f"Made HF profile: {all_center_HFs}")
         self.all_center_HFs = all_center_HFs
         return all_center_HFs
     
@@ -75,7 +75,7 @@ class ForwardModel_MeshHF:
             direction = self.all_center_HFs[i][1]
             q_mesh_all.append(-1 * (np.dot(normals[i], direction)) * magnitude)
         q_mesh_all = np.array(q_mesh_all)
-        print(f"q_mesh_all: {q_mesh_all}")
+        # print(f"q_mesh_all: {q_mesh_all}")
         return q_mesh_all
     
 
@@ -103,7 +103,8 @@ class ForwardModel_MeshHF:
 
         # q_all = 0.5 * np.exp(rho_0**2 - rho) * erfc(rho_0 - rho/(2*rho_0))
         q_mag_all_centers = (q_mag_max) * (l / 2) * np.exp((l/2)*(2*mean + l*sigma**2 - 2*x_centers)) * erfc((mean + l*sigma**2 - x_centers)/(np.sqrt(2) * sigma))
-        print(f"q magnitude on centers: {q_mag_all_centers}")
+        # print(f"q magnitude on centers: {q_mag_all_centers}")
+        # input()
         self.q_mag_all_centers = q_mag_all_centers
         return q_mag_all_centers
     
