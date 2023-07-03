@@ -8,6 +8,7 @@ class ForwardModel_MeshHF:
         self.solidObj = solidObj
         self.q_mag = q_mag #magnitude of applied q [W/m^2]
         self.q_dir = q_dir #direction of applied q, [x,y,z] [m]
+
         return
     
     
@@ -55,6 +56,10 @@ class ForwardModel_MeshHF:
         # q1 = 0.5 * np.exp(rho_0**2 - rho) * erfc(rho_0 - rho/(2*rho_0))
 
     def calculateHFProfileMagnitudes(self, trimeshSolid):
+        """
+        calc magnitudes of nonuniform heat flux on surface as function of x-coordinate of face center
+        eventually could use proper eich profile but for now using exponentially modified gaussian
+        """
         from scipy.special import erfc
         centers = trimeshSolid.triangles_center
         #want to get x-vals of centers
@@ -62,11 +67,40 @@ class ForwardModel_MeshHF:
         mean = 5.0
         sigma = 1.0
         l = 1.0
+        q_mag_max = self.q_mag #for now use qmag as maximum for qmag distribution
 
         # q_all = 0.5 * np.exp(rho_0**2 - rho) * erfc(rho_0 - rho/(2*rho_0))
-        q_mag_all_centers = (l / 2) * np.exp((l/2)*(2*mean + l*sigma**2 - 2*x_centers)) * erfc((mean + l*sigma**2 - x_centers)/(np.sqrt(2) * sigma))
+        q_mag_all_centers = (q_mag_max) * (l / 2) * np.exp((l/2)*(2*mean + l*sigma**2 - 2*x_centers)) * erfc((mean + l*sigma**2 - x_centers)/(np.sqrt(2) * sigma))
         print(f"q magnitude on centers: {q_mag_all_centers}")
         return q_mag_all_centers
+    
+    # def makeHFProfile(self, trimeshSolid, all_directions):
+    #     """
+    #     make profile with direction and magnitude of HF at each face center
+    #     """
+    #     all_center_HFs = []
+    #     all_HF_magnitudes = self.calculateHFProfileMagnitudes(trimeshSolid)
+    #     for i in range(len(all_HF_magnitudes)):
+    #         magnitude = all_HF_magnitudes[i]
+    #         direction = all_directions[i]
+    #         all_center_HFs.append([magnitude, direction])
+    #     print(f"Made HF profile: {all_center_HFs}")
+    #     return all_center_HFs
+    
+
+    def makeHFProfile(self, trimeshSolid, directionVector):
+        """
+        make profile with direction and magnitude of HF at each face center
+        this fcn is bc we currently have a uniform direction of HF everywhere so just 1 vector ok, but if not, 
+        use version above
+        """
+        all_center_HFs = []
+        all_HF_magnitudes = self.calculateHFProfileMagnitudes(trimeshSolid)
+        for i in range(len(all_HF_magnitudes)):
+            magnitude = all_HF_magnitudes[i]
+            all_center_HFs.append([magnitude, directionVector])
+        print(f"Made HF profile: {all_center_HFs}")
+        return all_center_HFs
     
     
     def calculateHFDistribution(self, trimeshSolid):

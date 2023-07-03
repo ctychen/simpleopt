@@ -274,13 +274,15 @@ class RunSetup_MeshHF:
         # self.makeSweepCSV(c1_runvals, c2_runvals, c3_runvals, c4_runvals, maxhf_vals, "sweep_c4")
         
         return
+    
+        # my_trimeshSolid = trimeshSolid.copy()
 
         # return self.opt.meshHFOpt(
         #     objectiveFunction,  
         #     self.fwd.calculateAllHF,
         #     self.fwd.calculateMaxHF,
         #     self.fwd.calculateIntegratedEnergy,
-        #     trimeshSolid, 
+        #     my_trimeshSolid, 
         #     coefficientsList,
         #     threshold=0.000001, 
         #     delta=0.01, 
