@@ -11,6 +11,33 @@ class ForwardModel_MeshHF:
 
         return
     
+    def eich_profile(self, s_bar, q0, lambda_q, S, q_BG):
+        """
+        Fits an Eich profile to heat flux data, using upstream-mapped
+        distance to remove the explicit flux-expansion factor
+
+        See Eich Nuclear Fusion 2013. Using s_bar as the OMP-mapped distance
+        means that you should set 'f_x' = 1
+
+        You can pass the parameters to the profile either all as dimensional
+        Quantity objects, or all as dimensionless raw arrays/floats
+
+        s_bar: OMP-mapped radial distance [mm]
+        q0: peak heat flux [MW/m^2]
+        lambda_q: heat flux decay width [mm]
+        S: spreading factor [mm]
+        q_BG: background heat-flux [MW/m^2]
+        """
+
+        from scipy.special import erfc
+
+        return (
+            q0/ 2.0
+            * np.exp((S / (2.0 * lambda_q)) ** 2 - s_bar / lambda_q)
+            * erfc(S / (2.0 * lambda_q) - s_bar / S)
+            + q_BG
+        )
+    
     
     def makeHFProfile(self, trimeshSolid, directionVector):
         """
@@ -85,6 +112,8 @@ class ForwardModel_MeshHF:
         eventually could use proper eich profile but for now using exponentially modified gaussian
         """
         from scipy.special import erfc
+        from scipy.stats import exponnorm
+
         centers = trimeshSolid.triangles_center
         
         # #want to get x-vals of centers
@@ -96,15 +125,38 @@ class ForwardModel_MeshHF:
 
         #for this overall we're calculating HF for every mesh element since this way don't need to track more indices for HF calculation later 
 
-        mean = 5.0
-        sigma = 1.0
-        l = 1.0
+        # mean = 5.0
+        # sigma = 1.0
+        # l = 1.0
+
+        # q_mag_all_centers = (q_mag_max) * (l / 2) * np.exp((l/2)*(2*mean + l*sigma**2 - 2*x_centers)) * erfc((mean + l*sigma**2 - x_centers)/(np.sqrt(2) * sigma))
+
+        # q_mag_all_centers = (q_mag_max) * np.exp((l/2)*(2*mean + l*sigma**2 - 2*x_centers)) * erfc((mean + l*sigma**2 - x_centers)/(np.sqrt(2) * sigma))
+
+        # Define parameters
+        K = 1.0  # This defines the "shape" of the curve (larger K -> more skew)
+        mu = 5.0  # This is the mean of the normal part of the distribution
+        sigma = 1.0  # This is the standard deviation of the normal part
         q_mag_max = self.q_mag #for now use qmag as maximum for qmag distribution
 
-        # q_all = 0.5 * np.exp(rho_0**2 - rho) * erfc(rho_0 - rho/(2*rho_0))
-        q_mag_all_centers = (q_mag_max) * (l / 2) * np.exp((l/2)*(2*mean + l*sigma**2 - 2*x_centers)) * erfc((mean + l*sigma**2 - x_centers)/(np.sqrt(2) * sigma))
-        # print(f"q magnitude on centers: {q_mag_all_centers}")
-        # input()
+        # Calculate the PDF at these x values
+        q_mag_all_centers = exponnorm.pdf(x_centers, K, loc=mu, scale=sigma) 
+        q_mag_all_centers = q_mag_all_centers * q_mag_max / np.max(q_mag_all_centers)
+
+        # s_bar: OMP-mapped radial distance [mm]
+        # q0: peak heat flux [MW/m^2]
+        # lambda_q: heat flux decay width [mm]
+        # S: spreading factor [mm]
+        # q_BG: background heat-flux [MW/m^2]        
+
+        # eich_profile(s_bar, q0, lambda_q, S, q_BG)
+            # q0/ 2.0
+            # * np.exp((S / (2.0 * lambda_q)) ** 2 - s_bar / lambda_q)
+            # * erfc(S / (2.0 * lambda_q) - s_bar / S)
+            # + q_BG
+
+        # q_mag_all_centers = self.eich_profile(x_centers, q_mag_max, 0.5, 0.5, 0.0)
+
         self.q_mag_all_centers = q_mag_all_centers
         return q_mag_all_centers
     

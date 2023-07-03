@@ -50,7 +50,7 @@ class RunSetup_MeshHF:
 
         stlPath = " " #"box.stl"
         qDirIn = [0.0, -1.0, 0.0] #[m]
-        qMagIn = 50.0 #10.0 #[W/m^2]
+        qMagIn = 10.0 #[W/m^2]
 
         self.box = Solid.MeshSolid(stlPath, stpPath)
         #self.box = Solid.MeshSolid(stlPath, stpPath) #normally, use this one!
@@ -172,7 +172,7 @@ class RunSetup_MeshHF:
         coefficientsList = [21.16, 1.00, 8.95, 4.55]
         my_trimeshSolid = trimeshSolid.copy()
 
-        directoryName = self.makeDirectories("015_nonuniform", coefficientsList)
+        directoryName = self.makeDirectories("016_nonuniform", coefficientsList)
         maxHF, new_trimeshSolid = self.opt.meshHFOpt(
             objectiveFunction,  
             self.fwd.calculateAllHF,
@@ -183,7 +183,7 @@ class RunSetup_MeshHF:
             threshold=0.000001, 
             delta=0.01, 
             id=directoryName
-        )[0]
+        )
 
         return maxHF, new_trimeshSolid
 
