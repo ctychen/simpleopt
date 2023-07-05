@@ -36,36 +36,51 @@ class ForwardModel_MeshHF:
 
         return q_mesh_all
     
-        # from scipy.special import erfc
-        # # Convert to meters
-        # lq *= 1e-3
-        # S *= 1e-3
-        # psiaxis = PFC.ep.g['psiAxis']
-        # psiedge = PFC.ep.g['psiSep']
-        # deltaPsi = np.abs(psiedge - psiaxis)
-        # s_hat = psiN - PFC.psiMinLCFS
-        # # Gradient
-        # gradPsi = Bp*R
-        # xfm = gradPsi / deltaPsi
-        # # Decay width mapped to flux coordinates
-        # lq_hat = lq * xfm
-        # rho = s_hat/lq_hat
-        # rho_0 = S/(2.0*lq)
-        # #===Eich Profile as a function of psi
-        # q1 = 0.5 * np.exp(rho_0**2 - rho) * erfc(rho_0 - rho/(2*rho_0))
+
+    def makeHFProfile(self, trimeshSolid, directionVector):
+        """
+        make profile with direction and magnitude of HF at each face center
+        this fcn is bc we currently have a uniform direction of HF everywhere so just 1 vector ok, but if not, 
+        use version above
+        """
+        all_center_HFs = []
+        #but also we shouldn't be doing this for all faces, only top faces? 
+        all_HF_magnitudes = self.calculateHFProfileMagnitudes(trimeshSolid)
+        # for i in range(len(all_HF_magnitudes)):
+        #     magnitude = all_HF_magnitudes[i]
+        #     all_center_HFs.append([magnitude, directionVector])
+
+        for magnitude in all_HF_magnitudes:
+            all_center_HFs.append([magnitude, directionVector])
+
+        # print(f"Made HF profile: {all_center_HFs}")
+        self.all_center_HFs = all_center_HFs
+        return all_center_HFs
+    
 
     def calculateHFProfileMagnitudes(self, trimeshSolid):
+        """
+        calc magnitudes of nonuniform heat flux on surface as function of x-coordinate of face center
+        eventually could use proper eich profile but for now using exponentially modified gaussian
+        """
         from scipy.special import erfc
-        centers = trimeshSolid.triangles_center
-        #want to get x-vals of centers
-        x_centers = centers[:,0]
-        mean = 5.0
-        sigma = 1.0
-        l = 1.0
+        from scipy.stats import exponnorm
 
-        # q_all = 0.5 * np.exp(rho_0**2 - rho) * erfc(rho_0 - rho/(2*rho_0))
-        q_mag_all_centers = (l / 2) * np.exp((l/2)*(2*mean + l*sigma**2 - 2*x_centers)) * erfc((mean + l*sigma**2 - x_centers)/(np.sqrt(2) * sigma))
-        print(f"q magnitude on centers: {q_mag_all_centers}")
+        centers = trimeshSolid.triangles_center
+
+        x_centers = centers[:,0] #isolate x-values of the centers
+
+        # Define parameters
+        K = 0.5 #1.0  # This defines the "shape" of the curve (larger K -> more skew)
+        mu = 5.0  # This is the mean of the normal part of the distribution
+        sigma = 2.5 #1.0  # This is the standard deviation of the normal part
+        q_mag_max = self.q_mag #for now use qmag as maximum for qmag distribution
+
+        # Calculate the PDF at these x values
+        q_mag_all_centers = exponnorm.pdf(x_centers, K, loc=mu, scale=sigma) 
+        q_mag_all_centers = q_mag_all_centers * q_mag_max / np.max(q_mag_all_centers)
+
+        self.q_mag_all_centers = q_mag_all_centers
         return q_mag_all_centers
     
     
@@ -127,6 +142,23 @@ class ForwardModel_MeshHF:
         """
         q_mesh_all = self.calculateAllHF(trimeshSolid)
         return np.max(q_mesh_all)
+    
+    def filteredCalculateMaxHF(self, trimeshSolid, unconstrainedFaces):
+        """
+        Find highest heat flux from mesh element heat fluxes, but only consider faces in unconstrainedFaces
+        """
+        # q_mesh_all = self.calculateAllHF(trimeshSolid)
+        # for idx in range(len(q_mesh_all)):
+        #     if idx not in unconstrainedFaces:
+        #         q_mesh_all[idx] = 0
+
+        unconstrainedFaces = list(unconstrainedFaces) #convert to list if not already, and unconstrainedFaces may be a set originally so 
+        q_mesh_all = self.calculateAllHF(trimeshSolid)
+        mask = np.ones(q_mesh_all.shape, dtype=bool)
+        mask[unconstrainedFaces] = False
+        q_mesh_all[mask] = 0
+        return np.max(q_mesh_all)
+
     
     
     
