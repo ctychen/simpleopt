@@ -128,6 +128,9 @@ class OptModel_MeshHF:
         max_hf_each_run = [calcMaxHF(trimeshSolid)]
         sum_hf_each_run = [calcHFSum(trimeshSolid)] 
 
+        # make VTK to display HF on surface
+        self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"{id}", count=4242)
+
         # print("Starting the mesh HF opt")
 
         # print(f"Starting objective function value: {hfObjectiveFcn(trimeshSolid, unconstrainedFaces)}")
@@ -142,9 +145,10 @@ class OptModel_MeshHF:
         #want to check convergence really, really fast for a bunch of random options
         #these runs will also be lower res, at 2.5 instead of 2.0 or 1.0
 
-        while abs(prev_objVal - curr_objVal) > threshold and count < 101: #150: #should be =200 but also testing right now
+        while abs(prev_objVal - curr_objVal) > threshold and count < 150: #should be =200 but also testing right now
 
             hf_all_mesh = calcHFAllMesh(trimeshSolid)
+
             
             #calc the gradient
             trimeshSolid = self.gradientDescentHF(trimeshSolid, hfObjectiveFcn, hf_all_mesh, unconstrainedFaces, coefficientsList, delta, f"test{id}", count)
@@ -163,9 +167,6 @@ class OptModel_MeshHF:
 
             # new_sum_hf = calcHFSum(trimeshSolid) #hfAllMesh(trimeshSolid)
             # sum_hf_each_run.append(new_sum_hf)
-
-            # #make VTK to display HF on surface
-            # self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"{id}", count)
 
             ##this is for plotting surface fit onto mesh
             # if count % 5 == 0:
@@ -193,7 +194,7 @@ class OptModel_MeshHF:
             #     # #make VTK to display HF on surface
             #     # self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"test{id}")
 
-            if count == 100: 
+            if count % 5 == 0: #== 100: 
                 self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"{id}", count)
 
             count += 1
