@@ -90,11 +90,6 @@ class ForwardModel_MeshHF:
         calculate HF on every mesh element, but this should use nonuniform HF on mesh element centers
         """
         normals = trimeshSolid.face_normals
-        #self.all_center_HFs is a list of lists, where each sublist is [magnitude, direction]
-        #so we want to get the magnitudes and multiply that by dot product of direction vector with normal vector like before
-        #self.all_center_HFs[i][0] is the magnitude of the ith element, and self.all_center_HFs[i][1] is the direction vector
-        #so we want to get the dot product of self.all_center_HFs[i][1] with normals
-        #and then multiply that by self.all_center_HFs[i][0]
         
         q_mesh_all = []
         for i in range(len(self.all_center_HFs)):
@@ -102,7 +97,6 @@ class ForwardModel_MeshHF:
             direction = self.all_center_HFs[i][1]
             q_mesh_all.append(-1 * (np.dot(normals[i], direction)) * magnitude)
         q_mesh_all = np.array(q_mesh_all)
-        # print(f"q_mesh_all: {q_mesh_all}")
         return q_mesh_all
     
 
@@ -134,9 +128,9 @@ class ForwardModel_MeshHF:
         # q_mag_all_centers = (q_mag_max) * np.exp((l/2)*(2*mean + l*sigma**2 - 2*x_centers)) * erfc((mean + l*sigma**2 - x_centers)/(np.sqrt(2) * sigma))
 
         # Define parameters
-        K = 1.0  # This defines the "shape" of the curve (larger K -> more skew)
+        K = 0.5 #1.0  # This defines the "shape" of the curve (larger K -> more skew)
         mu = 5.0  # This is the mean of the normal part of the distribution
-        sigma = 1.0  # This is the standard deviation of the normal part
+        sigma = 2.5 #1.0  # This is the standard deviation of the normal part
         q_mag_max = self.q_mag #for now use qmag as maximum for qmag distribution
 
         # Calculate the PDF at these x values

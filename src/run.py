@@ -172,7 +172,7 @@ class RunSetup_MeshHF:
         coefficientsList = [21.16, 1.00, 8.95, 4.55]
         my_trimeshSolid = trimeshSolid.copy()
 
-        directoryName = self.makeDirectories("016_nonuniform", coefficientsList)
+        directoryName = self.makeDirectories("018_nonuniform", coefficientsList)
         maxHF, new_trimeshSolid = self.opt.meshHFOpt(
             objectiveFunction,  
             self.fwd.calculateAllHF,
