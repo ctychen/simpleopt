@@ -142,7 +142,7 @@ class OptModel_MeshHF:
         #want to check convergence really, really fast for a bunch of random options
         #these runs will also be lower res, at 2.5 instead of 2.0 or 1.0
 
-        while abs(prev_objVal - curr_objVal) > threshold and count < 150: #should be =200 but also testing right now
+        while abs(prev_objVal - curr_objVal) > threshold and count < 101: #150: #should be =200 but also testing right now
 
             hf_all_mesh = calcHFAllMesh(trimeshSolid)
             
