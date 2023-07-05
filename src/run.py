@@ -118,25 +118,6 @@ class RunSetup_MeshHF:
 
             return normalsDiffMagnitude, normalRefDotProducts
 
-        # c1 = 21.16
-        # c2 = 0.0 
-        # c3 = 8.95
-        # c4 = 4.55
-        # c5 = 0.0 
-
-        # runName = runID + f'_c1_{c1:.2f}_c2_{c2:.2f}_c3_{c3:.2f}_c4_{c4:.2f}_c5_{c5:.2f}'
-        # runName = runName.replace(".", "-")
-
-        # directoryName = f"{runName}" #running this within docker container means can't save to external without bindmount aaa
-
-        # os.makedirs(directoryName)
-        # os.makedirs(f"{directoryName}/images")
-
-        # print(f"Made directory: {directoryName}")
-
-        # #where we are saving generated vtk's
-        # directoryName = f"{directoryName}/vtks"
-        # os.makedirs(directoryName)
 
         self.box.processSolid()
         trimeshSolid = self.box.trimeshSolid
@@ -171,125 +152,42 @@ class RunSetup_MeshHF:
             return maxHFTerm + sumHFTerm + normalsPenalty + energyTerm + distancesTerm            
             
 
-        c1_runvals = []
-        c2_runvals = []
-        c3_runvals = []
-        c4_runvals = []
-        maxhf_vals = []
+        def sweep_coefficients_and_record_output(coefficients_list, idx_to_vary, sweep_values):
+            """
+            run through possible values of one coefficient while keeping the rest fixed
+            do optimization and save results and attempted combinations to csv
+            """
 
-        # C1: 21.16
-        # C2: 0.53
-        # C3: 8.95
-        # C4: 4.55
+            c1_runvals = []
+            c2_runvals = []
+            c3_runvals = []
+            c4_runvals = []
+            maxhf_vals = []
 
-        # # c1_sweep = [5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 35.0]
-        # # c1_sweep = [0.0, 1.0, 3.0, 50.0]
-        # c1_sweep = [5, 10, 15, 20, 25]
-        # for c1 in c1_sweep:
-        #     my_trimeshSolid = trimeshSolid.copy()
-        #     # coefficientsList = [c1, 0.53, 8.95, 4.55]
-        #     coefficientsList = [c1, 0.0, 0.0, 0.0]
-        #     directoryName = self.makeDirectories("sweep_c1", coefficientsList)
-        #     maxHF = self.opt.meshHFOpt(
-        #         objectiveFunction,  
-        #         self.fwd.calculateAllHF,
-        #         self.fwd.calculateMaxHF,
-        #         self.fwd.calculateIntegratedEnergy,
-        #         my_trimeshSolid, 
-        #         coefficientsList,
-        #         threshold=0.000001, 
-        #         delta=0.01, 
-        #         id=directoryName
-        #     )[0]
-        #     c1_runvals.append(c1)
-        #     c2_runvals.append(coefficientsList[1])
-        #     c3_runvals.append(coefficientsList[2])
-        #     c4_runvals.append(coefficientsList[3])
-        #     maxhf_vals.append(maxHF)
+            for val in sweep_values:
+                my_trimeshSolid = trimesh.copy()
+                coefficients_list[idx_to_vary] = val
+                directoryName = self.makeDirectories(f"sweep_c{idx_to_vary}", coefficients_list)
+                maxHF = self.opt.meshHFOpt(
+                    objectiveFunction,  
+                    self.fwd.calculateAllHF,
+                    self.fwd.filteredCalculateMaxHF, #self.fwd.calculateMaxHF,
+                    self.fwd.calculateIntegratedEnergy,
+                    my_trimeshSolid, 
+                    coefficientsList,
+                    threshold=0.000001, 
+                    delta=0.01, 
+                    id=directoryName
+                )[0]
+                c1_runvals.append(coefficients_list[0])
+                c2_runvals.append(coefficients_list[1])
+                c3_runvals.append(coefficients_list[2])
+                c4_runvals.append(coefficients_list[3])
+                maxhf_vals.append(maxHF)
+            
+            self.makeSweepCSV(c1_runvals, c2_runvals, c3_runvals, c4_runvals, maxhf_vals, f"sweep_c{idx_to_vary}")
+            return 
 
-        # self.makeSweepCSV(c1_runvals, c2_runvals, c3_runvals, c4_runvals, maxhf_vals, "sweep3_c1")
-
-        # # c2_sweep = [0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4]
-        # # c2_sweep = [0.0, 0.1, 0.2, 0.3]
-        # c2_sweep = [0.2, 0.4, 0.6, 0.8, 1.0]
-        # for c2 in c2_sweep:
-        #     my_trimeshSolid = trimeshSolid.copy()
-        #     # coefficientsList = [21.16, c2, 8.95, 4.55]
-        #     coefficientsList = [0.0, c2, 0.0, 0.0]
-        #     directoryName = self.makeDirectories("sweep_c2", coefficientsList)
-        #     maxHF = self.opt.meshHFOpt(
-        #         objectiveFunction,  
-        #         self.fwd.calculateAllHF,
-        #         self.fwd.calculateMaxHF,
-        #         self.fwd.calculateIntegratedEnergy,
-        #         my_trimeshSolid, 
-        #         coefficientsList,
-        #         threshold=0.000001, 
-        #         delta=0.01, 
-        #         id=directoryName
-        #     )[0]
-        #     c1_runvals.append(coefficientsList[0])
-        #     c2_runvals.append(c2)
-        #     c3_runvals.append(coefficientsList[2])
-        #     c4_runvals.append(coefficientsList[3])
-        #     maxhf_vals.append(maxHF)
-
-        # self.makeSweepCSV(c1_runvals, c2_runvals, c3_runvals, c4_runvals, maxhf_vals, "sweep3_c2")
-
-        # # c3_sweep = [2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0]
-        # c3_sweep = [0.0, 0.5, 1.0, 1.5]
-        # c3_sweep = [4.0, 6.0, 8.0, 10.0, 12.0, 14.0]
-        # for c3 in c3_sweep:
-        #     my_trimeshSolid = trimeshSolid.copy()
-        #     # coefficientsList = [21.16, 0.53, c3, 4.55]
-        #     coefficientsList = [0.0, 0.0, c3, 0.0]
-        #     directoryName = self.makeDirectories("sweep_c3", coefficientsList)
-        #     maxHF = self.opt.meshHFOpt(
-        #         objectiveFunction,  
-        #         self.fwd.calculateAllHF,
-        #         self.fwd.calculateMaxHF,
-        #         self.fwd.calculateIntegratedEnergy,
-        #         my_trimeshSolid, 
-        #         coefficientsList,
-        #         threshold=0.000001, 
-        #         delta=0.01, 
-        #         id=directoryName
-        #     )[0]
-        #     c1_runvals.append(coefficientsList[0])
-        #     c2_runvals.append(coefficientsList[1])
-        #     c3_runvals.append(c3)
-        #     c4_runvals.append(coefficientsList[3])
-        #     maxhf_vals.append(maxHF)
-
-        # self.makeSweepCSV(c1_runvals, c2_runvals, c3_runvals, c4_runvals, maxhf_vals, "sweep3_c3")
-
-        # # c4_sweep = [0.0, 2.0, 4.0, 6.0, 8.0, 10.0, 12.0]
-        # # c4_sweep = [2.0, 4.0, 6.0, 8.0, 10.0, 12.0]
-        # c4_sweep = [4.55]
-        # for c4 in c4_sweep:
-        #     my_trimeshSolid = trimeshSolid.copy()
-        #     # coefficientsList = [21.16, 0.53, 8.95, c4]
-        #     # coefficientsList = [0, 0, 0, c4]
-        #     coefficientsList = [35.0, 1.0, 14.0, c4]
-        #     directoryName = self.makeDirectories("sweep4", coefficientsList)
-        #     maxHF = self.opt.meshHFOpt(
-        #         objectiveFunction,  
-        #         self.fwd.calculateAllHF,
-        #         self.fwd.calculateMaxHF,
-        #         self.fwd.calculateIntegratedEnergy,
-        #         my_trimeshSolid, 
-        #         coefficientsList,
-        #         threshold=0.000001, 
-        #         delta=0.01, 
-        #         id=directoryName
-        #     )[0]
-        #     c1_runvals.append(coefficientsList[0])
-        #     c2_runvals.append(coefficientsList[1])
-        #     c3_runvals.append(coefficientsList[2])
-        #     c4_runvals.append(c4)
-        #     maxhf_vals.append(maxHF)
-
-        # self.makeSweepCSV(c1_runvals, c2_runvals, c3_runvals, c4_runvals, maxhf_vals, "sweep4")
 
         # #more runs 
         my_trimeshSolid = trimeshSolid.copy()
@@ -310,30 +208,7 @@ class RunSetup_MeshHF:
                 id=directoryName
         )[0]
         
-        return
-
-        # return self.opt.meshHFOpt(
-        #     objectiveFunction,  
-        #     self.fwd.calculateAllHF,
-        #     self.fwd.calculateMaxHF,
-        #     self.fwd.calculateIntegratedEnergy,
-        #     trimeshSolid, 
-        #     coefficientsList,
-        #     threshold=0.000001, 
-        #     delta=0.01, 
-        #     id=directoryName
-        # )
-
-        # return self.opt.meshHFOpt(
-        #     objectiveFunction,  
-        #     self.fwd.calculateAllHF,
-        #     self.fwd.calculateMaxHF,
-        #     self.fwd.calculateIntegratedEnergy,
-        #     trimeshSolid, 
-        #     threshold=0.000001, 
-        #     delta=0.01, 
-        #     id=directoryName
-        # )
+        return maxHF
 
 
 if __name__ == '__main__':
