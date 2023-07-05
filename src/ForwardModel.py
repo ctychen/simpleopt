@@ -111,13 +111,23 @@ class ForwardModel_MeshHF:
         return self.calculateHFDistribution(trimeshSolid)[3]
     
 
-    def calculateHFMeshSum(self, trimeshSolid):
+    # def calculateHFMeshSum(self, trimeshSolid):
+    #     """
+    #     Calculate sum of heat flux from all mesh elements
+    #     """
+
+    #     normals = trimeshSolid.face_normals
+    #     q_mesh_all = -1 * (np.dot(normals, self.q_dir)) * self.q_mag
+
+    #     q_mesh_vals = np.where(q_mesh_all > 0, q_mesh_all, 0)
+    #     q_mesh_sum = np.sum(np.abs(q_mesh_vals))
+
+    #     return q_mesh_sum
+
+    def calculateHFMeshSum(self, q_mesh_all):
         """
         Calculate sum of heat flux from all mesh elements
         """
-
-        normals = trimeshSolid.face_normals
-        q_mesh_all = -1 * (np.dot(normals, self.q_dir)) * self.q_mag
 
         q_mesh_vals = np.where(q_mesh_all > 0, q_mesh_all, 0)
         q_mesh_sum = np.sum(np.abs(q_mesh_vals))
@@ -125,39 +135,56 @@ class ForwardModel_MeshHF:
         return q_mesh_sum
     
 
-    def calculateIntegratedEnergy(self, trimeshSolid):
-        normals = trimeshSolid.face_normals
-        faceAreas = trimeshSolid.area_faces
-        q_vals = -1 * (np.dot(normals, self.q_dir)) * self.q_mag
-        mesh_q_dot_areas = q_vals * faceAreas
+    # def calculateIntegratedEnergy(self, trimeshSolid):
+    #     normals = trimeshSolid.face_normals
+    #     faceAreas = trimeshSolid.area_faces
+    #     q_vals = -1 * (np.dot(normals, self.q_dir)) * self.q_mag
+    #     mesh_q_dot_areas = q_vals * faceAreas
 
+    #     prods = np.where(mesh_q_dot_areas > 0, mesh_q_dot_areas, 0)
+    #     mesh_energy = np.sum(np.abs(prods))
+
+    #     return mesh_energy
+    
+    def calculateIntegratedEnergy(self, q_mesh_all, trimeshSolid):
+        faceAreas = trimeshSolid.area_faces
+        mesh_q_dot_areas = q_mesh_all * faceAreas
         prods = np.where(mesh_q_dot_areas > 0, mesh_q_dot_areas, 0)
         mesh_energy = np.sum(np.abs(prods))
-
         return mesh_energy
     
-    def calculateMaxHF(self, trimeshSolid):
-        """
-        Find single highest heat flux from all mesh element heat fluxes
-        """
-        q_mesh_all = self.calculateAllHF(trimeshSolid)
+    def calculateMaxHF(self, q_mesh_all):
         return np.max(q_mesh_all)
     
-    def filteredCalculateMaxHF(self, trimeshSolid, unconstrainedFaces):
-        """
-        Find highest heat flux from mesh element heat fluxes, but only consider faces in unconstrainedFaces
-        """
-        # q_mesh_all = self.calculateAllHF(trimeshSolid)
-        # for idx in range(len(q_mesh_all)):
-        #     if idx not in unconstrainedFaces:
-        #         q_mesh_all[idx] = 0
+    # def calculateMaxHF(self, trimeshSolid):
+    #     """
+    #     Find single highest heat flux from all mesh element heat fluxes
+    #     """
+    #     q_mesh_all = self.calculateAllHF(trimeshSolid)
+    #     return np.max(q_mesh_all)
 
-        unconstrainedFaces = list(unconstrainedFaces) #convert to list if not already, and unconstrainedFaces may be a set originally so 
-        q_mesh_all = self.calculateAllHF(trimeshSolid)
+    def filteredCalculateMaxHF(self, q_mesh_all, unconstrainedFaces):
+        unconstrainedFaces = list(unconstrainedFaces) 
         mask = np.ones(q_mesh_all.shape, dtype=bool)
         mask[unconstrainedFaces] = False
         q_mesh_all[mask] = 0
         return np.max(q_mesh_all)
+    
+    # def filteredCalculateMaxHF(self, trimeshSolid, unconstrainedFaces):
+    #     """
+    #     Find highest heat flux from mesh element heat fluxes, but only consider faces in unconstrainedFaces
+    #     """
+    #     # q_mesh_all = self.calculateAllHF(trimeshSolid)
+    #     # for idx in range(len(q_mesh_all)):
+    #     #     if idx not in unconstrainedFaces:
+    #     #         q_mesh_all[idx] = 0
+
+    #     unconstrainedFaces = list(unconstrainedFaces) #convert to list if not already, and unconstrainedFaces may be a set originally so 
+    #     q_mesh_all = self.calculateAllHF(trimeshSolid)
+    #     mask = np.ones(q_mesh_all.shape, dtype=bool)
+    #     mask[unconstrainedFaces] = False
+    #     q_mesh_all[mask] = 0
+    #     return np.max(q_mesh_all)
 
     
     

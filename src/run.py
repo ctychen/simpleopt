@@ -156,13 +156,15 @@ class RunSetup_MeshHF:
 
             c5 = coefficientsList[4] #heat flux diff term
 
-            maxHFTerm = c1 * self.fwd.filteredCalculateMaxHF(trimeshSolid, unconstrainedFaces), 
-            sumHFTerm = c2 * self.fwd.calculateHFMeshSum(trimeshSolid)
+            q_mesh_all = self.fwd.calculateAllHF(trimeshSolid)
+
+            maxHFTerm = c1 * self.fwd.filteredCalculateMaxHF(q_mesh_all) #self.fwd.filteredCalculateMaxHF(trimeshSolid, unconstrainedFaces), 
+            sumHFTerm = c2 * self.fwd.calculateHFMeshSum(q_mesh_all) #self.fwd.calculateHFMeshSum(trimeshSolid)
 
             normalsDiff, normalRefDotProducts = calculateNormalsDiff(trimeshSolid)
             normalsPenalty = c3 * np.sum(normalsDiff)
 
-            energyTerm = c4 * self.fwd.calculateIntegratedEnergy(trimeshSolid)
+            energyTerm = c4 * self.fwd.calculateIntegratedEnergy(q_mesh_all) #self.fwd.calculateIntegratedEnergy(trimeshSolid)
 
             hfDiffTerm = c5 * np.sum(calculateHeatFluxDiff(trimeshSolid))
 

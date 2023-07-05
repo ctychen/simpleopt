@@ -136,8 +136,10 @@ class OptModel_MeshHF:
         # all_objective_function_values = [hfObjectiveFcn(trimeshSolid, coefficientsList)]
         all_objective_function_values = [hfObjectiveFcn(trimeshSolid, coefficientsList, unconstrainedFaces)]
         # max_hf_each_run = [calcMaxHF(trimeshSolid)]
-        max_hf_each_run = [calcMaxHF(trimeshSolid, unconstrainedFaces)]
-        sum_hf_each_run = [calcHFSum(trimeshSolid)] 
+        # max_hf_each_run = [calcMaxHF(trimeshSolid, unconstrainedFaces)]
+        max_hf_each_run = [calcMaxHF(hf_all_mesh, unconstrainedFaces)]
+        # sum_hf_each_run = [calcHFSum(trimeshSolid)] 
+        sum_hf_each_run = [calcHFSum(hf_all_mesh)]
 
         # make VTK to display HF on surface
         self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"{id}", count=4242)
@@ -167,7 +169,8 @@ class OptModel_MeshHF:
             curr_objVal = new_objVal
 
             # new_max_hf = calcMaxHF(trimeshSolid)
-            new_max_hf = calcMaxHF(trimeshSolid, unconstrainedFaces)
+            # new_max_hf = calcMaxHF(trimeshSolid, unconstrainedFaces)
+            new_max_hf = calcMaxHF(hf_all_mesh, unconstrainedFaces)
             max_hf_each_run.append(new_max_hf)
 
             # new_sum_hf = calcHFSum(trimeshSolid) #hfAllMesh(trimeshSolid)
