@@ -50,10 +50,10 @@ class RunSetup_MeshHF:
 
         stlPath = " " #"box.stl"
         # qDirIn = [0.0, -1.0, 0.0] #[m]
-        # qDirIn = [0.707, -0.707, 0.0] #[m]
+        qDirIn = [0.707, -0.707, 0.0] #[m]
         # qDirIn = [-0.707, -0.707, 0.0] #[m]
         # qDirIn = [0.0, -0.707, 0.707] #[m]
-        qDirIn = [0.0, -0.707, -0.707] #[m]
+        # qDirIn = [0.0, -0.707, -0.707] #[m]
         qMagIn = 10.0 #[W/m^2]
 
         self.box = Solid.MeshSolid(stlPath, stpPath)
@@ -70,7 +70,8 @@ class RunSetup_MeshHF:
         c2 = coefficientsList[1]
         c3 = coefficientsList[2]
         c4 = coefficientsList[3]
-        runName = runID + f'_c1_{c1:.2f}_c2_{c2:.2f}_c3_{c3:.2f}_c4_{c4:.2f}'
+        c5 = coefficientsList[4]
+        runName = runID + f'_c1_{c1:.2f}_c2_{c2:.2f}_c3_{c3:.2f}_c4_{c4:.2f}_c5_{c5:.2f}' #f'_c1_{c1:.2f}_c2_{c2:.2f}_c3_{c3:.2f}_c4_{c4:.2f}'
         runName = runName.replace(".", "-")
 
         directoryName = f"{runName}" #running this within docker container means can't save to external without bindmount aaa
@@ -122,19 +123,39 @@ class RunSetup_MeshHF:
         self.box.processSolid()
         trimeshSolid = self.box.trimeshSolid
         # trimeshSolid.export(f"{directoryName}/initial.stl")
+
+        def findConstrainedFaces(mesh_center_xvals, mesh_center_yvals, mesh_center_zvals):
+            return np.where((mesh_center_yvals == 10.0))[0]
+            #return np.where((mesh_center_yvals == 10.0) | (mesh_center_xvals == 0.0) | (mesh_center_xvals == 10.0) | (mesh_center_zvals == 0.0) | (mesh_center_zvals == 10.0))[0]
         
-        # def objectiveFunction(trimeshSolid, unconstrainedFaces):
-        # def objectiveFunction(trimeshSolid, coefficientsList):
+        def calculateHeatFluxDiff(trimeshSolid):
+            adjacency_info = trimeshSolid.face_adjacency
+
+            allHF = self.fwd.calculateAllHF(trimeshSolid)
+            heat_flux_diffs = []
+
+            for face_pair in adjacency_info:
+                face1, face2 = face_pair
+
+                # Get the heat flux values for the adjacent faces
+                heat_flux_face1 = allHF[face1]
+                heat_flux_face2 = allHF[face2]
+
+                heat_flux_diff = abs(heat_flux_face1 - heat_flux_face2)
+                heat_flux_diffs.append(heat_flux_diff)
+            
+            return heat_flux_diffs
+
+        
         def objectiveFunction(trimeshSolid, coefficientsList, unconstrainedFaces):
 
-            c1 = coefficientsList[0]
-            c2 = coefficientsList[1]
-            c3 = coefficientsList[2]
-            c4 = coefficientsList[3]
+            c1 = coefficientsList[0] #max heat flux term
+            c2 = coefficientsList[1] #sum heat flux, unweighted, term
+            c3 = coefficientsList[2] #normals diff term
+            c4 = coefficientsList[3] #energy term
 
-            # print(f"Coefficients used: {coefficientsList}")
-            
-            # maxHFTerm = c1 * self.fwd.calculateMaxHF(trimeshSolid)
+            c5 = coefficientsList[4] #heat flux diff term
+
             maxHFTerm = c1 * self.fwd.filteredCalculateMaxHF(trimeshSolid, unconstrainedFaces), 
             sumHFTerm = c2 * self.fwd.calculateHFMeshSum(trimeshSolid)
 
@@ -143,13 +164,9 @@ class RunSetup_MeshHF:
 
             energyTerm = c4 * self.fwd.calculateIntegratedEnergy(trimeshSolid)
 
-            #attempting to use this to see if we can encourage the mesh to go more convex?
-            distancesTerm = 0.0
-            # distancesTerm = c5 * np.sum(np.where(normalRefDotProducts < 0, -normalRefDotProducts, 0))
+            hfDiffTerm = c5 * np.sum(calculateHeatFluxDiff(trimeshSolid))
 
-            # print(f"Value of objective: {maxHFTerm + sumHFTerm + normalsPenalty + energyTerm + distancesTerm    }")
-
-            return maxHFTerm + sumHFTerm + normalsPenalty + energyTerm + distancesTerm            
+            return maxHFTerm + sumHFTerm + normalsPenalty + energyTerm + hfDiffTerm        
             
 
         def sweep_coefficients_and_record_output(coefficients_list, idx_to_vary, sweep_values):
@@ -170,6 +187,7 @@ class RunSetup_MeshHF:
                 directoryName = self.makeDirectories(f"sweep_c{idx_to_vary}", coefficients_list)
                 maxHF = self.opt.meshHFOpt(
                     objectiveFunction,  
+                    findConstrainedFaces,
                     self.fwd.calculateAllHF,
                     self.fwd.filteredCalculateMaxHF, #self.fwd.calculateMaxHF,
                     self.fwd.calculateIntegratedEnergy,
@@ -194,10 +212,12 @@ class RunSetup_MeshHF:
         # coefficientsList = [21.16, 0.53, 8.95, c4]
         # coefficientsList = [0, 0, 0, c4]
         # coefficientsList = [30.0, 1.0, 14.0, 4.55]
-        coefficientsList = [21.16, 0.53, 14.0, 4.55]
-        directoryName = self.makeDirectories(f"no_filter_sweep_{self.fwd.q_dir[0]}_{self.fwd.q_dir[1]}_{self.fwd.q_dir[2]}", coefficientsList)
+        # coefficientsList = [21.16, 0.53, 14.0, 4.55]
+        coefficientsList = [21.16, 0.53, 14.0, 4.55, 1.0]
+        directoryName = self.makeDirectories(f"sweep_c5_{self.fwd.q_dir[0]}_{self.fwd.q_dir[1]}_{self.fwd.q_dir[2]}", coefficientsList)
         maxHF = self.opt.meshHFOpt(
-                objectiveFunction,  
+                objectiveFunction,
+                findConstrainedFaces,  
                 self.fwd.calculateAllHF,
                 self.fwd.filteredCalculateMaxHF, #self.fwd.calculateMaxHF,
                 self.fwd.calculateIntegratedEnergy,

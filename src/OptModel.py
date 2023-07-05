@@ -95,7 +95,8 @@ class OptModel_MeshHF:
         return trimeshSolid.vertices - (delta * gradient)
 
 
-    def meshHFOpt(self, hfObjectiveFcn, calcHFAllMesh, calcMaxHF, calcHFSum, meshObj, coefficientsList, threshold, delta, id):
+    # def meshHFOpt(self, hfObjectiveFcn, calcHFAllMesh, calcMaxHF, calcHFSum, meshObj, coefficientsList, threshold, delta, id):
+    def meshHFOpt(self, hfObjectiveFcn, constraint, calcHFAllMesh, calcMaxHF, calcHFSum, meshObj, coefficientsList, threshold, delta, id):
     # def meshHFOpt(self, hfFunction, hfObjectiveFcn, meshObj, threshold, step, id):
         """
         runs optimization process until objective fcn value reaches stopping condition @ minimum
@@ -103,6 +104,9 @@ class OptModel_MeshHF:
 
         can change changeMeshFcn, hfObjectiveFcn to use different functions
         if we want a different manipulation, or add more stuff to the functions
+
+        can also set constraint to be whatever conditions should be true for the faces we can manipulate. 
+        basically, if the constraint is true, we can move the face, otherwise we won't do anything to it
         """
         #TODO: add constraints somehow - take in list of criteria? eg. don't move face if x=0 or y=0 or x=10 or y=10?
 
@@ -110,13 +114,21 @@ class OptModel_MeshHF:
         trimeshSolid = meshObj
 
         count = 0
-
+ 
         #determine faces where constraint holds
         #constraint: don't move mesh element if its centroid is too low (not on the top/y=10 face)
         #check for this when we first run the code - no need to recalculate this a bunch of times, in theory
         mesh_centers = trimeshSolid.triangles_center
         mesh_center_yvals = mesh_centers[:, 1]
-        unconstrainedFaces = set(np.where(mesh_center_yvals == 10.0)[0]) #this should isolate the y-vaues but should check
+        mesh_center_xvals = mesh_centers[:, 0]
+        mesh_center_zvals = mesh_centers[:, 2]
+
+        # unconstrainedFaces = set(np.where(constraint(mesh_center_xvals, mesh_center_yvals, mesh_center_zvals))[0])
+
+        #constraint function returns a list of indices of faces that meet the constraint
+        unconstrainedFaces = set(constraint(mesh_center_xvals, mesh_center_yvals, mesh_center_zvals))
+
+        # unconstrainedFaces = set(np.where(mesh_center_yvals == 10.0)[0]) #this should isolate the y-vaues but should check
         #also - unconstrainedFaces is a set, not a list - so need to convert it first
         # unconstrainedVIdx = np.unique(trimeshSolid.faces[list(unconstrainedFaces)].ravel())
 
@@ -148,8 +160,6 @@ class OptModel_MeshHF:
 
             # print(f"Time elapsed for GD {count}: {time.time() - t0}")
 
-            # new_objVal = hfObjectiveFcn(trimeshSolid, unconstrainedFaces)
-            # new_objVal = hfObjectiveFcn(trimeshSolid, coefficientsList)
             new_objVal = hfObjectiveFcn(trimeshSolid, coefficientsList, unconstrainedFaces)
             all_objective_function_values.append(new_objVal)
 
