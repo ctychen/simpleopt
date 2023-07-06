@@ -9,7 +9,8 @@ class ForwardModel_MeshHF:
         self.q_mag = q_mag #magnitude of applied q [W/m^2]
         self.q_dir = q_dir #direction of applied q, [x,y,z] [m]
         self.hfMode = hfMode #options: 'uniform', 'exponnorm', etc. 
-        self.makeHFProfile(self.solidObj.trimeshSolid, self.q_dir, self.hfMode)
+        self.makeHFProfile(self.solidObj.trimeshSolid)
+        # self.makeHFProfile(self.solidObj.trimeshSolid, self.q_dir)
         return
     
     def eich_profile(self, s_bar, q0, lambda_q, S, q_BG):
@@ -40,28 +41,30 @@ class ForwardModel_MeshHF:
         )
     
     
-    def makeHFProfile(self, trimeshSolid, directionVector, hfMode):
+    def makeHFProfile(self, trimeshSolid): #, directionVector):
         """
         make profile with direction and magnitude of HF at each face center
         this fcn is bc we currently have a uniform direction of HF everywhere so just 1 vector ok, but if not, 
         use version above
         """
-        all_center_HFs = []
+        meshHFProfile = []
+        directionVector = self.q_dir
 
-        if hfMode == 'uniform':
-            all_center_HFs = self.makeUniformHFProfile(trimeshSolid, directionVector)
-        elif hfMode == 'exponnorm':
+        if self.hfMode == 'uniform':
+            meshHFProfile = self.makeUniformHFProfile(trimeshSolid, directionVector)
+        elif self.hfMode == 'exponnorm':
             #but also we shouldn't be doing this for all faces, only top faces? 
             all_HF_magnitudes = self.calculateHFProfileMagnitudes(trimeshSolid)
             # for i in range(len(all_HF_magnitudes)):
             #     magnitude = all_HF_magnitudes[i]
-            #     all_center_HFs.append([magnitude, directionVector])
+            #     meshHFProfile.append([magnitude, directionVector])
 
             for magnitude in all_HF_magnitudes:
-                all_center_HFs.append([magnitude, directionVector])
+                meshHFProfile.append([magnitude, directionVector])
 
-        self.all_center_HFs = all_center_HFs
-        return all_center_HFs
+        self.meshHFProfile = meshHFProfile
+        return meshHFProfile
+    
     
     def makeUniformHFProfile(self, trimeshSolid, directionVector):
         return [[self.q_mag, directionVector]] * len(trimeshSolid.face_normals)
@@ -89,7 +92,7 @@ class ForwardModel_MeshHF:
         q_mag_all_centers = exponnorm.pdf(x_centers, K, loc=mu, scale=sigma) 
         q_mag_all_centers = q_mag_all_centers * q_mag_max / np.max(q_mag_all_centers)
 
-        self.q_mag_all_centers = q_mag_all_centers
+        # self.q_mag_all_centers = q_mag_all_centers
         return q_mag_all_centers
     
     
@@ -113,7 +116,7 @@ class ForwardModel_MeshHF:
     def calculateAllHF(self, trimeshSolid):
         """
         calculate HF on every mesh element, but this should use nonuniform HF on mesh element centers
-        this could also use uniform HF; just need all_center_HFs to be a list of the same HF value for each element
+        this could also use uniform HF; just need meshHFProfile to be a list of the same HF value for each element
         """
 
         q_mesh_all = []
@@ -123,10 +126,16 @@ class ForwardModel_MeshHF:
 
         elif self.hfMode == 'exponnorm':
             normals = trimeshSolid.face_normals
-            for i in range(len(self.all_center_HFs)):
-                magnitude = self.all_center_HFs[i][0]
-                direction = self.all_center_HFs[i][1]
+            # newHFProfile = self.calculateHFProfileMagnitudes(trimeshSolid)
+            newHFProfile = self.meshHFProfile
+            for i in range(len(newHFProfile)):
+                magnitude = newHFProfile[i][0]
+                direction = newHFProfile[i][1]
                 q_mesh_all.append(-1 * (np.dot(normals[i], direction)) * magnitude)
+            # for i in range(len(self.meshHFProfile)):
+            #     # magnitude = self.meshHFProfile[i][0]
+            #     direction = self.meshHFProfile[i][1]
+            #     q_mesh_all.append(-1 * (np.dot(normals[i], direction)) * magnitude)
             q_mesh_all = np.array(q_mesh_all)
 
         return q_mesh_all
@@ -204,9 +213,9 @@ class ForwardModel_MeshHF:
 
     #     normals = trimeshSolid.face_normals
     #     q_mesh_all = []
-    #     for i in range(len(self.all_center_HFs)):
-    #         magnitude = self.all_center_HFs[i][0]
-    #         direction = self.all_center_HFs[i][1]
+    #     for i in range(len(self.meshHFProfile)):
+    #         magnitude = self.meshHFProfile[i][0]
+    #         direction = self.meshHFProfile[i][1]
     #         q_mesh_all.append(-1 * (np.dot(normals[i], direction)) * magnitude)
     #     q_mesh_all = np.array(q_mesh_all)
 
@@ -219,9 +228,9 @@ class ForwardModel_MeshHF:
     #     normals = trimeshSolid.face_normals
     #     faceAreas = trimeshSolid.area_faces
     #     q_mesh_all = []
-    #     for i in range(len(self.all_center_HFs)):
-    #         magnitude = self.all_center_HFs[i][0]
-    #         direction = self.all_center_HFs[i][1]
+    #     for i in range(len(self.meshHFProfile)):
+    #         magnitude = self.meshHFProfile[i][0]
+    #         direction = self.meshHFProfile[i][1]
     #         q_mesh_all.append(-1 * (np.dot(normals[i], direction)) * magnitude)
     #     q_mesh_all = np.array(q_mesh_all)
 

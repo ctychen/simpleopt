@@ -90,7 +90,7 @@ class OptModel_MeshHF:
 
 
     # def meshHFOpt(self, hfObjectiveFcn, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
-    def meshHFOpt(self, hfObjectiveFcn, constraint, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
+    def meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
     # def meshHFOpt(self, hfFunction, hfObjectiveFcn, meshObj, threshold, step, id):
         """
         runs optimization process until objective fcn value reaches stopping condition @ minimum
@@ -150,7 +150,10 @@ class OptModel_MeshHF:
 
             #calc the gradient
             trimeshSolid = self.gradientDescentHF(trimeshSolid, hfObjectiveFcn, hf_all_mesh, unconstrainedFaces, coefficientsList, delta, f"test{id}", count)
+            #recalculate the hf profile on the surface
+            updateHFProfile(trimeshSolid) 
 
+            #makeHFProfile(self, trimeshSolid)
             # print(f"Time elapsed for GD {count}: {time.time() - t0}")
 
             new_objVal = hfObjectiveFcn(trimeshSolid, coefficientsList, unconstrainedFaces)

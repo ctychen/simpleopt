@@ -190,9 +190,11 @@ class RunSetup_MeshHF:
                 my_trimeshSolid = trimesh.copy()
                 coefficients_list[idx_to_vary] = val
                 directoryName = self.makeDirectories(f"sweep_c{idx_to_vary}", coefficients_list)
+                #meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
                 maxHF = self.opt.meshHFOpt(
                     objectiveFunction,  
                     findConstrainedFaces,
+                    self.fwd.makeHFProfile,
                     self.fwd.calculateAllHF,
                     self.fwd.filteredCalculateMaxHF, #self.fwd.calculateMaxHF,
                     self.fwd.calculateIntegratedEnergy,
@@ -220,10 +222,12 @@ class RunSetup_MeshHF:
         # coefficientsList = [21.16, 0.53, 14.0, 4.55]
         coefficientsList = [21.16, 0.53, 14.0, 4.55, 0.0]
         # directoryName = self.makeDirectories(f"sweep_c5_{self.fwd.q_dir[0]}_{self.fwd.q_dir[1]}_{self.fwd.q_dir[2]}", coefficientsList)
-        directoryName = self.makeDirectories(f"profiletest3", coefficientsList)
+        directoryName = self.makeDirectories(f"newprofile0", coefficientsList)
+        #meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
         maxHF = self.opt.meshHFOpt(
                 objectiveFunction,
                 findConstrainedFaces,  
+                self.fwd.makeHFProfile,
                 self.fwd.calculateAllHF,
                 self.fwd.filteredCalculateMaxHF, #self.fwd.calculateMaxHF,
                 self.fwd.calculateIntegratedEnergy,
