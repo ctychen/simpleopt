@@ -155,11 +155,18 @@ class ForwardModel_MeshHF:
         return np.max(q_mesh_all)
     
 
-    def filteredCalculateMaxHF(self, q_mesh_all, unconstrainedFaces):
-        unconstrainedFaces = list(unconstrainedFaces) 
-        mask = np.ones(q_mesh_all.shape, dtype=bool)
-        mask[unconstrainedFaces] = False
-        q_mesh_all[mask] = 0
+    def filteredCalculateMaxHF(self, q_mesh_all, unconstrainedFaces = []):
+        """
+        filtering out unconstrained faces from max HF calculation - originally was added bc of HF with incident angle
+        if no unconstrained faces defined, then we just return max HF same as before
+        """
+
+        if unconstrainedFaces: #if unconstrainedFaces is not empty
+            unconstrainedFaces = list(unconstrainedFaces) 
+            mask = np.ones(q_mesh_all.shape, dtype=bool)
+            mask[unconstrainedFaces] = False
+            q_mesh_all[mask] = 0
+
         return np.max(q_mesh_all)
     
     

@@ -159,7 +159,7 @@ class RunSetup_MeshHF:
 
             q_mesh_all = self.fwd.calculateAllHF(trimeshSolid)
 
-            # maxHFTerm = c1 * self.fwd.filteredCalculateMaxHF(q_mesh_all) #self.fwd.filteredCalculateMaxHF(trimeshSolid, unconstrainedFaces), 
+            unconstrainedFaces = [] #only keep this for uniform flux
             maxHFTerm = c1 * self.fwd.filteredCalculateMaxHF(q_mesh_all, unconstrainedFaces)
             sumHFTerm = c2 * self.fwd.calculateHFMeshSum(q_mesh_all) #self.fwd.calculateHFMeshSum(trimeshSolid)
 
@@ -220,7 +220,7 @@ class RunSetup_MeshHF:
         # coefficientsList = [21.16, 0.53, 14.0, 4.55]
         coefficientsList = [21.16, 0.53, 14.0, 4.55, 0.0]
         # directoryName = self.makeDirectories(f"sweep_c5_{self.fwd.q_dir[0]}_{self.fwd.q_dir[1]}_{self.fwd.q_dir[2]}", coefficientsList)
-        directoryName = self.makeDirectories(f"profiletest0", coefficientsList)
+        directoryName = self.makeDirectories(f"profiletest2", coefficientsList)
         maxHF = self.opt.meshHFOpt(
                 objectiveFunction,
                 findConstrainedFaces,  
