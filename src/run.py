@@ -62,6 +62,9 @@ class RunSetup_MeshHF:
         self.fwd = ForwardModel.ForwardModel_MeshHF(self.box, qMagIn, qDirIn) 
         self.opt = OptModel.OptModel_MeshHF()
 
+        #to make nonuniform, eich-like HF profile on top face
+        self.fwd.makeHFProfile(self.box.trimeshSolid, directionVector=qDirIn)
+
         return
     
 
@@ -100,7 +103,7 @@ class RunSetup_MeshHF:
 
         return 
 
-    def runOptimization(self, runID="sweep4"):
+    def runOptimization(self):
         
         def calculateNormalsDiff(trimeshSolid):
             """
