@@ -71,8 +71,8 @@ class RunSetup_MeshHF:
         c2 = coefficientsList[1]
         c3 = coefficientsList[2]
         c4 = coefficientsList[3]
-        c5 = coefficientsList[4]
-        runName = runID + f'_c1_{c1:.2f}_c2_{c2:.2f}_c3_{c3:.2f}_c4_{c4:.2f}_c5_{c5:.2f}' #f'_c1_{c1:.2f}_c2_{c2:.2f}_c3_{c3:.2f}_c4_{c4:.2f}'
+        # c5 = coefficientsList[4]
+        runName = runID + f'_c1_{c1:.2f}_c2_{c2:.2f}_c3_{c3:.2f}_c4_{c4:.2f}' #f'_c1_{c1:.2f}_c2_{c2:.2f}_c3_{c3:.2f}_c4_{c4:.2f}'
         runName = runName.replace(".", "-")
 
         directoryName = f"{runName}" #running this within docker container means can't save to external without bindmount aaa
@@ -187,9 +187,9 @@ class RunSetup_MeshHF:
             maxhf_vals = []
 
             for val in sweep_values:
-                my_trimeshSolid = trimesh.copy()
+                my_trimeshSolid = trimeshSolid.copy()
                 coefficients_list[idx_to_vary] = val
-                directoryName = self.makeDirectories(f"sweep_c{idx_to_vary}", coefficients_list)
+                directoryName = self.makeDirectories(f"newprofile_c{idx_to_vary}", coefficients_list)
                 #meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
                 maxHF = self.opt.meshHFOpt(
                     objectiveFunction,  
@@ -199,7 +199,7 @@ class RunSetup_MeshHF:
                     self.fwd.filteredCalculateMaxHF, #self.fwd.calculateMaxHF,
                     self.fwd.calculateIntegratedEnergy,
                     my_trimeshSolid, 
-                    coefficientsList,
+                    coefficients_list,
                     threshold=0.000001, 
                     delta=0.01, 
                     id=directoryName
@@ -213,30 +213,43 @@ class RunSetup_MeshHF:
             self.makeSweepCSV(c1_runvals, c2_runvals, c3_runvals, c4_runvals, maxhf_vals, f"sweep_c{idx_to_vary}")
             return 
 
+        coefficients_list = [21.16, 0.53, 14.0, 4.55, 0.0]
+        sweep_c1 = [0.0, 10.0, 20.0, 30.0]
+        sweep_c2 = [0.0, 0.53, 1.06, 1.59]
+        sweep_c3 = [0.0, 14.0, 28.0, 42.0]
+        sweep_c4 = [0.0, 2.275, 4.55, 6.825]
+
+        # sweep_coefficients_and_record_output(coefficients_list, 0, sweep_c1)
+
+        # sweep_coefficients_and_record_output(coefficients_list, 1, sweep_c2)
+
+        # sweep_coefficients_and_record_output(coefficients_list, 2, sweep_c3)
+
+        sweep_coefficients_and_record_output(coefficients_list, 3, sweep_c4)
 
         # #more runs 
-        my_trimeshSolid = trimeshSolid.copy()
-        # coefficientsList = [21.16, 0.53, 8.95, c4]
-        # coefficientsList = [0, 0, 0, c4]
-        # coefficientsList = [30.0, 1.0, 14.0, 4.55]
-        # coefficientsList = [21.16, 0.53, 14.0, 4.55]
-        coefficientsList = [21.16, 0.53, 14.0, 4.55, 0.0]
-        # directoryName = self.makeDirectories(f"sweep_c5_{self.fwd.q_dir[0]}_{self.fwd.q_dir[1]}_{self.fwd.q_dir[2]}", coefficientsList)
-        directoryName = self.makeDirectories(f"newprofile0", coefficientsList)
-        #meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
-        maxHF = self.opt.meshHFOpt(
-                objectiveFunction,
-                findConstrainedFaces,  
-                self.fwd.makeHFProfile,
-                self.fwd.calculateAllHF,
-                self.fwd.filteredCalculateMaxHF, #self.fwd.calculateMaxHF,
-                self.fwd.calculateIntegratedEnergy,
-                my_trimeshSolid, 
-                coefficientsList,
-                threshold=0.000001, 
-                delta=0.01, 
-                id=directoryName
-        )[0]
+        # my_trimeshSolid = trimeshSolid.copy()
+        # # coefficientsList = [21.16, 0.53, 8.95, c4]
+        # # coefficientsList = [0, 0, 0, c4]
+        # # coefficientsList = [30.0, 1.0, 14.0, 4.55]
+        # # coefficientsList = [21.16, 0.53, 14.0, 4.55]
+        # coefficientsList = [21.16, 0.53, 14.0, 4.55, 0.0]
+        # # directoryName = self.makeDirectories(f"sweep_c5_{self.fwd.q_dir[0]}_{self.fwd.q_dir[1]}_{self.fwd.q_dir[2]}", coefficientsList)
+        # directoryName = self.makeDirectories(f"newprofile03", coefficientsList)
+        # #meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
+        # maxHF = self.opt.meshHFOpt(
+        #         objectiveFunction,
+        #         findConstrainedFaces,  
+        #         self.fwd.makeHFProfile,
+        #         self.fwd.calculateAllHF,
+        #         self.fwd.filteredCalculateMaxHF, #self.fwd.calculateMaxHF,
+        #         self.fwd.calculateIntegratedEnergy,
+        #         my_trimeshSolid, 
+        #         coefficientsList,
+        #         threshold=0.000001, 
+        #         delta=0.01, 
+        #         id=directoryName
+        # )[0]
         
         return 
 

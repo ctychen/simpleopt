@@ -4,7 +4,7 @@ import plotly.io as pio
 
 class ForwardModel_MeshHF: 
 
-    def __init__(self, solidObj, q_mag, q_dir, hfMode = 'uniform'): 
+    def __init__(self, solidObj, q_mag, q_dir, hfMode): 
         self.solidObj = solidObj
         self.q_mag = q_mag #magnitude of applied q [W/m^2]
         self.q_dir = q_dir #direction of applied q, [x,y,z] [m]
@@ -85,7 +85,7 @@ class ForwardModel_MeshHF:
         # Define parameters
         K = 1.0  # This defines the "shape" of the curve (larger K -> more skew)
         mu = 5.0  # This is the mean of the normal part of the distribution
-        sigma = 2.5 #1.0  # This is the standard deviation of the normal part
+        sigma = 2.0 #1.0 #2.5 #1.0  # This is the standard deviation of the normal part
         q_mag_max = self.q_mag #for now use qmag as maximum for qmag distribution
 
         # Calculate the PDF at these x values
@@ -170,11 +170,11 @@ class ForwardModel_MeshHF:
         if no unconstrained faces defined, then we just return max HF same as before
         """
 
-        if unconstrainedFaces: #if unconstrainedFaces is not empty
-            unconstrainedFaces = list(unconstrainedFaces) 
-            mask = np.ones(q_mesh_all.shape, dtype=bool)
-            mask[unconstrainedFaces] = False
-            q_mesh_all[mask] = 0
+        # if unconstrainedFaces: #if unconstrainedFaces is not empty
+        #     unconstrainedFaces = list(unconstrainedFaces) 
+        #     mask = np.ones(q_mesh_all.shape, dtype=bool)
+        #     mask[unconstrainedFaces] = False
+        #     q_mesh_all[mask] = 0
 
         return np.max(q_mesh_all)
     

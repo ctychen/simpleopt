@@ -171,7 +171,7 @@ class OptModel_MeshHF:
 
             # print(f"New objective function value: {new_objVal}")
 
-            if count and count % 20 == 0: #count % 5 == 0: 
+            if count and count % 50 == 0: #count % 5 == 0: 
 
                 x_count = np.linspace(0, len(max_hf_each_run), len(max_hf_each_run))
                 fig = px.scatter(x = x_count, y = max_hf_each_run)
@@ -184,7 +184,7 @@ class OptModel_MeshHF:
                 # #make VTK to display HF on surface
                 # self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"test{id}")
 
-            if count % 5 == 0: #== 100: 
+            if count % 50 == 0: #== 100: 
                 self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"{id}", count)
                 # self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"test{id}")
 
