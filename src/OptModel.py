@@ -141,17 +141,8 @@ class OptModel_MeshHF:
         # sum_hf_each_run = [calcHFSum(trimeshSolid)] 
         sum_hf_each_run = [calcHFSum(hf_all_mesh)]
 
-<<<<<<< HEAD
-        self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"{id}", count=4242)
-
-        # print("Starting the mesh HF opt")
-
-        # print(f"Starting objective function value: {hfObjectiveFcn(trimeshSolid, unconstrainedFaces)}")
-        # print(f"Starting objective function value: {hfObjectiveFcn(trimeshSolid, coefficientsList)}")
-=======
         # make VTK to display HF on surface
         self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"{id}", count=4242)
->>>>>>> origin/hfopt-all
 
         prev_objVal = 2000
         curr_objVal = 0
@@ -191,16 +182,6 @@ class OptModel_MeshHF:
 
             # print(f"New objective function value: {new_objVal}")
 
-<<<<<<< HEAD
-            if count % 5 == 0: #count % 20 == 0:#count % 5 == 0: 
-                x_count = np.linspace(0, len(all_objective_function_values), len(all_objective_function_values))
-                fig = px.scatter(x = x_count, y = all_objective_function_values)
-                fig.update_xaxes(title_text='Iterations')
-                fig.update_yaxes(title_text=f'Objective function: {hfObjectiveFcn.__name__}')
-                fig.show()            
-                output_file = f"{id}/objective_up_to_run_{count}.html"
-                pio.write_html(fig, output_file)
-=======
             if count and count % 20 == 0:#count % 5 == 0: 
                 # x_count = np.linspace(0, len(all_objective_function_values), len(all_objective_function_values))
                 # fig = px.scatter(x = x_count, y = all_objective_function_values)
@@ -209,7 +190,6 @@ class OptModel_MeshHF:
                 # fig.show()            
                 # output_file = f"{id}/objective_up_to_run_{count}.html"
                 # pio.write_html(fig, output_file)
->>>>>>> origin/hfopt-all
 
                 x_count = np.linspace(0, len(max_hf_each_run), len(max_hf_each_run))
                 fig = px.scatter(x = x_count, y = max_hf_each_run)
@@ -220,12 +200,9 @@ class OptModel_MeshHF:
                 pio.write_html(fig, output_file)
 
                 # #make VTK to display HF on surface
-<<<<<<< HEAD
-=======
                 # self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"test{id}")
 
             if count % 5 == 0: #== 100: 
->>>>>>> origin/hfopt-all
                 self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"{id}", count)
                 # self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"test{id}")
 
