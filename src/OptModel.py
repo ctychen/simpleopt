@@ -62,17 +62,11 @@ class OptModel_MeshHF:
 
                     for vertexIdx in face:  #vertexIdx is VERTEX INDICES
 
-                        # obj_beforeMoving = objectiveFunction(tri_mesh)
-                        # obj_beforeMoving = objectiveFunction(tri_mesh, coefficientsList)
                         obj_beforeMoving = objectiveFunction(tri_mesh, coefficientsList, unconstrainedFaces)
-                        # obj_beforeMoving = objectiveFunction(tri_mesh, unconstrainedFaces)
 
                         for j in range(3): #for every dimension - move the vertex a bit and calculate the change in objectiveFunction
 
                             tri_mesh.vertices[vertexIdx, j] += delta
-                            # obj_afterMoving = objectiveFunction(tri_mesh)
-                            # obj_afterMoving = objectiveFunction(tri_mesh, unconstrainedFaces)
-                            # obj_afterMoving = objectiveFunction(tri_mesh, coefficientsList)
                             obj_afterMoving = objectiveFunction(tri_mesh, coefficientsList, unconstrainedFaces)
 
                             tri_mesh.vertices[vertexIdx, j] -= delta
@@ -133,12 +127,8 @@ class OptModel_MeshHF:
         # unconstrainedVIdx = np.unique(trimeshSolid.faces[list(unconstrainedFaces)].ravel())
 
         print(f"Objective function with coefficients: {coefficientsList}")
-        # all_objective_function_values = [hfObjectiveFcn(trimeshSolid, coefficientsList)]
         all_objective_function_values = [hfObjectiveFcn(trimeshSolid, coefficientsList, unconstrainedFaces)]
-        # max_hf_each_run = [calcMaxHF(trimeshSolid)]
-        # max_hf_each_run = [calcMaxHF(trimeshSolid, unconstrainedFaces)]
         max_hf_each_run = [calcMaxHF(hf_all_mesh, unconstrainedFaces)]
-        # sum_hf_each_run = [calcHFSum(trimeshSolid)] 
         sum_hf_each_run = [calcHFSum(hf_all_mesh)]
 
         # make VTK to display HF on surface
@@ -168,13 +158,8 @@ class OptModel_MeshHF:
             prev_objVal = curr_objVal
             curr_objVal = new_objVal
 
-            # new_max_hf = calcMaxHF(trimeshSolid)
-            # new_max_hf = calcMaxHF(trimeshSolid, unconstrainedFaces)
             new_max_hf = calcMaxHF(hf_all_mesh, unconstrainedFaces)
             max_hf_each_run.append(new_max_hf)
-
-            # new_sum_hf = calcHFSum(trimeshSolid) #hfAllMesh(trimeshSolid)
-            # sum_hf_each_run.append(new_sum_hf)
 
             ##this is for plotting surface fit onto mesh
             # if count % 5 == 0:
@@ -182,14 +167,7 @@ class OptModel_MeshHF:
 
             # print(f"New objective function value: {new_objVal}")
 
-            if count and count % 20 == 0:#count % 5 == 0: 
-                # x_count = np.linspace(0, len(all_objective_function_values), len(all_objective_function_values))
-                # fig = px.scatter(x = x_count, y = all_objective_function_values)
-                # fig.update_xaxes(title_text='Iterations')
-                # fig.update_yaxes(title_text=f'Objective function: {hfObjectiveFcn.__name__}')
-                # fig.show()            
-                # output_file = f"{id}/objective_up_to_run_{count}.html"
-                # pio.write_html(fig, output_file)
+            if count and count % 20 == 0: #count % 5 == 0: 
 
                 x_count = np.linspace(0, len(max_hf_each_run), len(max_hf_each_run))
                 fig = px.scatter(x = x_count, y = max_hf_each_run)
@@ -205,9 +183,6 @@ class OptModel_MeshHF:
             if count % 5 == 0: #== 100: 
                 self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"{id}", count)
                 # self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"test{id}")
-
-            # if count == 100: 
-            #     self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"{id}", count)
 
             count += 1
         
@@ -330,7 +305,6 @@ class OptModel_MeshHF:
         # fig.show()            
         # output_file = f"{outputDir}/entire_run.html"
         # pio.write_html(fig, output_file)
-
 
         x_count = np.linspace(0, len(max_hf_each_run), len(max_hf_each_run))
         fig = px.scatter(x = x_count, y = max_hf_each_run)

@@ -49,8 +49,8 @@ class RunSetup_MeshHF:
         stpPath = "unit_test_cube.step" #"unit_test_cone.step" 
 
         stlPath = " " #"box.stl"
-        # qDirIn = [0.0, -1.0, 0.0] #[m]
-        qDirIn = [0.707, -0.707, 0.0] #[m]
+        qDirIn = [0.0, -1.0, 0.0] #[m]
+        # qDirIn = [0.707, -0.707, 0.0] #[m]
         # qDirIn = [-0.707, -0.707, 0.0] #[m]
         # qDirIn = [0.0, -0.707, 0.707] #[m]
         # qDirIn = [0.0, -0.707, -0.707] #[m]
