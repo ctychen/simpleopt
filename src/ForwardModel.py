@@ -99,8 +99,6 @@ class ForwardModel_MeshHF:
         q_mesh_all = np.array(q_mesh_all)
         return q_mesh_all
     
-<<<<<<< HEAD
-=======
 
     def makeHFProfile(self, trimeshSolid, directionVector):
         """
@@ -122,7 +120,6 @@ class ForwardModel_MeshHF:
         self.all_center_HFs = all_center_HFs
         return all_center_HFs
     
->>>>>>> origin/hfopt-all
 
     def calculateHFProfileMagnitudes(self, trimeshSolid):
         """
@@ -133,30 +130,9 @@ class ForwardModel_MeshHF:
         from scipy.stats import exponnorm
 
         centers = trimeshSolid.triangles_center
-<<<<<<< HEAD
-        
-        # #want to get x-vals of centers
-        # mesh_center_yvals = centers[:, 1]
-        # unconstrainedFaces = list(set(np.where(mesh_center_yvals == 10.0)[0])) #this should isolate the y-values
-        # centers = centers[np.array(unconstrainedFaces)] #keep only indices of faces on top surface
 
         x_centers = centers[:,0] #isolate x-values of the centers
 
-        #for this overall we're calculating HF for every mesh element since this way don't need to track more indices for HF calculation later 
-
-        # mean = 5.0
-        # sigma = 1.0
-        # l = 1.0
-
-        # q_mag_all_centers = (q_mag_max) * (l / 2) * np.exp((l/2)*(2*mean + l*sigma**2 - 2*x_centers)) * erfc((mean + l*sigma**2 - x_centers)/(np.sqrt(2) * sigma))
-
-        # q_mag_all_centers = (q_mag_max) * np.exp((l/2)*(2*mean + l*sigma**2 - 2*x_centers)) * erfc((mean + l*sigma**2 - x_centers)/(np.sqrt(2) * sigma))
-
-=======
-
-        x_centers = centers[:,0] #isolate x-values of the centers
-
->>>>>>> origin/hfopt-all
         # Define parameters
         K = 0.5 #1.0  # This defines the "shape" of the curve (larger K -> more skew)
         mu = 5.0  # This is the mean of the normal part of the distribution
@@ -167,23 +143,6 @@ class ForwardModel_MeshHF:
         q_mag_all_centers = exponnorm.pdf(x_centers, K, loc=mu, scale=sigma) 
         q_mag_all_centers = q_mag_all_centers * q_mag_max / np.max(q_mag_all_centers)
 
-<<<<<<< HEAD
-        # s_bar: OMP-mapped radial distance [mm]
-        # q0: peak heat flux [MW/m^2]
-        # lambda_q: heat flux decay width [mm]
-        # S: spreading factor [mm]
-        # q_BG: background heat-flux [MW/m^2]        
-
-        # eich_profile(s_bar, q0, lambda_q, S, q_BG)
-            # q0/ 2.0
-            # * np.exp((S / (2.0 * lambda_q)) ** 2 - s_bar / lambda_q)
-            # * erfc(S / (2.0 * lambda_q) - s_bar / S)
-            # + q_BG
-
-        # q_mag_all_centers = self.eich_profile(x_centers, q_mag_max, 0.5, 0.5, 0.0)
-
-=======
->>>>>>> origin/hfopt-all
         self.q_mag_all_centers = q_mag_all_centers
         return q_mag_all_centers
     
@@ -297,8 +256,6 @@ class ForwardModel_MeshHF:
     def distForObj(self, trimeshSolid):
         return self.calculateHFDistribution(trimeshSolid)[3]
     
-<<<<<<< HEAD
-=======
 
     # def calculateHFMeshSum(self, trimeshSolid):
     #     """
@@ -344,7 +301,6 @@ class ForwardModel_MeshHF:
     
     def calculateMaxHF(self, q_mesh_all):
         return np.max(q_mesh_all)
->>>>>>> origin/hfopt-all
     
     # def calculateMaxHF(self, trimeshSolid):
     #     """
