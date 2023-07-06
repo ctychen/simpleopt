@@ -59,8 +59,8 @@ class RunSetup_MeshHF:
         self.box = Solid.MeshSolid(stlPath, stpPath)
         #self.box = Solid.MeshSolid(stlPath, stpPath) #normally, use this one!
 
-        self.fwd = ForwardModel.ForwardModel_MeshHF(self.box, qMagIn, qDirIn, hfMode='uniform') 
-        # self.fwd = ForwardModel.ForwardModel_MeshHF(self.box, qMagIn, qDirIn, hfMode='exponnorm') 
+        # self.fwd = ForwardModel.ForwardModel_MeshHF(self.box, qMagIn, qDirIn, hfMode='uniform') 
+        self.fwd = ForwardModel.ForwardModel_MeshHF(self.box, qMagIn, qDirIn, hfMode='exponnorm') 
         self.opt = OptModel.OptModel_MeshHF()
 
         return
@@ -159,7 +159,7 @@ class RunSetup_MeshHF:
 
             q_mesh_all = self.fwd.calculateAllHF(trimeshSolid)
 
-            unconstrainedFaces = [] #only keep this for uniform flux
+            unconstrainedFaces = [] #only keep this for cases with hf only on top face? 
             maxHFTerm = c1 * self.fwd.filteredCalculateMaxHF(q_mesh_all, unconstrainedFaces)
             sumHFTerm = c2 * self.fwd.calculateHFMeshSum(q_mesh_all) #self.fwd.calculateHFMeshSum(trimeshSolid)
 
@@ -220,7 +220,7 @@ class RunSetup_MeshHF:
         # coefficientsList = [21.16, 0.53, 14.0, 4.55]
         coefficientsList = [21.16, 0.53, 14.0, 4.55, 0.0]
         # directoryName = self.makeDirectories(f"sweep_c5_{self.fwd.q_dir[0]}_{self.fwd.q_dir[1]}_{self.fwd.q_dir[2]}", coefficientsList)
-        directoryName = self.makeDirectories(f"profiletest2", coefficientsList)
+        directoryName = self.makeDirectories(f"profiletest3", coefficientsList)
         maxHF = self.opt.meshHFOpt(
                 objectiveFunction,
                 findConstrainedFaces,  
@@ -234,7 +234,7 @@ class RunSetup_MeshHF:
                 id=directoryName
         )[0]
         
-        return maxHF
+        return 
 
 
 if __name__ == '__main__':
