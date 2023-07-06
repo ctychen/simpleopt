@@ -67,12 +67,12 @@ class RunSetup_MeshHF:
     
 
     def makeDirectories(self, runID, coefficientsList):
-        c1 = coefficientsList[0]
-        c2 = coefficientsList[1]
-        c3 = coefficientsList[2]
-        c4 = coefficientsList[3]
-        # c5 = coefficientsList[4]
-        runName = runID + f'_c1_{c1:.2f}_c2_{c2:.2f}_c3_{c3:.2f}_c4_{c4:.2f}' #f'_c1_{c1:.2f}_c2_{c2:.2f}_c3_{c3:.2f}_c4_{c4:.2f}'
+        c0 = coefficientsList[0]
+        c1 = coefficientsList[1]
+        c2 = coefficientsList[2]
+        c3 = coefficientsList[3]
+        # c4 = coefficientsList[4]
+        runName = runID + f'_c0_{c0:.2f}_c1_{c1:.2f}_c2_{c2:.2f}_c3_{c3:.2f}' #f'_c0_{c0:.2f}_c1_{c1:.2f}_c2_{c2:.2f}_c3_{c3:.2f}'
         runName = runName.replace(".", "-")
 
         directoryName = f"{runName}" #running this within docker container means can't save to external without bindmount aaa
@@ -88,12 +88,12 @@ class RunSetup_MeshHF:
 
         return directoryName
 
-    def makeSweepCSV(self, c1List, c2List, c3List, c4List, maxhfList, runID):
+    def makeSweepCSV(self, c0List, c1List, c2List, c3List, maxhfList, runID):
         data = {
+            'c0': c0List,
             'c1': c1List,
             'c2': c2List,
             'c3': c3List,
-            'c4': c4List,
             'maxhf': maxhfList
         }
         df = pd.DataFrame(data)
@@ -146,30 +146,29 @@ class RunSetup_MeshHF:
                 heat_flux_diffs.append(heat_flux_diff)
             
             return heat_flux_diffs
-
         
         def objectiveFunction(trimeshSolid, coefficientsList, unconstrainedFaces):
 
-            c1 = coefficientsList[0] #max heat flux term
-            c2 = coefficientsList[1] #sum heat flux, unweighted, term
-            c3 = coefficientsList[2] #normals diff term
-            c4 = coefficientsList[3] #energy term
+            c0 = coefficientsList[0] #max heat flux term
+            c1 = coefficientsList[1] #sum heat flux, unweighted, term
+            c2 = coefficientsList[2] #normals diff term
+            c3 = coefficientsList[3] #energy term
 
-            c5 = coefficientsList[4] #heat flux diff term
+            c4 = coefficientsList[4] #heat flux diff term
 
             q_mesh_all = self.fwd.calculateAllHF(trimeshSolid)
 
             unconstrainedFaces = [] #only keep this for cases with hf only on top face? 
-            maxHFTerm = c1 * self.fwd.filteredCalculateMaxHF(q_mesh_all, unconstrainedFaces)
-            sumHFTerm = c2 * self.fwd.calculateHFMeshSum(q_mesh_all) #self.fwd.calculateHFMeshSum(trimeshSolid)
+            maxHFTerm = c0 * self.fwd.filteredCalculateMaxHF(q_mesh_all, unconstrainedFaces)
+            sumHFTerm = c1 * self.fwd.calculateHFMeshSum(q_mesh_all) #self.fwd.calculateHFMeshSum(trimeshSolid)
 
             normalsDiff, normalRefDotProducts = calculateNormalsDiff(trimeshSolid)
-            normalsPenalty = c3 * np.sum(normalsDiff)
+            normalsPenalty = c2 * np.sum(normalsDiff)
 
-            # energyTerm = c4 * self.fwd.calculateIntegratedEnergy(q_mesh_all) #self.fwd.calculateIntegratedEnergy(trimeshSolid)
-            energyTerm = c4 * self.fwd.calculateIntegratedEnergy(q_mesh_all, trimeshSolid)
+            # energyTerm = c3 * self.fwd.calculateIntegratedEnergy(q_mesh_all) #self.fwd.calculateIntegratedEnergy(trimeshSolid)
+            energyTerm = c3 * self.fwd.calculateIntegratedEnergy(q_mesh_all, trimeshSolid)
 
-            hfDiffTerm = 0 #c5 * np.sum(calculateHeatFluxDiff(trimeshSolid))
+            hfDiffTerm = 0 #c4 * np.sum(calculateHeatFluxDiff(trimeshSolid))
 
             return maxHFTerm + sumHFTerm + normalsPenalty + energyTerm + hfDiffTerm        
             
@@ -180,10 +179,10 @@ class RunSetup_MeshHF:
             do optimization and save results and attempted combinations to csv
             """
 
+            c0_runvals = []
             c1_runvals = []
             c2_runvals = []
             c3_runvals = []
-            c4_runvals = []
             maxhf_vals = []
 
             for val in sweep_values:
@@ -204,37 +203,37 @@ class RunSetup_MeshHF:
                     delta=0.01, 
                     id=directoryName
                 )[0]
-                c1_runvals.append(coefficients_list[0])
-                c2_runvals.append(coefficients_list[1])
-                c3_runvals.append(coefficients_list[2])
-                c4_runvals.append(coefficients_list[3])
+                c0_runvals.append(coefficients_list[0])
+                c1_runvals.append(coefficients_list[1])
+                c2_runvals.append(coefficients_list[2])
+                c3_runvals.append(coefficients_list[3])
                 maxhf_vals.append(maxHF)
             
-            self.makeSweepCSV(c1_runvals, c2_runvals, c3_runvals, c4_runvals, maxhf_vals, f"sweep_c{idx_to_vary}")
+            self.makeSweepCSV(c0_runvals, c1_runvals, c2_runvals, c3_runvals, maxhf_vals, f"sweep_c{idx_to_vary}")
             return 
 
         coefficients_list = [21.16, 0.53, 14.0, 4.55, 0.0]
-        sweep_c1 = [0.0, 10.0, 20.0, 30.0]
-        sweep_c2 = [0.0, 0.53, 1.06, 1.59]
-        sweep_c3 = [0.0, 14.0, 28.0, 42.0]
-        sweep_c4 = [0.0, 2.275, 4.55, 6.825]
+        sweep_c0 = [0.0, 10.0, 20.0, 30.0]
+        sweep_c1 = [0.0, 0.53, 1.06, 1.59]
+        sweep_c2 = [0.0, 14.0, 28.0, 42.0]
+        sweep_c3 = [0.0, 2.275, 4.55, 6.825]
 
-        # sweep_coefficients_and_record_output(coefficients_list, 0, sweep_c1)
+        # sweep_coefficients_and_record_output(coefficients_list, 0, sweep_c0)
 
-        # sweep_coefficients_and_record_output(coefficients_list, 1, sweep_c2)
+        # sweep_coefficients_and_record_output(coefficients_list, 1, sweep_c1)
 
-        # sweep_coefficients_and_record_output(coefficients_list, 2, sweep_c3)
+        # sweep_coefficients_and_record_output(coefficients_list, 2, sweep_c2)
 
-        sweep_coefficients_and_record_output(coefficients_list, 3, sweep_c4)
+        sweep_coefficients_and_record_output(coefficients_list, 3, sweep_c3)
 
         # #more runs 
         # my_trimeshSolid = trimeshSolid.copy()
-        # # coefficientsList = [21.16, 0.53, 8.95, c4]
-        # # coefficientsList = [0, 0, 0, c4]
+        # # coefficientsList = [21.16, 0.53, 8.95, c3]
+        # # coefficientsList = [0, 0, 0, c3]
         # # coefficientsList = [30.0, 1.0, 14.0, 4.55]
         # # coefficientsList = [21.16, 0.53, 14.0, 4.55]
         # coefficientsList = [21.16, 0.53, 14.0, 4.55, 0.0]
-        # # directoryName = self.makeDirectories(f"sweep_c5_{self.fwd.q_dir[0]}_{self.fwd.q_dir[1]}_{self.fwd.q_dir[2]}", coefficientsList)
+        # # directoryName = self.makeDirectories(f"sweep_c4_{self.fwd.q_dir[0]}_{self.fwd.q_dir[1]}_{self.fwd.q_dir[2]}", coefficientsList)
         # directoryName = self.makeDirectories(f"newprofile03", coefficientsList)
         # #meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
         # maxHF = self.opt.meshHFOpt(
