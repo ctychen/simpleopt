@@ -9,7 +9,7 @@ class ForwardModel_MeshHF:
         self.q_mag = q_mag #magnitude of applied q [W/m^2]
         self.q_dir = q_dir #direction of applied q, [x,y,z] [m]
         self.hfMode = hfMode #options: 'uniform', 'exponnorm', etc. 
-
+        self.makeHFProfile(self.solidObj.trimeshSolid, self.q_dir, self.hfMode)
         return
     
     def eich_profile(self, s_bar, q0, lambda_q, S, q_BG):
@@ -40,7 +40,7 @@ class ForwardModel_MeshHF:
         )
     
     
-    def makeHFProfile(self, trimeshSolid, directionVector):
+    def makeHFProfile(self, trimeshSolid, directionVector, hfMode):
         """
         make profile with direction and magnitude of HF at each face center
         this fcn is bc we currently have a uniform direction of HF everywhere so just 1 vector ok, but if not, 
@@ -48,9 +48,9 @@ class ForwardModel_MeshHF:
         """
         all_center_HFs = []
 
-        if self.hfMode == 'uniform':
+        if hfMode == 'uniform':
             all_center_HFs = self.makeUniformHFProfile(trimeshSolid, directionVector)
-        elif self.hfMode == 'exponnorm':
+        elif hfMode == 'exponnorm':
             #but also we shouldn't be doing this for all faces, only top faces? 
             all_HF_magnitudes = self.calculateHFProfileMagnitudes(trimeshSolid)
             # for i in range(len(all_HF_magnitudes)):

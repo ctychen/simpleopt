@@ -89,8 +89,8 @@ class OptModel_MeshHF:
         return trimeshSolid.vertices - (delta * gradient)
 
 
-    # def meshHFOpt(self, hfObjectiveFcn, calcHFAllMesh, calcMaxHF, calcHFSum, meshObj, coefficientsList, threshold, delta, id):
-    def meshHFOpt(self, hfObjectiveFcn, constraint, calcHFAllMesh, calcMaxHF, calcHFSum, meshObj, coefficientsList, threshold, delta, id):
+    # def meshHFOpt(self, hfObjectiveFcn, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
+    def meshHFOpt(self, hfObjectiveFcn, constraint, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
     # def meshHFOpt(self, hfFunction, hfObjectiveFcn, meshObj, threshold, step, id):
         """
         runs optimization process until objective fcn value reaches stopping condition @ minimum
@@ -128,8 +128,9 @@ class OptModel_MeshHF:
 
         print(f"Objective function with coefficients: {coefficientsList}")
         all_objective_function_values = [hfObjectiveFcn(trimeshSolid, coefficientsList, unconstrainedFaces)]
+        hf_all_mesh = calcHFAllMesh(trimeshSolid)
         max_hf_each_run = [calcMaxHF(hf_all_mesh, unconstrainedFaces)]
-        sum_hf_each_run = [calcHFSum(hf_all_mesh)]
+        sum_hf_each_run = [calcEnergy(hf_all_mesh, trimeshSolid)] # sum_hf_each_run = [calcEnergy(hf_all_mesh)]
 
         # make VTK to display HF on surface
         self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"{id}", count=4242)

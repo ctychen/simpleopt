@@ -59,11 +59,9 @@ class RunSetup_MeshHF:
         self.box = Solid.MeshSolid(stlPath, stpPath)
         #self.box = Solid.MeshSolid(stlPath, stpPath) #normally, use this one!
 
-        self.fwd = ForwardModel.ForwardModel_MeshHF(self.box, qMagIn, qDirIn) 
+        self.fwd = ForwardModel.ForwardModel_MeshHF(self.box, qMagIn, qDirIn, hfMode='uniform') 
+        # self.fwd = ForwardModel.ForwardModel_MeshHF(self.box, qMagIn, qDirIn, hfMode='exponnorm') 
         self.opt = OptModel.OptModel_MeshHF()
-
-        #to make nonuniform, eich-like HF profile on top face
-        self.fwd.makeHFProfile(self.box.trimeshSolid, directionVector=qDirIn)
 
         return
     
@@ -161,15 +159,17 @@ class RunSetup_MeshHF:
 
             q_mesh_all = self.fwd.calculateAllHF(trimeshSolid)
 
-            maxHFTerm = c1 * self.fwd.filteredCalculateMaxHF(q_mesh_all) #self.fwd.filteredCalculateMaxHF(trimeshSolid, unconstrainedFaces), 
+            # maxHFTerm = c1 * self.fwd.filteredCalculateMaxHF(q_mesh_all) #self.fwd.filteredCalculateMaxHF(trimeshSolid, unconstrainedFaces), 
+            maxHFTerm = c1 * self.fwd.filteredCalculateMaxHF(q_mesh_all, unconstrainedFaces)
             sumHFTerm = c2 * self.fwd.calculateHFMeshSum(q_mesh_all) #self.fwd.calculateHFMeshSum(trimeshSolid)
 
             normalsDiff, normalRefDotProducts = calculateNormalsDiff(trimeshSolid)
             normalsPenalty = c3 * np.sum(normalsDiff)
 
-            energyTerm = c4 * self.fwd.calculateIntegratedEnergy(q_mesh_all) #self.fwd.calculateIntegratedEnergy(trimeshSolid)
+            # energyTerm = c4 * self.fwd.calculateIntegratedEnergy(q_mesh_all) #self.fwd.calculateIntegratedEnergy(trimeshSolid)
+            energyTerm = c4 * self.fwd.calculateIntegratedEnergy(q_mesh_all, trimeshSolid)
 
-            hfDiffTerm = c5 * np.sum(calculateHeatFluxDiff(trimeshSolid))
+            hfDiffTerm = 0 #c5 * np.sum(calculateHeatFluxDiff(trimeshSolid))
 
             return maxHFTerm + sumHFTerm + normalsPenalty + energyTerm + hfDiffTerm        
             
@@ -218,8 +218,9 @@ class RunSetup_MeshHF:
         # coefficientsList = [0, 0, 0, c4]
         # coefficientsList = [30.0, 1.0, 14.0, 4.55]
         # coefficientsList = [21.16, 0.53, 14.0, 4.55]
-        coefficientsList = [21.16, 0.53, 14.0, 4.55, 1.0]
-        directoryName = self.makeDirectories(f"sweep_c5_{self.fwd.q_dir[0]}_{self.fwd.q_dir[1]}_{self.fwd.q_dir[2]}", coefficientsList)
+        coefficientsList = [21.16, 0.53, 14.0, 4.55, 0.0]
+        # directoryName = self.makeDirectories(f"sweep_c5_{self.fwd.q_dir[0]}_{self.fwd.q_dir[1]}_{self.fwd.q_dir[2]}", coefficientsList)
+        directoryName = self.makeDirectories(f"profiletest0", coefficientsList)
         maxHF = self.opt.meshHFOpt(
                 objectiveFunction,
                 findConstrainedFaces,  
