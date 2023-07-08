@@ -144,7 +144,7 @@ class OptModel_MeshHF:
         #want to check convergence really, really fast for a bunch of random options
         #these runs will also be lower res, at 2.5 instead of 2.0 or 1.0
 
-        while abs(prev_objVal - curr_objVal) > threshold and count < 150: #should be =200 but also testing right now
+        while abs(prev_objVal - curr_objVal) > threshold and count < 100: #should be =200 but also testing right now
 
             hf_all_mesh = calcHFAllMesh(trimeshSolid)
 
@@ -171,21 +171,29 @@ class OptModel_MeshHF:
 
             # print(f"New objective function value: {new_objVal}")
 
-            if count and count % 50 == 0: #count % 5 == 0: 
+            if count and count % 20 == 0: #count % 5 == 0: 
 
-                x_count = np.linspace(0, len(max_hf_each_run), len(max_hf_each_run))
-                fig = px.scatter(x = x_count, y = max_hf_each_run)
-                fig.update_xaxes(title_text='Iterations')
-                fig.update_yaxes(title_text=f'{calcMaxHF.__name__}')
-                fig.show()            
-                output_file = f"{id}/max_hf_up_to_run_{count}.html"
-                pio.write_html(fig, output_file)
+                # x_count = np.linspace(0, len(max_hf_each_run), len(max_hf_each_run))
+                # fig = px.scatter(x = x_count, y = max_hf_each_run)
+                # fig.update_xaxes(title_text='Iterations')
+                # fig.update_yaxes(title_text=f'{calcMaxHF.__name__}')
+                # fig.show()            
+                # output_file = f"{id}/max_hf_run_{count}.html"
+                # pio.write_html(fig, output_file)
+
+                # x_count = np.linspace(0, len(all_objective_function_values), len(all_objective_function_values))
+                # fig = px.scatter(x = x_count, y = all_objective_function_values)
+                # fig.update_xaxes(title_text='Iterations')
+                # fig.update_yaxes(title_text='Objective function - sum HF over elements')
+                # fig.show()            
+                # output_file = f"{id}/objective_run_{count}.html"
+                # pio.write_html(fig, output_file)
 
                 # #make VTK to display HF on surface
-                # self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"test{id}")
-
-            if count % 50 == 0: #== 100: 
                 self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"{id}", count)
+
+            # if count % 10 == 0: 
+                # self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"{id}", count)
                 # self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"test{id}")
 
             count += 1
