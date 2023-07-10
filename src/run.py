@@ -135,7 +135,11 @@ class RunSetup_MeshHF:
             the condition below should be true for faces you DO want to move.
             faces where the following condition isn't true, will NOT be moved. 
             """
-            return np.where(np.logical_not((mesh_center_yvals == 0) | (mesh_center_xvals == 0.0) | (mesh_center_xvals == 10.0) | (mesh_center_zvals == 0.0) | (mesh_center_zvals == 10.0)))[0]
+            return np.where(np.logical_not((mesh_center_yvals == 0) | 
+                                           (mesh_center_xvals == 0.0) | 
+                                           (mesh_center_xvals == 10.0) | 
+                                           (mesh_center_zvals == 0.0) | 
+                                           (mesh_center_zvals == 10.0)))[0]
 
             #return np.where((mesh_center_yvals == 10.0))[0]
             #return np.where((mesh_center_yvals == 10.0) | (mesh_center_xvals == 0.0) | (mesh_center_xvals == 10.0) | (mesh_center_zvals == 0.0) | (mesh_center_zvals == 10.0))[0]
@@ -164,7 +168,12 @@ class RunSetup_MeshHF:
         normalsDiff_initial, normalRefDotProducts_initial = calculateNormalsDiff(trimeshSolid)
         normalsPenalty_initial = np.sum(normalsDiff_initial)
         energy_initial = self.fwd.calculateIntegratedEnergy(q_mesh_initial, trimeshSolid)
-        
+
+        print(f"Initial max HF: {maxHF_initial}")
+        print(f"Initial sum HF: {sumHF_initial}")
+        print(f"Initial normals penalty: {normalsPenalty_initial}")
+        print(f"Initial energy: {energy_initial}")
+
         def objectiveFunction(trimeshSolid, coefficientsList, unconstrainedFaces):
 
             c0 = coefficientsList[0] #max heat flux term
@@ -195,8 +204,9 @@ class RunSetup_MeshHF:
             hfDiffTerm = 0 #c4 * np.sum(calculateHeatFluxDiff(trimeshSolid))
 
             # input()
-
-            return maxHFTerm + sumHFTerm + normalsPenalty + energyTerm + hfDiffTerm        
+            return maxHFTerm + sumHFTerm + normalsPenalty + energyTerm
+            #return [maxHFTerm + sumHFTerm + normalsPenalty + energyTerm + hfDiffTerm, maxHFTerm, sumHFTerm, normalsPenalty, energyTerm] 
+            #objectiveFunction value: [0]       
             
 
         def sweep_coefficients_and_record_output(coefficients_list, idx_to_vary, sweep_values):
@@ -335,7 +345,7 @@ class RunSetup_MeshHF:
         # coefficientsList = [21.16, 0.53, 14.0, 4.55, 0.0]
         # # coefficientsList = [1.0, 1.0, 1.0, 1.0, 1.0]
         # # directoryName = self.makeDirectories(f"sweep_c4_{self.fwd.q_dir[0]}_{self.fwd.q_dir[1]}_{self.fwd.q_dir[2]}", coefficientsList)
-        directoryName = self.makeDirectories(f"2dir_test_0", coefficientsList)
+        directoryName = self.makeDirectories(f"2dir_test_1", coefficientsList)
         # #meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
         self.opt.meshHFOpt(
                 objectiveFunction,

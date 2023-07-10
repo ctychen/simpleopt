@@ -152,6 +152,11 @@ class ForwardModel_MeshHF:
 
         elif self.hfMode == "uniform_multiple":
             normals = trimeshSolid.face_normals
+            # q_mesh_all = [
+            #     sum(max(-1 * self.q_mag[j] * np.dot(n, self.q_dir[j]), 0) for j in range(len(self.q_dir))) 
+            #     for n in normals
+            # ]
+            # q_mesh_all = np.array(q_mesh_all)
             for i in range(len(normals)):
                 n = normals[i]
                 q_i = 0
@@ -162,8 +167,7 @@ class ForwardModel_MeshHF:
             q_mesh_all = np.array(q_mesh_all)
 
         return q_mesh_all
-    
-    
+        
 
     def calculateHFMeshSum(self, q_mesh_all):
         """
