@@ -130,16 +130,39 @@ class RunSetup_MeshHF:
         trimeshSolid = self.box.trimeshSolid
         # trimeshSolid.export(f"{directoryName}/initial.stl")
 
-        def findConstrainedFaces(mesh_center_xvals, mesh_center_yvals, mesh_center_zvals):
-            """
-            the condition below should be true for faces you DO want to move.
-            faces where the following condition isn't true, will NOT be moved. 
-            """
-            return np.where(np.logical_not((mesh_center_yvals == 0) | 
-                                           (mesh_center_xvals == 0.0) | 
-                                           (mesh_center_xvals == 10.0) | 
-                                           (mesh_center_zvals == 0.0) | 
-                                           (mesh_center_zvals == 10.0)))[0]
+        def facesToKeep(mesh_center_xvals, mesh_center_yvals, mesh_center_zvals):
+            # """
+            # the condition below should be true for faces you DO want to move.
+            # faces where the following condition isn't true, will NOT be moved. 
+            # """
+            # return np.where(np.logical_not((mesh_center_yvals == 0) | 
+            #                                (mesh_center_xvals == 0.0) | 
+            #                                (mesh_center_xvals == 10.0) | 
+            #                                (mesh_center_zvals == 0.0) | 
+            #                                (mesh_center_zvals == 10.0)))[0]
+
+            # """
+            # new version: this condition is for faces that should NOT be moved
+            # then when we start moving faces, we check if vertex is NOT in faces that don't move, instead of checking if vertex is in faces to move
+            # """
+            # return np.where((
+            #     # (mesh_center_yvals == 0) |
+            #     (mesh_center_xvals == 0.0) |
+            #     (mesh_center_xvals == 10.0) |
+            #     (mesh_center_zvals == 0.0) |
+            #     (mesh_center_zvals == 10.0) |
+            #     (mesh_center_yvals <= 10.0)
+            # ))[0]
+
+            # return np.where(np.logical_not((mesh_center_yvals <= 10.0) | 
+            #                                (mesh_center_xvals == 0.0) | 
+            #                                (mesh_center_xvals == 10.0) | 
+            #                                (mesh_center_zvals == 0.0) | 
+            #                                (mesh_center_zvals == 10.0)))[0]
+
+            return np.where(
+                mesh_center_yvals <= 10.0 #this should be for faces to NOT use
+            )[0]
 
             #return np.where((mesh_center_yvals == 10.0))[0]
             #return np.where((mesh_center_yvals == 10.0) | (mesh_center_xvals == 0.0) | (mesh_center_xvals == 10.0) | (mesh_center_zvals == 0.0) | (mesh_center_zvals == 10.0))[0]
@@ -228,7 +251,7 @@ class RunSetup_MeshHF:
                 #meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
                 maxHF = self.opt.meshHFOpt(
                     objectiveFunction,  
-                    findConstrainedFaces,
+                    facesToKeep,
                     self.fwd.makeHFProfile,
                     self.fwd.calculateAllHF,
                     self.fwd.filteredCalculateMaxHF, #self.fwd.calculateMaxHF,
@@ -271,7 +294,7 @@ class RunSetup_MeshHF:
                             #meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
                             maxHF = self.opt.meshHFOpt(
                                 objectiveFunction,  
-                                findConstrainedFaces,
+                                facesToKeep,
                                 self.fwd.makeHFProfile,
                                 self.fwd.calculateAllHF,
                                 self.fwd.filteredCalculateMaxHF, #self.fwd.calculateMaxHF,
@@ -345,11 +368,11 @@ class RunSetup_MeshHF:
         # coefficientsList = [21.16, 0.53, 14.0, 4.55, 0.0]
         # # coefficientsList = [1.0, 1.0, 1.0, 1.0, 1.0]
         # # directoryName = self.makeDirectories(f"sweep_c4_{self.fwd.q_dir[0]}_{self.fwd.q_dir[1]}_{self.fwd.q_dir[2]}", coefficientsList)
-        directoryName = self.makeDirectories(f"2dir_test_1", coefficientsList)
+        directoryName = self.makeDirectories(f"2dir_test_redo_0", coefficientsList)
         # #meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
         self.opt.meshHFOpt(
                 objectiveFunction,
-                findConstrainedFaces,  
+                facesToKeep,  
                 self.fwd.makeHFProfile,
                 self.fwd.calculateAllHF,
                 self.fwd.filteredCalculateMaxHF, #self.fwd.calculateMaxHF,

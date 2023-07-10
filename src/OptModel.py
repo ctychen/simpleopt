@@ -31,7 +31,7 @@ class OptModel_MeshHF:
         return
     
 
-    def gradientDescentHF(self, tri_mesh, objectiveFunction, allmeshelementsHF, unconstrainedFaces, coefficientsList, delta, filedir, count):
+    def gradientDescentHF(self, tri_mesh, objectiveFunction, allmeshelementsHF, facesToKeep, facesToMove, coefficientsList, delta, filedir, count):
         """
         gradient descent implementation for heat flux minimization
         takes in trimesh object and sorts elements by HF to deal with worst elements first
@@ -56,21 +56,21 @@ class OptModel_MeshHF:
         gradient = np.zeros_like(tri_mesh.vertices)
 
         for idx in sortedFaceIndices: 
-            if idx in unconstrainedFaces: 
+            if idx not in facesToKeep: # if idx in constrainedFaces: 
                 if idx in use_set: 
                     face = tri_mesh.faces[idx]
 
                     for vertexIdx in face:  #vertexIdx is VERTEX INDICES
 
-                        # obj_beforeMoving_allvals = objectiveFunction(tri_mesh, coefficientsList, unconstrainedFaces)
+                        # obj_beforeMoving_allvals = objectiveFunction(tri_mesh, coefficientsList, constrainedFaces)
                         # obj_beforeMoving = obj_beforeMoving_allvals[0]
-                        obj_beforeMoving = objectiveFunction(tri_mesh, coefficientsList, unconstrainedFaces)
+                        obj_beforeMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)
 
                         for j in range(3): #for every dimension - move the vertex a bit and calculate the change in objectiveFunction
 
                             tri_mesh.vertices[vertexIdx, j] += delta
-                            #obj_afterMoving_allvals = objectiveFunction(tri_mesh, coefficientsList, unconstrainedFaces)
-                            obj_afterMoving = objectiveFunction(tri_mesh, coefficientsList, unconstrainedFaces)
+                            #obj_afterMoving_allvals = objectiveFunction(tri_mesh, coefficientsList, constrainedFaces)
+                            obj_afterMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)
                             #obj_afterMoving = obj_afterMoving_allvals[0]
 
                             tri_mesh.vertices[vertexIdx, j] -= delta
@@ -93,15 +93,7 @@ class OptModel_MeshHF:
 
                         # input()
 
-
         return tri_mesh
-
-
-    def moveMeshVertices(self, trimeshSolid, gradient, delta):
-        """
-        function for how we want to adjust mesh vertices, depending on what the gradient is 
-        """
-        return trimeshSolid.vertices - (delta * gradient)
 
 
     # def meshHFOpt(self, hfObjectiveFcn, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
@@ -132,19 +124,24 @@ class OptModel_MeshHF:
         mesh_center_xvals = mesh_centers[:, 0]
         mesh_center_zvals = mesh_centers[:, 2]
 
-        # unconstrainedFaces = set(np.where(constraint(mesh_center_xvals, mesh_center_yvals, mesh_center_zvals))[0])
+        # constrainedFaces = set(np.where(constraint(mesh_center_xvals, mesh_center_yvals, mesh_center_zvals))[0])
 
-        #constraint function returns a list of indices of faces that meet the constraint
-        unconstrainedFaces = set(constraint(mesh_center_xvals, mesh_center_yvals, mesh_center_zvals))
+        #faces TO move 
+        # constrainedFaces = set(constraint(mesh_center_xvals, mesh_center_yvals, mesh_center_zvals))
+        # constrainedFaces = set(constraint(mesh_center_xvals, mesh_center_yvals, mesh_center_zvals))
 
-        # unconstrainedFaces = set(np.where(mesh_center_yvals == 10.0)[0]) #this should isolate the y-vaues but should check
-        #also - unconstrainedFaces is a set, not a list - so need to convert it first
-        # unconstrainedVIdx = np.unique(trimeshSolid.faces[list(unconstrainedFaces)].ravel())
+        indicesToNotMove = set(constraint(mesh_center_xvals, mesh_center_yvals, mesh_center_zvals))
+        allIndices = set(range(len(mesh_center_xvals)))  # assuming all arrays are the same length
+        facesToMove = allIndices-  indicesToNotMove #faces to move
+
+        # constrainedFaces = set(np.where(mesh_center_yvals == 10.0)[0]) #this should isolate the y-vaues but should check
+        #also - constrainedFaces is a set, not a list - so need to convert it first
+        # constrainedVIdx = np.unique(trimeshSolid.faces[list(constrainedFaces)].ravel())
 
         print(f"Objective function with coefficients: {coefficientsList}")
-        all_objective_function_values = [hfObjectiveFcn(trimeshSolid, coefficientsList, unconstrainedFaces)]
+        all_objective_function_values = [hfObjectiveFcn(trimeshSolid, coefficientsList, facesToMove)]
         hf_all_mesh = calcHFAllMesh(trimeshSolid)
-        max_hf_each_run = [calcMaxHF(hf_all_mesh, unconstrainedFaces)]
+        max_hf_each_run = [calcMaxHF(hf_all_mesh, facesToMove)]
         sum_hf_each_run = [calcEnergy(hf_all_mesh, trimeshSolid)] # sum_hf_each_run = [calcEnergy(hf_all_mesh)]
 
         # make VTK to display HF on surface
@@ -159,30 +156,33 @@ class OptModel_MeshHF:
         #want to check convergence really, really fast for a bunch of random options
         #these runs will also be lower res, at 2.5 instead of 2.0 or 1.0
 
+        #faces to NOT move
+        facesToKeep = indicesToNotMove
+
         while abs(prev_objVal - curr_objVal) > threshold and count < 100: #should be =200 but also testing right now
 
             hf_all_mesh = calcHFAllMesh(trimeshSolid)
 
             #calc the gradient
-            trimeshSolid = self.gradientDescentHF(trimeshSolid, hfObjectiveFcn, hf_all_mesh, unconstrainedFaces, coefficientsList, delta, f"test{id}", count)
+            trimeshSolid = self.gradientDescentHF(trimeshSolid, hfObjectiveFcn, hf_all_mesh, facesToKeep, facesToMove, coefficientsList, delta, f"test{id}", count)
             #recalculate the hf profile on the surface
             updateHFProfile(trimeshSolid) 
 
             #makeHFProfile(self, trimeshSolid)
             # print(f"Time elapsed for GD {count}: {time.time() - t0}")
 
-            new_objVal = hfObjectiveFcn(trimeshSolid, coefficientsList, unconstrainedFaces)
+            new_objVal = hfObjectiveFcn(trimeshSolid, coefficientsList, facesToMove)
             all_objective_function_values.append(new_objVal)
 
             prev_objVal = curr_objVal
             curr_objVal = new_objVal
 
-            new_max_hf = calcMaxHF(hf_all_mesh, unconstrainedFaces)
+            new_max_hf = calcMaxHF(hf_all_mesh, facesToMove)
             max_hf_each_run.append(new_max_hf)
 
             ##this is for plotting surface fit onto mesh
             # if count % 5 == 0:
-            #     self.makePolyFitSurface(trimeshSolid.vertices[unconstrainedVIdx], f"{id}", count)
+            #     self.makePolyFitSurface(trimeshSolid.vertices[constrainedVIdx], f"{id}", count)
 
             # print(f"New objective function value: {new_objVal}")
 

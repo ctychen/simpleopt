@@ -152,22 +152,27 @@ class ForwardModel_MeshHF:
 
         elif self.hfMode == "uniform_multiple":
             normals = trimeshSolid.face_normals
-            # q_mesh_all = [
-            #     sum(max(-1 * self.q_mag[j] * np.dot(n, self.q_dir[j]), 0) for j in range(len(self.q_dir))) 
-            #     for n in normals
-            # ]
+
+            dot_product_q0 = np.dot(normals, self.q_dir[0])
+            mask_q0 = dot_product_q0 > 0
+            q0_mesh = -1 * np.where(mask_q0, 0, dot_product_q0) * self.q_mag[0]
+
+            dot_product_q1 = np.dot(normals, self.q_dir[1])
+            mask_q1 = dot_product_q1 > 0
+            q1_mesh = -1 * np.where(mask_q1, 0, dot_product_q1) * self.q_mag[1]
+
+            q_mesh_all = np.add(q0_mesh, q1_mesh)
+
+            # for n in normals:
+            #     q_i = 0
+            #     for j in range(len(self.q_dir)):
+            #         q_to_add = (-1 * self.q_mag[j] * (np.dot(n, self.q_dir[j]))) if (-1 * np.dot(n, self.q_dir[j])) > 0 else 0
+            #         q_i += q_to_add
+            #     q_mesh_all.append(q_i)
             # q_mesh_all = np.array(q_mesh_all)
-            for i in range(len(normals)):
-                n = normals[i]
-                q_i = 0
-                for j in range(len(self.q_dir)):
-                    q_to_add = (-1 * self.q_mag[j] * (np.dot(n, self.q_dir[j]))) if (-1 * np.dot(n, self.q_dir[j])) > 0 else 0
-                    q_i += q_to_add
-                q_mesh_all.append(q_i)
-            q_mesh_all = np.array(q_mesh_all)
 
         return q_mesh_all
-        
+    
 
     def calculateHFMeshSum(self, q_mesh_all):
         """
