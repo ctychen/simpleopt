@@ -47,19 +47,24 @@ class RunSetup_MeshHF:
         g_obj = lambda qvals: max(qvals) #+ qvals.count(max(qvals)) #maybe changing obj function helps??
 
         stpPath = "unit_test_cube.step" #"unit_test_cone.step" 
+        stpPath = "unit_test_pfc.step" #for multiple directions 
 
         stlPath = " " #"box.stl"
-        qDirIn = [0.0, -1.0, 0.0] #[m]
+
+        qDirIn = [[0.707, -0.707, 0.0], [-0.707, -0.707, 0.0]] #[m]
+        # qDirIn = [0.0, -1.0, 0.0] #[m]
         # qDirIn = [0.707, -0.707, 0.0] #[m]
         # qDirIn = [-0.707, -0.707, 0.0] #[m]
         # qDirIn = [0.0, -0.707, 0.707] #[m]
         # qDirIn = [0.0, -0.707, -0.707] #[m]
-        qMagIn = 10.0 #[W/m^2]
+        #qMagIn = 10.0 #[W/m^2]
+        qMagIn = [10.0, 10.0] #[W/m^2]
 
         self.box = Solid.MeshSolid(stlPath, stpPath)
         #self.box = Solid.MeshSolid(stlPath, stpPath) #normally, use this one!
 
-        self.fwd = ForwardModel.ForwardModel_MeshHF(self.box, qMagIn, qDirIn, hfMode='uniform') 
+        # self.fwd = ForwardModel.ForwardModel_MeshHF(self.box, qMagIn, qDirIn, hfMode='uniform') 
+        self.fwd = ForwardModel.ForwardModel_MeshHF(self.box, qMagIn, qDirIn, hfMode='uniform_multiple') 
         # self.fwd = ForwardModel.ForwardModel_MeshHF(self.box, qMagIn, qDirIn, hfMode='exponnorm') 
         self.opt = OptModel.OptModel_MeshHF()
 
@@ -283,11 +288,11 @@ class RunSetup_MeshHF:
         # sweep_values_c3 = [100, 200, 300, 400]
         # big_sweep_coefficients_and_record_output(sweep_values_c0, sweep_values_c1, sweep_values_c2, sweep_values_c3, id=1)
 
-        sweep_values_c0 = [200, 350, 500]
-        sweep_values_c1 = [350, 400, 450]
-        sweep_values_c2 = [500, 1000, 1500]
-        sweep_values_c3 = [500, 2000, 4000]
-        big_sweep_coefficients_and_record_output(sweep_values_c0, sweep_values_c1, sweep_values_c2, sweep_values_c3, id=3)
+        # sweep_values_c0 = [200, 350, 500]
+        # sweep_values_c1 = [350, 400, 450]
+        # sweep_values_c2 = [500, 1000, 1500]
+        # sweep_values_c3 = [500, 2000, 4000]
+        # big_sweep_coefficients_and_record_output(sweep_values_c0, sweep_values_c1, sweep_values_c2, sweep_values_c3, id=3)
 
 
         ## For variable sweep testing
@@ -315,7 +320,8 @@ class RunSetup_MeshHF:
         # sweep_coefficients_and_record_output(coefficients_list, 3, sweep_c3)
 
         # #more runs 
-        # my_trimeshSolid = trimeshSolid.copy()
+        my_trimeshSolid = trimeshSolid.copy()
+        coefficientsList = [350, 400, 1500, 2000]
         # # coefficientsList = [21.16, 0.53, 8.95, c3]
         # # coefficientsList = [0, 0, 0, c3]
         # # coefficientsList = [30.0, 1.0, 14.0, 4.55]
@@ -323,21 +329,21 @@ class RunSetup_MeshHF:
         # coefficientsList = [21.16, 0.53, 14.0, 4.55, 0.0]
         # # coefficientsList = [1.0, 1.0, 1.0, 1.0, 1.0]
         # # directoryName = self.makeDirectories(f"sweep_c4_{self.fwd.q_dir[0]}_{self.fwd.q_dir[1]}_{self.fwd.q_dir[2]}", coefficientsList)
-        # directoryName = self.makeDirectories(f"lmao", coefficientsList)
+        directoryName = self.makeDirectories(f"2dir_test_0", coefficientsList)
         # #meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
-        # maxHF = self.opt.meshHFOpt(
-        #         objectiveFunction,
-        #         findConstrainedFaces,  
-        #         self.fwd.makeHFProfile,
-        #         self.fwd.calculateAllHF,
-        #         self.fwd.filteredCalculateMaxHF, #self.fwd.calculateMaxHF,
-        #         self.fwd.calculateIntegratedEnergy,
-        #         my_trimeshSolid, 
-        #         coefficientsList,
-        #         threshold=0.000001, 
-        #         delta=0.01, 
-        #         id=directoryName
-        # )[0]
+        self.opt.meshHFOpt(
+                objectiveFunction,
+                findConstrainedFaces,  
+                self.fwd.makeHFProfile,
+                self.fwd.calculateAllHF,
+                self.fwd.filteredCalculateMaxHF, #self.fwd.calculateMaxHF,
+                self.fwd.calculateIntegratedEnergy,
+                my_trimeshSolid, 
+                coefficientsList,
+                threshold=0.000001, 
+                delta=0.01, 
+                id=directoryName
+        )
         
         return 
 

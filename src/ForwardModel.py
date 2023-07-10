@@ -41,34 +41,46 @@ class ForwardModel_MeshHF:
         )
     
     
-    def makeHFProfile(self, trimeshSolid): #, directionVector):
+    def makeHFProfile(self, trimeshSolid): #, directionVectors):
         """
         make profile with direction and magnitude of HF at each face center
         this fcn is bc we currently have a uniform direction of HF everywhere so just 1 vector ok, but if not, 
         use version above
         """
         meshHFProfile = []
-        directionVector = self.q_dir
+        directionVectors = self.q_dir
 
         if self.hfMode == 'uniform':
-            meshHFProfile = self.makeUniformHFProfile(trimeshSolid, directionVector)
+            meshHFProfile = self.makeUniformHFProfile(trimeshSolid, directionVectors)
+        elif self.hfMode == "uniform_multiple":
+            meshHFProfile = self.makeMultipleHFProfile(trimeshSolid, directionVectors)
         elif self.hfMode == 'exponnorm':
             #but also we shouldn't be doing this for all faces, only top faces? 
             all_HF_magnitudes = self.calculateHFProfileMagnitudes(trimeshSolid)
             # for i in range(len(all_HF_magnitudes)):
             #     magnitude = all_HF_magnitudes[i]
-            #     meshHFProfile.append([magnitude, directionVector])
+            #     meshHFProfile.append([magnitude, directionVectors])
 
             for magnitude in all_HF_magnitudes:
-                meshHFProfile.append([magnitude, directionVector])
+                meshHFProfile.append([magnitude, directionVectors])
 
         self.meshHFProfile = meshHFProfile
         return meshHFProfile
     
     
-    def makeUniformHFProfile(self, trimeshSolid, directionVector):
-        return [[self.q_mag, directionVector]] * len(trimeshSolid.face_normals)
+    def makeUniformHFProfile(self, trimeshSolid, directionVectors):
+        """ 
+        return list of HF magnitudes and direction vectors for each face center
+        """
+        return [[self.q_mag, directionVectors]] * len(trimeshSolid.face_normals)
     
+    def makeMultipleHFProfile(self, trimeshSolid, directionVectors):
+        """
+        for now, make profile with 2 different HF magnitudes and direction vectors - could extend to more eventually
+        """
+        # directions_magnitudes_list = [[mag, dir_vec] for mag, dir_vec in zip(self.q_mag, directionVectors)]
+        # return directions_magnitudes_list * len(trimeshSolid.face_normals)
+        return [[self.q_mag[0], directionVectors[0]], [self.q_mag[1], directionVectors[1]]] * len(trimeshSolid.face_normals)
 
     def calculateHFProfileMagnitudes(self, trimeshSolid):
         """
@@ -138,7 +150,19 @@ class ForwardModel_MeshHF:
             #     q_mesh_all.append(-1 * (np.dot(normals[i], direction)) * magnitude)
             q_mesh_all = np.array(q_mesh_all)
 
+        elif self.hfMode == "uniform_multiple":
+            normals = trimeshSolid.face_normals
+            for i in range(len(normals)):
+                n = normals[i]
+                q_i = 0
+                for j in range(len(self.q_dir)):
+                    q_to_add = (-1 * self.q_mag[j] * (np.dot(n, self.q_dir[j]))) if (-1 * np.dot(n, self.q_dir[j])) > 0 else 0
+                    q_i += q_to_add
+                q_mesh_all.append(q_i)
+            q_mesh_all = np.array(q_mesh_all)
+
         return q_mesh_all
+    
     
 
     def calculateHFMeshSum(self, q_mesh_all):
