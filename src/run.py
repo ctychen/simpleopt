@@ -46,8 +46,8 @@ class RunSetup_MeshHF:
     def __init__(self):
         g_obj = lambda qvals: max(qvals) #+ qvals.count(max(qvals)) #maybe changing obj function helps??
 
-        stpPath = "unit_test_cube.step" #"unit_test_cone.step" 
-        stpPath = "unit_test_pfc.step" #for multiple directions 
+        # stpPath = "unit_test_cube.step" #"unit_test_cone.step" 
+        stpPath = "test_pfc_block.step" #"unit_test_pfc.step" #for multiple directions 
 
         stlPath = " " #"box.stl"
 
@@ -131,7 +131,13 @@ class RunSetup_MeshHF:
         # trimeshSolid.export(f"{directoryName}/initial.stl")
 
         def findConstrainedFaces(mesh_center_xvals, mesh_center_yvals, mesh_center_zvals):
-            return np.where((mesh_center_yvals == 10.0))[0]
+            """
+            the condition below should be true for faces you DO want to move.
+            faces where the following condition isn't true, will NOT be moved. 
+            """
+            return np.where(np.logical_not((mesh_center_yvals == 0) | (mesh_center_xvals == 0.0) | (mesh_center_xvals == 10.0) | (mesh_center_zvals == 0.0) | (mesh_center_zvals == 10.0)))[0]
+
+            #return np.where((mesh_center_yvals == 10.0))[0]
             #return np.where((mesh_center_yvals == 10.0) | (mesh_center_xvals == 0.0) | (mesh_center_xvals == 10.0) | (mesh_center_zvals == 0.0) | (mesh_center_zvals == 10.0))[0]
         
         def calculateHeatFluxDiff(trimeshSolid):
@@ -321,7 +327,7 @@ class RunSetup_MeshHF:
 
         # #more runs 
         my_trimeshSolid = trimeshSolid.copy()
-        coefficientsList = [350, 400, 1500, 2000]
+        coefficientsList = [350, 400, 1500, 2000, 0.0]
         # # coefficientsList = [21.16, 0.53, 8.95, c3]
         # # coefficientsList = [0, 0, 0, c3]
         # # coefficientsList = [30.0, 1.0, 14.0, 4.55]
