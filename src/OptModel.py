@@ -213,7 +213,7 @@ class OptModel_MeshHF:
 
             count += 1
         
-        self.plotRun(all_objective_function_values, max_hf_each_run, sum_hf_each_run, f"{id}")
+        self.plotRun(all_objective_function_values, max_hf_each_run, f"{id}")
         self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"{id}", count)
         finalMaxHF = np.min(max_hf_each_run)
         print(f"Finished run, maxHF is {finalMaxHF}")
@@ -321,17 +321,17 @@ class OptModel_MeshHF:
         return 
     
 
-    def plotRun(self, objective_function_values, max_hf_each_run, sum_hf_each_run, outputDir):
+    def plotRun(self, objective_function_values, max_hf_each_run, outputDir):
         """
         plot values of objective function, as well as max HF and sum of HF's, over iterations
         """
-        # x_count = np.linspace(0, len(objective_function_values), len(objective_function_values))
-        # fig = px.scatter(x = x_count, y = objective_function_values)
-        # fig.update_xaxes(title_text='Iterations')
-        # fig.update_yaxes(title_text='Objective function - sum HF over elements')
-        # fig.show()            
-        # output_file = f"{outputDir}/entire_run.html"
-        # pio.write_html(fig, output_file)
+        x_count = np.linspace(0, len(objective_function_values), len(objective_function_values))
+        fig = px.scatter(x = x_count, y = objective_function_values)
+        fig.update_xaxes(title_text='Iterations')
+        fig.update_yaxes(title_text='Objective function - sum HF over elements')
+        fig.show()            
+        output_file = f"{outputDir}/entire_run.html"
+        pio.write_html(fig, output_file)
 
         x_count = np.linspace(0, len(max_hf_each_run), len(max_hf_each_run))
         fig = px.scatter(x = x_count, y = max_hf_each_run)

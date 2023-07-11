@@ -105,18 +105,40 @@ class RunSetup_MeshHF:
         df.to_csv(f"{runID}_results.csv", index=None, header=True)
 
         return 
+    
+    def findCornerFaces(self, trimeshSolid):
+        vertex_to_face_map = {}
+        for face_index, face in enumerate(trimeshSolid.faces):
+            for vertex in face:
+                if vertex in vertex_to_face_map:
+                    vertex_to_face_map[vertex].append(face_index)
+                else:
+                    vertex_to_face_map[vertex] = [face_index]   
+        corner_faces = set()
+        for vertex, faces in vertex_to_face_map.items():
+            if len(faces) == 3:
+                corner_faces.update(faces)
+        return corner_faces
 
     def runOptimization(self):
+
+        #find which faces are on corners - don't want to take those into account for difference in normals? 
+        #reasoning is more than 1 adjacent face, and more than 1 normal to compare as a result? 
+        #maybe this is not the way to go? 
+        corner_faces = self.findCornerFaces(self.box.trimeshSolid)
+        adjacency = trimeshSolid.face_adjacency
+        filtered_adjacency = [pair for pair in adjacency if pair[0] not in corner_faces and pair[1] not in corner_faces]
         
         def calculateNormalsDiff(trimeshSolid):
             """
             calculate differences between normal vectors of adjacent faces - ideally this should also be minimized?  
             """
             #"(n, 2) list of face indices. Each pair of faces in the list shares an edge, making them adjacent"
-            adjacency = trimeshSolid.face_adjacency 
+            # adjacency = trimeshSolid.face_adjacency 
 
             normals = trimeshSolid.face_normals
-            normalsDiff = normals[adjacency[:, 0]] - normals[adjacency[:, 1]]
+            # normalsDiff = normals[adjacency[:, 0]] - normals[adjacency[:, 1]]
+            normalsDiff = normals[filtered_adjacency[:, 0]] - normals[filtered_adjacency[:, 1]]
 
             normalsDiffMagnitude = np.linalg.norm(normalsDiff, axis=1)
 
@@ -131,34 +153,6 @@ class RunSetup_MeshHF:
         # trimeshSolid.export(f"{directoryName}/initial.stl")
 
         def facesToKeep(mesh_center_xvals, mesh_center_yvals, mesh_center_zvals):
-            # """
-            # the condition below should be true for faces you DO want to move.
-            # faces where the following condition isn't true, will NOT be moved. 
-            # """
-            # return np.where(np.logical_not((mesh_center_yvals == 0) | 
-            #                                (mesh_center_xvals == 0.0) | 
-            #                                (mesh_center_xvals == 10.0) | 
-            #                                (mesh_center_zvals == 0.0) | 
-            #                                (mesh_center_zvals == 10.0)))[0]
-
-            # """
-            # new version: this condition is for faces that should NOT be moved
-            # then when we start moving faces, we check if vertex is NOT in faces that don't move, instead of checking if vertex is in faces to move
-            # """
-            # return np.where((
-            #     # (mesh_center_yvals == 0) |
-            #     (mesh_center_xvals == 0.0) |
-            #     (mesh_center_xvals == 10.0) |
-            #     (mesh_center_zvals == 0.0) |
-            #     (mesh_center_zvals == 10.0) |
-            #     (mesh_center_yvals <= 10.0)
-            # ))[0]
-
-            # return np.where(np.logical_not((mesh_center_yvals <= 10.0) | 
-            #                                (mesh_center_xvals == 0.0) | 
-            #                                (mesh_center_xvals == 10.0) | 
-            #                                (mesh_center_zvals == 0.0) | 
-            #                                (mesh_center_zvals == 10.0)))[0]
 
             return np.where(
                 #this should be for faces to NOT use
@@ -169,9 +163,6 @@ class RunSetup_MeshHF:
                 (mesh_center_zvals == 10.0)
             )[0]
 
-            #return np.where((mesh_center_yvals == 10.0))[0]
-            #return np.where((mesh_center_yvals == 10.0) | (mesh_center_xvals == 0.0) | (mesh_center_xvals == 10.0) | (mesh_center_zvals == 0.0) | (mesh_center_zvals == 10.0))[0]
-        
         def calculateHeatFluxDiff(trimeshSolid):
             adjacency_info = trimeshSolid.face_adjacency
 
@@ -224,7 +215,7 @@ class RunSetup_MeshHF:
             normalsPenalty = c2 * (np.sum(normalsDiff) / normalsPenalty_initial)
 
             # energyTerm = c3 * self.fwd.calculateIntegratedEnergy(q_mesh_all) #self.fwd.calculateIntegratedEnergy(trimeshSolid)
-            energyTerm = 0 #c3 * (self.fwd.calculateIntegratedEnergy(q_mesh_all, trimeshSolid) / energy_initial)
+            energyTerm = c3 * (self.fwd.calculateIntegratedEnergy(q_mesh_all, trimeshSolid) / energy_initial)
 
             # print(f"Terms: {maxHFTerm}, {sumHFTerm}, {normalsPenalty}, {energyTerm}")
             # print(f"Terms divided by constants: {maxHFTerm/c0}, {sumHFTerm/c1}, {normalsPenalty/c2}, {energyTerm/c3}")
@@ -341,7 +332,7 @@ class RunSetup_MeshHF:
 
         ## For variable sweep testing
         #coefficients_list = [21.16, 0.53, 14.0, 4.55, 0.0]
-        coefficients_list = [0.0, 0.0, 0.0, 0.0, 0.0]
+        coefficients_list = [0.0, 100.0, 0.0, 0.0, 0.0]
         # sweep_c0 = [0.0, 10.0, 20.0, 30.0]
         # sweep_c1 = [0.0, 0.53, 1.06, 1.59]
         # sweep_c2 = [0.0, 14.0, 28.0, 42.0]
@@ -356,15 +347,18 @@ class RunSetup_MeshHF:
         # sweep_c2 = [700, 1000, 2000, 5000]
 
         # sweep_c1 = [1.0, 10.0, 50.0, 100.0]
-        sweep_c1 = [50.0, 100.0, 300.0, 500.0]
+        # sweep_c1 = [50.0, 100.0, 300.0, 500.0]
         # sweep_c2 = [10.0, 50.0, 100.0, 300.0, 500.0, 1000.0, 1500.0, 2000.0]
 
-        # sweep_coefficients_and_record_output(coefficients_list, 0, sweep_c0)
+        sweep_c0 = [50.0, 100.0, 300.0, 500.0]
 
-        sweep_coefficients_and_record_output(coefficients_list, 1, sweep_c1)
+        sweep_coefficients_and_record_output(coefficients_list, 0, sweep_c0)
+
+        # sweep_coefficients_and_record_output(coefficients_list, 1, sweep_c1)
 
         # sweep_coefficients_and_record_output(coefficients_list, 2, sweep_c2)
 
+        # sweep_c3 = [1000, 5000, 10000]
         # sweep_coefficients_and_record_output(coefficients_list, 3, sweep_c3)
 
         # #more runs 
