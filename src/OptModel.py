@@ -371,4 +371,3 @@ class OptModel_Template:
         self.g_prev = self.g_curr
         self.g_curr = g_new
         return    
-

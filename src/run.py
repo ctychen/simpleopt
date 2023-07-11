@@ -161,7 +161,12 @@ class RunSetup_MeshHF:
             #                                (mesh_center_zvals == 10.0)))[0]
 
             return np.where(
-                mesh_center_yvals <= 10.0 #this should be for faces to NOT use
+                #this should be for faces to NOT use
+                #don't want to move anything below the slanted faces
+                #don't want to move sides - keep those planar, and those are @ z=0 and z=10
+                (mesh_center_yvals <= 10.0) |
+                (mesh_center_zvals == 0.0) |
+                (mesh_center_zvals == 10.0)
             )[0]
 
             #return np.where((mesh_center_yvals == 10.0))[0]
@@ -247,7 +252,7 @@ class RunSetup_MeshHF:
             for val in sweep_values:
                 my_trimeshSolid = trimeshSolid.copy()
                 coefficients_list[idx_to_vary] = val
-                directoryName = self.makeDirectories(f"2dir_sweep_{idx_to_vary}_run2_", coefficients_list)
+                directoryName = self.makeDirectories(f"run2dir_sweep_{idx_to_vary}", coefficients_list)
                 #meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
                 maxHF = self.opt.meshHFOpt(
                     objectiveFunction,  
@@ -268,7 +273,7 @@ class RunSetup_MeshHF:
                 c3_runvals.append(coefficients_list[3])
                 maxhf_vals.append(maxHF)
             
-            self.makeSweepCSV(c0_runvals, c1_runvals, c2_runvals, c3_runvals, maxhf_vals, f"2dir_sweep_{idx_to_vary}")
+            self.makeSweepCSV(c0_runvals, c1_runvals, c2_runvals, c3_runvals, maxhf_vals, f"run2dir_sweep_{idx_to_vary}")
             return 
         
         def big_sweep_coefficients_and_record_output(sweep_values_c0, sweep_values_c1, sweep_values_c2, sweep_values_c3, id):
@@ -336,7 +341,7 @@ class RunSetup_MeshHF:
 
         ## For variable sweep testing
         #coefficients_list = [21.16, 0.53, 14.0, 4.55, 0.0]
-        # coefficients_list = [0.0, 0.0, 0.0, 0.0, 0.0]
+        coefficients_list = [0.0, 0.0, 0.0, 0.0, 0.0]
         # sweep_c0 = [0.0, 10.0, 20.0, 30.0]
         # sweep_c1 = [0.0, 0.53, 1.06, 1.59]
         # sweep_c2 = [0.0, 14.0, 28.0, 42.0]
@@ -351,20 +356,20 @@ class RunSetup_MeshHF:
         # sweep_c2 = [700, 1000, 2000, 5000]
 
         # sweep_c1 = [1.0, 10.0, 50.0, 100.0]
-        # sweep_c1 = [10.0, 50.0, 100.0, 300.0, 500.0]
+        sweep_c1 = [50.0, 100.0, 300.0, 500.0]
         # sweep_c2 = [10.0, 50.0, 100.0, 300.0, 500.0, 1000.0, 1500.0, 2000.0]
 
         # sweep_coefficients_and_record_output(coefficients_list, 0, sweep_c0)
 
-        # sweep_coefficients_and_record_output(coefficients_list, 1, sweep_c1)
+        sweep_coefficients_and_record_output(coefficients_list, 1, sweep_c1)
 
         # sweep_coefficients_and_record_output(coefficients_list, 2, sweep_c2)
 
         # sweep_coefficients_and_record_output(coefficients_list, 3, sweep_c3)
 
         # #more runs 
-        my_trimeshSolid = trimeshSolid.copy()
-        coefficientsList = [350, 400, 1500, 0.0, 0.0]
+        # my_trimeshSolid = trimeshSolid.copy()
+        # coefficientsList = [0.0, 100, 0.0, 0.0, 0.0]
         # # # coefficientsList = [21.16, 0.53, 8.95, c3]
         # # # coefficientsList = [0, 0, 0, c3]
         # # # coefficientsList = [30.0, 1.0, 14.0, 4.55]
@@ -372,21 +377,21 @@ class RunSetup_MeshHF:
         # # coefficientsList = [21.16, 0.53, 14.0, 4.55, 0.0]
         # # # coefficientsList = [1.0, 1.0, 1.0, 1.0, 1.0]
         # # # directoryName = self.makeDirectories(f"sweep_c4_{self.fwd.q_dir[0]}_{self.fwd.q_dir[1]}_{self.fwd.q_dir[2]}", coefficientsList)
-        directoryName = self.makeDirectories(f"2dir_test_redo_1", coefficientsList)
+        # directoryName = self.makeDirectories(f"2dir_test_5", coefficientsList)
         # # #meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
-        self.opt.meshHFOpt(
-                objectiveFunction,
-                facesToKeep,  
-                self.fwd.makeHFProfile,
-                self.fwd.calculateAllHF,
-                self.fwd.filteredCalculateMaxHF, #self.fwd.calculateMaxHF,
-                self.fwd.calculateIntegratedEnergy,
-                my_trimeshSolid, 
-                coefficientsList,
-                threshold=0.000001, 
-                delta=0.01, 
-                id=directoryName
-        )
+        # self.opt.meshHFOpt(
+        #         objectiveFunction,
+        #         facesToKeep,  
+        #         self.fwd.makeHFProfile,
+        #         self.fwd.calculateAllHF,
+        #         self.fwd.filteredCalculateMaxHF, #self.fwd.calculateMaxHF,
+        #         self.fwd.calculateIntegratedEnergy,
+        #         my_trimeshSolid, 
+        #         coefficientsList,
+        #         threshold=0.000001, 
+        #         delta=0.01, 
+        #         id=directoryName
+        # )
         
         return 
 
@@ -409,6 +414,5 @@ if __name__ == '__main__':
 
 
         
-
 
 
