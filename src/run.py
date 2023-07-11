@@ -107,27 +107,34 @@ class RunSetup_MeshHF:
         return 
     
     def findCornerFaces(self, trimeshSolid):
+        # map each vertex to all the faces that contain it
         vertex_to_face_map = {}
         for face_index, face in enumerate(trimeshSolid.faces):
             for vertex in face:
                 if vertex in vertex_to_face_map:
                     vertex_to_face_map[vertex].append(face_index)
                 else:
-                    vertex_to_face_map[vertex] = [face_index]   
+                    vertex_to_face_map[vertex] = [face_index]
+
+        # identify corner faces
         corner_faces = set()
         for vertex, faces in vertex_to_face_map.items():
-            if len(faces) == 3:
+            if len(faces) != 6:  # a vertex is at a corner if it's not part of 6 faces
                 corner_faces.update(faces)
         return corner_faces
 
     def runOptimization(self):
+
+        self.box.processSolid()
+        trimeshSolid = self.box.trimeshSolid
 
         #find which faces are on corners - don't want to take those into account for difference in normals? 
         #reasoning is more than 1 adjacent face, and more than 1 normal to compare as a result? 
         #maybe this is not the way to go? 
         corner_faces = self.findCornerFaces(self.box.trimeshSolid)
         adjacency = trimeshSolid.face_adjacency
-        filtered_adjacency = [pair for pair in adjacency if pair[0] not in corner_faces and pair[1] not in corner_faces]
+        filtered_adjacency = np.array([pair for pair in adjacency if pair[0] not in corner_faces and pair[1] not in corner_faces])
+        print(f"Filtered adjacency: {filtered_adjacency}, type: {type(filtered_adjacency)}")
         
         def calculateNormalsDiff(trimeshSolid):
             """
@@ -138,6 +145,7 @@ class RunSetup_MeshHF:
 
             normals = trimeshSolid.face_normals
             # normalsDiff = normals[adjacency[:, 0]] - normals[adjacency[:, 1]]
+            #every element of filtered_adjacency: array([720, 723])]
             normalsDiff = normals[filtered_adjacency[:, 0]] - normals[filtered_adjacency[:, 1]]
 
             normalsDiffMagnitude = np.linalg.norm(normalsDiff, axis=1)
@@ -147,10 +155,6 @@ class RunSetup_MeshHF:
 
             return normalsDiffMagnitude, normalRefDotProducts
 
-
-        self.box.processSolid()
-        trimeshSolid = self.box.trimeshSolid
-        # trimeshSolid.export(f"{directoryName}/initial.stl")
 
         def facesToKeep(mesh_center_xvals, mesh_center_yvals, mesh_center_zvals):
 
@@ -243,7 +247,7 @@ class RunSetup_MeshHF:
             for val in sweep_values:
                 my_trimeshSolid = trimeshSolid.copy()
                 coefficients_list[idx_to_vary] = val
-                directoryName = self.makeDirectories(f"run2dir_sweep_{idx_to_vary}", coefficients_list)
+                directoryName = self.makeDirectories(f"run2dir_v2sweep_{idx_to_vary}", coefficients_list)
                 #meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
                 maxHF = self.opt.meshHFOpt(
                     objectiveFunction,  
@@ -264,7 +268,7 @@ class RunSetup_MeshHF:
                 c3_runvals.append(coefficients_list[3])
                 maxhf_vals.append(maxHF)
             
-            self.makeSweepCSV(c0_runvals, c1_runvals, c2_runvals, c3_runvals, maxhf_vals, f"run2dir_sweep_{idx_to_vary}")
+            self.makeSweepCSV(c0_runvals, c1_runvals, c2_runvals, c3_runvals, maxhf_vals, f"{directoryName}/{idx_to_vary}")
             return 
         
         def big_sweep_coefficients_and_record_output(sweep_values_c0, sweep_values_c1, sweep_values_c2, sweep_values_c3, id):
@@ -332,7 +336,8 @@ class RunSetup_MeshHF:
 
         ## For variable sweep testing
         #coefficients_list = [21.16, 0.53, 14.0, 4.55, 0.0]
-        coefficients_list = [0.0, 100.0, 0.0, 0.0, 0.0]
+        # coefficients_list = [0.0, 100.0, 0.0, 0.0, 0.0]
+        coefficients_list = [0, 0, 0, 0, 0]
         # sweep_c0 = [0.0, 10.0, 20.0, 30.0]
         # sweep_c1 = [0.0, 0.53, 1.06, 1.59]
         # sweep_c2 = [0.0, 14.0, 28.0, 42.0]
@@ -350,13 +355,15 @@ class RunSetup_MeshHF:
         # sweep_c1 = [50.0, 100.0, 300.0, 500.0]
         # sweep_c2 = [10.0, 50.0, 100.0, 300.0, 500.0, 1000.0, 1500.0, 2000.0]
 
-        sweep_c0 = [50.0, 100.0, 300.0, 500.0]
+        # sweep_c0 = [50.0, 100.0, 300.0, 500.0]
 
-        sweep_coefficients_and_record_output(coefficients_list, 0, sweep_c0)
+        # sweep_coefficients_and_record_output(coefficients_list, 0, sweep_c0)
 
         # sweep_coefficients_and_record_output(coefficients_list, 1, sweep_c1)
 
-        # sweep_coefficients_and_record_output(coefficients_list, 2, sweep_c2)
+        sweep_c2 = [50, 100, 500]
+
+        sweep_coefficients_and_record_output(coefficients_list, 2, sweep_c2)
 
         # sweep_c3 = [1000, 5000, 10000]
         # sweep_coefficients_and_record_output(coefficients_list, 3, sweep_c3)
