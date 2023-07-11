@@ -159,7 +159,7 @@ class OptModel_MeshHF:
         #faces to NOT move
         facesToKeep = indicesToNotMove
 
-        while abs(prev_objVal - curr_objVal) > threshold and count < 100: #should be =200 but also testing right now
+        while abs(prev_objVal - curr_objVal) > threshold and count < 150: #should be =200 but also testing right now
 
             hf_all_mesh = calcHFAllMesh(trimeshSolid)
 
@@ -186,7 +186,7 @@ class OptModel_MeshHF:
 
             # print(f"New objective function value: {new_objVal}")
 
-            if count and count % 1 == 0: #count % 5 == 0: 
+            if count and count % 30 == 0: #count % 5 == 0: 
 
                 # x_count = np.linspace(0, len(max_hf_each_run), len(max_hf_each_run))
                 # fig = px.scatter(x = x_count, y = max_hf_each_run)

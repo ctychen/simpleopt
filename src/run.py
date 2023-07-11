@@ -219,7 +219,7 @@ class RunSetup_MeshHF:
             normalsPenalty = c2 * (np.sum(normalsDiff) / normalsPenalty_initial)
 
             # energyTerm = c3 * self.fwd.calculateIntegratedEnergy(q_mesh_all) #self.fwd.calculateIntegratedEnergy(trimeshSolid)
-            energyTerm = c3 * (self.fwd.calculateIntegratedEnergy(q_mesh_all, trimeshSolid) / energy_initial)
+            energyTerm = 0 #c3 * (self.fwd.calculateIntegratedEnergy(q_mesh_all, trimeshSolid) / energy_initial)
 
             # print(f"Terms: {maxHFTerm}, {sumHFTerm}, {normalsPenalty}, {energyTerm}")
             # print(f"Terms divided by constants: {maxHFTerm/c0}, {sumHFTerm/c1}, {normalsPenalty/c2}, {energyTerm/c3}")
@@ -247,7 +247,7 @@ class RunSetup_MeshHF:
             for val in sweep_values:
                 my_trimeshSolid = trimeshSolid.copy()
                 coefficients_list[idx_to_vary] = val
-                directoryName = self.makeDirectories(f"newprofile_c{idx_to_vary}", coefficients_list)
+                directoryName = self.makeDirectories(f"2dir_sweep_{idx_to_vary}_run2_", coefficients_list)
                 #meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
                 maxHF = self.opt.meshHFOpt(
                     objectiveFunction,  
@@ -268,7 +268,7 @@ class RunSetup_MeshHF:
                 c3_runvals.append(coefficients_list[3])
                 maxhf_vals.append(maxHF)
             
-            self.makeSweepCSV(c0_runvals, c1_runvals, c2_runvals, c3_runvals, maxhf_vals, f"sweep_c{idx_to_vary}")
+            self.makeSweepCSV(c0_runvals, c1_runvals, c2_runvals, c3_runvals, maxhf_vals, f"2dir_sweep_{idx_to_vary}")
             return 
         
         def big_sweep_coefficients_and_record_output(sweep_values_c0, sweep_values_c1, sweep_values_c2, sweep_values_c3, id):
@@ -350,6 +350,10 @@ class RunSetup_MeshHF:
         # sweep_c3 = [300, 500, 1000, 2000]
         # sweep_c2 = [700, 1000, 2000, 5000]
 
+        # sweep_c1 = [1.0, 10.0, 50.0, 100.0]
+        # sweep_c1 = [10.0, 50.0, 100.0, 300.0, 500.0]
+        # sweep_c2 = [10.0, 50.0, 100.0, 300.0, 500.0, 1000.0, 1500.0, 2000.0]
+
         # sweep_coefficients_and_record_output(coefficients_list, 0, sweep_c0)
 
         # sweep_coefficients_and_record_output(coefficients_list, 1, sweep_c1)
@@ -360,16 +364,16 @@ class RunSetup_MeshHF:
 
         # #more runs 
         my_trimeshSolid = trimeshSolid.copy()
-        coefficientsList = [350, 400, 1500, 2000, 0.0]
-        # # coefficientsList = [21.16, 0.53, 8.95, c3]
-        # # coefficientsList = [0, 0, 0, c3]
-        # # coefficientsList = [30.0, 1.0, 14.0, 4.55]
-        # # coefficientsList = [21.16, 0.53, 14.0, 4.55]
-        # coefficientsList = [21.16, 0.53, 14.0, 4.55, 0.0]
-        # # coefficientsList = [1.0, 1.0, 1.0, 1.0, 1.0]
-        # # directoryName = self.makeDirectories(f"sweep_c4_{self.fwd.q_dir[0]}_{self.fwd.q_dir[1]}_{self.fwd.q_dir[2]}", coefficientsList)
-        directoryName = self.makeDirectories(f"2dir_test_redo_0", coefficientsList)
-        # #meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
+        coefficientsList = [350, 400, 1500, 0.0, 0.0]
+        # # # coefficientsList = [21.16, 0.53, 8.95, c3]
+        # # # coefficientsList = [0, 0, 0, c3]
+        # # # coefficientsList = [30.0, 1.0, 14.0, 4.55]
+        # # # coefficientsList = [21.16, 0.53, 14.0, 4.55]
+        # # coefficientsList = [21.16, 0.53, 14.0, 4.55, 0.0]
+        # # # coefficientsList = [1.0, 1.0, 1.0, 1.0, 1.0]
+        # # # directoryName = self.makeDirectories(f"sweep_c4_{self.fwd.q_dir[0]}_{self.fwd.q_dir[1]}_{self.fwd.q_dir[2]}", coefficientsList)
+        directoryName = self.makeDirectories(f"2dir_test_redo_1", coefficientsList)
+        # # #meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
         self.opt.meshHFOpt(
                 objectiveFunction,
                 facesToKeep,  
