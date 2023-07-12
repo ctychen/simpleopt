@@ -109,6 +109,7 @@ class RunSetup_MeshHF:
     def findCornerFaces(self, trimeshSolid):
         # map each vertex to all the faces that contain it
         vertex_to_face_map = {}
+        all_vertices = trimeshSolid.vertices
         for face_index, face in enumerate(trimeshSolid.faces):
             for vertex in face:
                 if vertex in vertex_to_face_map:
@@ -119,7 +120,13 @@ class RunSetup_MeshHF:
         # identify corner faces
         corner_faces = set()
         for vertex, faces in vertex_to_face_map.items():
-            if len(faces) != 6:  # a vertex is at a corner if it's not part of 6 faces
+            # print(vertex)
+            # print(all_vertices[vertex])
+            if len(faces) !=6 and all_vertices[vertex][1] == 10.0 and ((all_vertices[vertex][2] == 0.0) or (all_vertices[vertex][2] == 10.0)):  # a vertex is at a corner if it's not part of 6 faces, and we only want corners not the top edge 
+            #if len(faces) != 6:  # a vertex is at a corner if it's not part of 6 faces
+                #should maybe add a condition for vertex y coordinates?
+                #since this shouldn't stop us from moving elements on the top sharp edge - but we only want to 
+                #exclude vertices on y=10.0, not ymax? 
                 corner_faces.update(faces)
         return corner_faces
 
@@ -134,7 +141,7 @@ class RunSetup_MeshHF:
         corner_faces = self.findCornerFaces(self.box.trimeshSolid)
         adjacency = trimeshSolid.face_adjacency
         filtered_adjacency = np.array([pair for pair in adjacency if pair[0] not in corner_faces and pair[1] not in corner_faces])
-        print(f"Filtered adjacency: {filtered_adjacency}, type: {type(filtered_adjacency)}")
+        # print(f"Filtered adjacency: {filtered_adjacency}, type: {type(filtered_adjacency)}")
         
         def calculateNormalsDiff(trimeshSolid):
             """
@@ -247,7 +254,7 @@ class RunSetup_MeshHF:
             for val in sweep_values:
                 my_trimeshSolid = trimeshSolid.copy()
                 coefficients_list[idx_to_vary] = val
-                directoryName = self.makeDirectories(f"run2dir_v2sweep_{idx_to_vary}", coefficients_list)
+                directoryName = self.makeDirectories(f"run2dir_v4sweep_{idx_to_vary}", coefficients_list)
                 #meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
                 maxHF = self.opt.meshHFOpt(
                     objectiveFunction,  
