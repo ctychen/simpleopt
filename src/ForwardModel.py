@@ -129,7 +129,7 @@ class ForwardModel_MeshHF:
         """
         calculate HF on every mesh element, but this should use nonuniform HF on mesh element centers
         this could also use uniform HF; just need meshHFProfile to be a list of the same HF value for each element
-        """
+        """ 
 
         q_mesh_all = []
 
