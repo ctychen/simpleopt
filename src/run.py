@@ -231,9 +231,6 @@ class RunSetup_MeshHF:
             # print(f"Terms: {maxHFTerm}, {sumHFTerm}, {normalsPenalty}, {energyTerm}")
             # print(f"Terms divided by constants: {maxHFTerm/c0}, {sumHFTerm/c1}, {normalsPenalty/c2}, {energyTerm/c3}")
 
-            hfDiffTerm = 0 #c4 * np.sum(calculateHeatFluxDiff(trimeshSolid))
-
-            # input()
             return maxHFTerm + sumHFTerm + normalsPenalty + energyTerm
             #return [maxHFTerm + sumHFTerm + normalsPenalty + energyTerm + hfDiffTerm, maxHFTerm, sumHFTerm, normalsPenalty, energyTerm] 
             #objectiveFunction value: [0]       

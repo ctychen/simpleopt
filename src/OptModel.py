@@ -152,10 +152,6 @@ class OptModel_MeshHF:
 
         # t0 = time.time()
 
-        #adding the count < 200 for quick testing temporarily - 
-        #want to check convergence really, really fast for a bunch of random options
-        #these runs will also be lower res, at 2.5 instead of 2.0 or 1.0
-
         #faces to NOT move
         facesToKeep = indicesToNotMove
 

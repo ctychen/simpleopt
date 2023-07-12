@@ -144,15 +144,12 @@ class ForwardModel_MeshHF:
                 magnitude = newHFProfile[i][0]
                 direction = newHFProfile[i][1]
                 q_mesh_all.append(-1 * (np.dot(normals[i], direction)) * magnitude)
-            # for i in range(len(self.meshHFProfile)):
-            #     # magnitude = self.meshHFProfile[i][0]
-            #     direction = self.meshHFProfile[i][1]
-            #     q_mesh_all.append(-1 * (np.dot(normals[i], direction)) * magnitude)
             q_mesh_all = np.array(q_mesh_all)
 
         elif self.hfMode == "uniform_multiple":
             normals = trimeshSolid.face_normals
 
+            #this works for 2 HF magnitudes and directions but not more - would have to generalize?
             dot_product_q0 = np.dot(normals, self.q_dir[0])
             mask_q0 = dot_product_q0 > 0
             q0_mesh = -1 * np.where(mask_q0, 0, dot_product_q0) * self.q_mag[0]
@@ -162,14 +159,6 @@ class ForwardModel_MeshHF:
             q1_mesh = -1 * np.where(mask_q1, 0, dot_product_q1) * self.q_mag[1]
 
             q_mesh_all = np.add(q0_mesh, q1_mesh)
-
-            # for n in normals:
-            #     q_i = 0
-            #     for j in range(len(self.q_dir)):
-            #         q_to_add = (-1 * self.q_mag[j] * (np.dot(n, self.q_dir[j]))) if (-1 * np.dot(n, self.q_dir[j])) > 0 else 0
-            #         q_i += q_to_add
-            #     q_mesh_all.append(q_i)
-            # q_mesh_all = np.array(q_mesh_all)
 
         return q_mesh_all
     
