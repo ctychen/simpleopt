@@ -46,25 +46,25 @@ class RunSetup_MeshHF:
     def __init__(self):
         g_obj = lambda qvals: max(qvals) #+ qvals.count(max(qvals)) #maybe changing obj function helps??
 
-        # stpPath = "unit_test_cube.step" #"unit_test_cone.step" 
-        stpPath = "test_pfc_block.step" #"unit_test_pfc.step" #for multiple directions 
+        stpPath = "unit_test_cube.step" #"unit_test_cone.step" 
+        # stpPath = "test_pfc_block.step" #"unit_test_pfc.step" #for multiple directions 
 
         stlPath = " " #"box.stl"
 
-        qDirIn = [[0.707, -0.707, 0.0], [-0.707, -0.707, 0.0]] #[m]
-        # qDirIn = [0.0, -1.0, 0.0] #[m]
+        # qDirIn = [[0.707, -0.707, 0.0], [-0.707, -0.707, 0.0]] #[m]
+        qDirIn = [0.0, -1.0, 0.0] #[m]
         # qDirIn = [0.707, -0.707, 0.0] #[m]
         # qDirIn = [-0.707, -0.707, 0.0] #[m]
         # qDirIn = [0.0, -0.707, 0.707] #[m]
         # qDirIn = [0.0, -0.707, -0.707] #[m]
-        # qMagIn = 10.0 #[W/m^2]
-        qMagIn = [10.0, 10.0] #[W/m^2]
+        qMagIn = 10.0 #[W/m^2]
+        # qMagIn = [10.0, 10.0] #[W/m^2]
 #
         self.box = Solid.MeshSolid(stlPath, stpPath)
         #self.box = Solid.MeshSolid(stlPath, stpPath) #normally, use this one!
 
-        # self.fwd = ForwardModel.ForwardModel_MeshHF(self.box, qMagIn, qDirIn, hfMode='uniform') 
-        self.fwd = ForwardModel.ForwardModel_MeshHF(self.box, qMagIn, qDirIn, hfMode='uniform_multiple') 
+        self.fwd = ForwardModel.ForwardModel_MeshHF(self.box, qMagIn, qDirIn, hfMode='uniform') 
+        # self.fwd = ForwardModel.ForwardModel_MeshHF(self.box, qMagIn, qDirIn, hfMode='uniform_multiple') 
         # self.fwd = ForwardModel.ForwardModel_MeshHF(self.box, qMagIn, qDirIn, hfMode='exponnorm') 
         self.opt = OptModel.OptModel_MeshHF()
 
@@ -122,7 +122,8 @@ class RunSetup_MeshHF:
         for vertex, faces in vertex_to_face_map.items():
             # print(vertex)
             # print(all_vertices[vertex])
-            if len(faces) !=6 and all_vertices[vertex][1] <= 10.0 and ((all_vertices[vertex][2] == 0.0) or (all_vertices[vertex][2] == 10.0)):  # a vertex is at a corner if it's not part of 6 faces, and we only want corners not the top edge 
+            # if len(faces) !=6 and all_vertices[vertex][1] <= 10.0 and ((all_vertices[vertex][2] == 0.0) or (all_vertices[vertex][2] == 10.0)):  # a vertex is at a corner if it's not part of 6 faces, and we only want corners not the top edge 
+            if len(faces) !=6 and ((all_vertices[vertex][1] == 10.0) or (all_vertices[vertex][1] == 0.0)) and ((all_vertices[vertex][2] == 0.0) or (all_vertices[vertex][2] == 10.0)):  # a vertex is at a corner if it's not part of 6 faces, and we only want corners not the top edge 
             #if len(faces) != 6:  # a vertex is at a corner if it's not part of 6 faces
                 #should maybe add a condition for vertex y coordinates?
                 #since this shouldn't stop us from moving elements on the top sharp edge - but we only want to 
@@ -169,11 +170,11 @@ class RunSetup_MeshHF:
             #     #this should be for faces to NOT use
             #     #don't want to move anything below the slanted faces
             #     #don't want to move sides - keep those planar, and those are @ z=0 and z=10
-            #     (mesh_center_yvals <= 10.0) #|
+            #     (mesh_center_yvals <= 10.0) #| #or should we keep this for sphere runs? 
             #     # (mesh_center_zvals == 0.0) |
             #     # (mesh_center_zvals == 10.0)
             # )[0]
-            return []
+            return [] #should we keep this for sphere runs? 
 
         def calculateHeatFluxDiff(trimeshSolid):
             adjacency_info = trimeshSolid.face_adjacency
@@ -252,7 +253,7 @@ class RunSetup_MeshHF:
             for val in sweep_values:
                 my_trimeshSolid = trimeshSolid.copy()
                 coefficients_list[idx_to_vary] = val
-                directoryName = self.makeDirectories(f"3sphere_{idx_to_vary}", coefficients_list)
+                directoryName = self.makeDirectories(f"5sphere_{idx_to_vary}", coefficients_list)
                 #meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
                 maxHF = self.opt.meshHFOpt(
                     objectiveFunction,  
