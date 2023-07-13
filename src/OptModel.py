@@ -52,8 +52,9 @@ class OptModel_MeshHF:
         # use_set = set(np.where(tri_mesh.triangles_center[1] >= 10.0)[0])
 
         # Sort indices based on allmeshelementsHF values in descending order
-        sortedFaceIndices = np.argsort(allmeshelementsHF)[::-1]
-
+        # sortedFaceIndices = np.argsort(allmeshelementsHF)[::-1]
+        meshFaces = tri_mesh.faces
+        sortedFaceIndices = meshFaces
         gradient = np.zeros_like(tri_mesh.vertices)
 
         for idx in sortedFaceIndices: 
