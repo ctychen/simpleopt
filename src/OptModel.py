@@ -47,43 +47,61 @@ class OptModel_MeshHF:
         #this way the faces with the highest hf's get moved/gradients calculated first 
         #
 
-        use_set = set(np.where(allmeshelementsHF >= 0.0)[0]) #changed for 3sphere test
+        # use_set = set(np.where(allmeshelementsHF >= 0.0)[0]) #changed for 3sphere test
+        use_set = set(np.where(allmeshelementsHF >= 10.0)[0]) #changed for 3sphere test
         # use_set = set(np.where(allmeshelementsHF > 0.0)[0]) 
         # use_set = set(np.where(tri_mesh.triangles_center[1] >= 10.0)[0])
 
         # Sort indices based on allmeshelementsHF values in descending order
-        # sortedFaceIndices = np.argsort(allmeshelementsHF)[::-1]
-        meshFaces = tri_mesh.faces
-        sortedFaceIndices = meshFaces
+        sortedFaceIndices = np.argsort(allmeshelementsHF)[::-1]
+        # meshFaces = tri_mesh.faces
+        # sortedFaceIndices = meshFaces
         gradient = np.zeros_like(tri_mesh.vertices)
 
-        for idx in sortedFaceIndices: 
-            if idx not in facesToKeep: # if idx in constrainedFaces: 
-                if idx in use_set: 
-                    face = tri_mesh.faces[idx]
+        for idx in use_set:
+            face = tri_mesh.faces[idx]
+            for vertexIdx in face:  #vertexIdx is VERTEX INDICES
+                obj_beforeMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
+                for j in range(3): #for every dimension - move the vertex a bit and calculate the change in objectiveFunction
+                    tri_mesh.vertices[vertexIdx, j] += delta
+                    obj_afterMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
+                    tri_mesh.vertices[vertexIdx, j] -= delta
+                    gradient[vertexIdx, j] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
+                    # print(f"After moving, objective: {obj_afterMoving_allvals[1]}, {obj_afterMoving_allvals[2]}, {obj_afterMoving_allvals[3]}, {obj_afterMoving_allvals[4]}") 
+                #basically - move each vertex and update it
+                tri_mesh.vertices[vertexIdx, 0] -= (delta * gradient[vertexIdx, 0])
+                tri_mesh.vertices[vertexIdx, 1] -= (delta * gradient[vertexIdx, 1])
+                tri_mesh.vertices[vertexIdx, 2] -= (delta * gradient[vertexIdx, 2])
 
-                    for vertexIdx in face:  #vertexIdx is VERTEX INDICES
+        return tri_mesh
 
-                        obj_beforeMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
+        # for idx in sortedFaceIndices: 
+        #     if idx not in facesToKeep: # if idx in constrainedFaces: 
+        #         if idx in use_set: 
+        #             face = tri_mesh.faces[idx]
 
-                        for j in range(3): #for every dimension - move the vertex a bit and calculate the change in objectiveFunction
+        #             for vertexIdx in face:  #vertexIdx is VERTEX INDICES
 
-                            tri_mesh.vertices[vertexIdx, j] += delta
-                            obj_afterMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
+        #                 obj_beforeMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
 
-                            tri_mesh.vertices[vertexIdx, j] -= delta
+        #                 for j in range(3): #for every dimension - move the vertex a bit and calculate the change in objectiveFunction
 
-                            gradient[vertexIdx, j] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
+        #                     tri_mesh.vertices[vertexIdx, j] += delta
+        #                     obj_afterMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
 
-                            # print(f"After moving, objective: {obj_afterMoving_allvals[1]}, {obj_afterMoving_allvals[2]}, {obj_afterMoving_allvals[3]}, {obj_afterMoving_allvals[4]}")
+        #                     tri_mesh.vertices[vertexIdx, j] -= delta
+
+        #                     gradient[vertexIdx, j] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
+
+        #                     # print(f"After moving, objective: {obj_afterMoving_allvals[1]}, {obj_afterMoving_allvals[2]}, {obj_afterMoving_allvals[3]}, {obj_afterMoving_allvals[4]}")
                     
-                        #basically - move each vertex and update it
+        #                 #basically - move each vertex and update it
 
-                        tri_mesh.vertices[vertexIdx, 0] -= (delta * gradient[vertexIdx, 0])
-                        tri_mesh.vertices[vertexIdx, 1] -= (delta * gradient[vertexIdx, 1])
-                        tri_mesh.vertices[vertexIdx, 2] -= (delta * gradient[vertexIdx, 2])    
+        #                 tri_mesh.vertices[vertexIdx, 0] -= (delta * gradient[vertexIdx, 0])
+        #                 tri_mesh.vertices[vertexIdx, 1] -= (delta * gradient[vertexIdx, 1])
+        #                 tri_mesh.vertices[vertexIdx, 2] -= (delta * gradient[vertexIdx, 2])    
 
-                        # input()
+        #                 # input()
 
         return tri_mesh
 
