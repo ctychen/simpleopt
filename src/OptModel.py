@@ -30,7 +30,7 @@ class OptModel_MeshHF:
         """
         return
     
-    def gradientDescentHF(self, tri_mesh, objectiveFunction, objective_function_normalization_values, allmeshelementsHF, facesToKeep, facesToMove, coefficientsList, delta, filedir, count):
+    def gradientDescentHF(self, tri_mesh, objectiveFunction, allmeshelementsHF, facesToKeep, facesToMove, coefficientsList, delta, filedir, count):
         """
         gradient descent implementation for heat flux minimization
         takes in trimesh object and sorts elements by HF to deal with worst elements first
@@ -47,12 +47,12 @@ class OptModel_MeshHF:
         #this way the faces with the highest hf's get moved/gradients calculated first 
         #
 
-        use_set = set(np.where(allmeshelementsHF > 0.0)[0])
-        # use_set = tri_mesh.faces
+        use_set = set(np.where(allmeshelementsHF >= 0.0)[0]) #changed for 3sphere test
+        # use_set = set(np.where(allmeshelementsHF > 0.0)[0]) 
+        # use_set = set(np.where(tri_mesh.triangles_center[1] >= 10.0)[0])
 
         # Sort indices based on allmeshelementsHF values in descending order
         sortedFaceIndices = np.argsort(allmeshelementsHF)[::-1]
-        # sortedFaceIndices = tri_mesh.faces
 
         gradient = np.zeros_like(tri_mesh.vertices)
 
@@ -63,12 +63,12 @@ class OptModel_MeshHF:
 
                     for vertexIdx in face:  #vertexIdx is VERTEX INDICES
 
-                        obj_beforeMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove, objective_function_normalization_values)[0]
+                        obj_beforeMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
 
                         for j in range(3): #for every dimension - move the vertex a bit and calculate the change in objectiveFunction
 
                             tri_mesh.vertices[vertexIdx, j] += delta
-                            obj_afterMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove, objective_function_normalization_values)[0]
+                            obj_afterMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
 
                             tri_mesh.vertices[vertexIdx, j] -= delta
 
@@ -88,7 +88,7 @@ class OptModel_MeshHF:
 
 
     # def meshHFOpt(self, hfObjectiveFcn, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
-    def meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, normalizationValues, threshold, delta, id):
+    def meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
     # def meshHFOpt(self, hfFunction, hfObjectiveFcn, meshObj, threshold, step, id):
         """
         runs optimization process until objective fcn value reaches stopping condition @ minimum
@@ -131,12 +131,11 @@ class OptModel_MeshHF:
         # constrainedVIdx = np.unique(trimeshSolid.faces[list(constrainedFaces)].ravel())
 
         print(f"Objective function with coefficients: {coefficientsList}")
-        objFcn = hfObjectiveFcn(trimeshSolid, coefficientsList, facesToMove, normalizationValues)
+        objFcn = hfObjectiveFcn(trimeshSolid, coefficientsList, facesToMove)
         # all_objective_function_values = [hfObjectiveFcn(trimeshSolid, coefficientsList, facesToMove)]
         all_objective_function_values = [objFcn[0]]
-        objective_function_normalization_values = [objFcn[1]]
-        all_sum_normals_diff = [objFcn[2]]
-        all_max_normals_diff = [objFcn[3]]
+        all_sum_normals_diff = [objFcn[1]]
+        all_max_normals_diff = [objFcn[2]]
         hf_all_mesh = calcHFAllMesh(trimeshSolid)
         # max_hf_each_run = [calcMaxHF(hf_all_mesh, facesToMove)]
         # sum_hf_each_run = [calcEnergy(hf_all_mesh, trimeshSolid)] # sum_hf_each_run = [calcEnergy(hf_all_mesh)]
@@ -157,7 +156,7 @@ class OptModel_MeshHF:
             hf_all_mesh = calcHFAllMesh(trimeshSolid)
 
             #calc the gradient
-            trimeshSolid = self.gradientDescentHF(trimeshSolid, hfObjectiveFcn, objective_function_normalization_values, hf_all_mesh, facesToKeep, facesToMove, coefficientsList, delta, f"test{id}", count)
+            trimeshSolid = self.gradientDescentHF(trimeshSolid, hfObjectiveFcn, hf_all_mesh, facesToKeep, facesToMove, coefficientsList, delta, f"test{id}", count)
             #recalculate the hf profile on the surface
             updateHFProfile(trimeshSolid) 
 
@@ -165,12 +164,10 @@ class OptModel_MeshHF:
             # print(f"Time elapsed for GD {count}: {time.time() - t0}")
 
             # new_objVal = hfObjectiveFcn(trimeshSolid, coefficientsList, facesToMove)
-            # new_objVal_all = hfObjectiveFcn(trimeshSolid, coefficientsList, facesToMove)
-            new_objVal_all = hfObjectiveFcn(trimeshSolid, coefficientsList, facesToMove, normalizationValues)
+            new_objVal_all = hfObjectiveFcn(trimeshSolid, coefficientsList, facesToMove)
             new_objVal = new_objVal_all[0]
-            objective_function_normalization_values = new_objVal_all[1]
-            new_sum_normals_diff = new_objVal_all[2]
-            new_max_normals_diff = new_objVal_all[3]
+            new_sum_normals_diff = new_objVal_all[1]
+            new_max_normals_diff = new_objVal_all[2]
             all_objective_function_values.append(new_objVal)
             all_sum_normals_diff.append(new_sum_normals_diff)
             all_max_normals_diff.append(new_max_normals_diff)

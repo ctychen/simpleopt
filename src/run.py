@@ -11,7 +11,7 @@ from plotly.subplots import make_subplots
 import plotly.express as px
 
 import matplotlib.pyplot as plt
-from scipy.spatial.distance import pdist, squareform
+
 
 try:
     runMode = os.environ["runMode"]
@@ -157,31 +157,27 @@ class RunSetup_MeshHF:
             normalsDiff = normals[adjacency[:, 0]] - normals[adjacency[:, 1]]
             normalsDiffMagnitude = np.linalg.norm(normalsDiff, axis=1)
 
-            #for each pair of normals, find angle between them
-            #then find max angle difference between adjacent faces
-
-            # allAnglesBetweenNormals = []
-            # for adjPair in adjacency:
-            #     normal0 = normals[adjPair[0]]
-            #     normal1 = normals[adjPair[1]]
-            #     angleBetween = np.arccos(np.clip(np.dot(normal0, normal1), -1.0, 1.0))
-            #     allAnglesBetweenNormals.append(angleBetween)
-
-            # maxAngleBetweenNormals = np.max(allAnglesBetweenNormals)
-
             normals_0 = normals[adjacency[:, 0]]
             normals_1 = normals[adjacency[:, 1]]
-
             dot_product = np.einsum('ij,ij->i', normals_0, normals_1)
             clipped_dot_product = np.clip(dot_product, -1.0, 1.0)
-
             allAnglesBetweenNormals = np.arccos(clipped_dot_product)
             maxAngleBetweenNormals = np.max(allAnglesBetweenNormals)
-
             # print(f"Max normals diff (angle): {maxAngleBetweenNormals}")
-
             return normalsDiffMagnitude, maxAngleBetweenNormals
 
+
+        # def facesToKeep(mesh_center_xvals, mesh_center_yvals, mesh_center_zvals):
+
+        #     # return np.where(
+        #     #     #this should be for faces to NOT use
+        #     #     #don't want to move anything below the slanted faces
+        #     #     #don't want to move sides - keep those planar, and those are @ z=0 and z=10
+        #     #     (mesh_center_yvals <= 10.0) #| #or should we keep this for sphere runs? 
+        #     #     # (mesh_center_zvals == 0.0) |
+        #     #     # (mesh_center_zvals == 10.0)
+        #     # )[0]
+        #     return [] #should we keep this for sphere runs? 
 
         def facesToKeep(trimeshSolid):
             #this should be for faces to NOT use (so they shouldn't move)
@@ -205,18 +201,16 @@ class RunSetup_MeshHF:
         maxHF_initial = self.fwd.filteredCalculateMaxHF(q_mesh_initial, unconstrainedFaces = [])
         sumHF_initial = self.fwd.calculateHFMeshSum(q_mesh_initial)
         # normalsDiff_initial, normalRefDotProducts_initial = calculateNormalsDiff(trimeshSolid)
-        normalsDiff_initial, maxAngleBetweenNormals_initial = calculateNormalsDiff(trimeshSolid)
+        normalsDiff_initial, maxNormalsDiff_initial = calculateNormalsDiff(trimeshSolid)
         normalsPenalty_initial = np.sum(normalsDiff_initial)
         energy_initial = self.fwd.calculateIntegratedEnergy(q_mesh_initial, trimeshSolid)
 
         print(f"Initial max HF: {maxHF_initial}")
         print(f"Initial sum HF: {sumHF_initial}")
         print(f"Initial normals penalty: {normalsPenalty_initial}")
-        print(f"Initial max angle between normals: {maxAngleBetweenNormals_initial}")
         print(f"Initial energy: {energy_initial}")
 
-        def objectiveFunction(trimeshSolid, coefficientsList, unconstrainedFaces, normalizationValues):
-            #normalizationValues should be [norm_c0, norm_c1, norm_c2, norm_c3]
+        def objectiveFunction(trimeshSolid, coefficientsList, unconstrainedFaces):
 
             t0 = time.time()
 
@@ -225,18 +219,7 @@ class RunSetup_MeshHF:
             c2 = coefficientsList[2] #normals diff term
             c3 = coefficientsList[3] #max normals term now 
 
-            if not normalizationValues: #if empty - starts out empty
-                normalizationValues.append(maxHF_initial)
-                normalizationValues.append(sumHF_initial)
-                normalizationValues.append(normalsPenalty_initial)
-                normalizationValues.append(maxAngleBetweenNormals_initial)
-                print(f"Normalization values initial: {normalizationValues}")
-            
-            if len(normalizationValues) == 1 and isinstance(normalizationValues[0], list):
-                # The input is a list containing a single list, so we flatten it
-                normalizationValues = normalizationValues[0]
-    
-            # print(f"Normalization values: {normalizationValues}")
+            c4 = coefficientsList[4] #heat flux diff term
 
             q_mesh_all = self.fwd.calculateAllHF(trimeshSolid)
 
@@ -250,17 +233,10 @@ class RunSetup_MeshHF:
             sumHFTerm = 0#c1 * (self.fwd.calculateHFMeshSum(q_mesh_all) / sumHF_initial) #self.fwd.calculateHFMeshSum(trimeshSolid)
 
             # normalsDiff, normalRefDotProducts = calculateNormalsDiff(trimeshSolid)
-            normalsDiff, maxAngleBetweenNormals = calculateNormalsDiff(trimeshSolid)
+            normalsDiff, maxNormalsDiff = calculateNormalsDiff(trimeshSolid)
             normalsDiffSum = np.sum(normalsDiff)
-            # normalsPenalty = c2 * (normalsDiffSum / normalsPenalty_initial)
-            normalsPenalty = c2 * (normalsDiffSum / normalizationValues[2])
-            # maxNormalsTerm = c3 * (maxAngleBetweenNormals / maxAngleBetweenNormals_prev)
-            maxNormalsTerm = c3 * (maxAngleBetweenNormals / normalizationValues[3])
-
-            #set value for normalizing to be the current max angle - not comparing to original cube, but instead comparing to previous iteration
-            normalizationValues[3] = maxAngleBetweenNormals 
-
-            # maxAngleBetweenNormals_prev = maxAngleBetweenNormals
+            normalsPenalty = c2 * (normalsDiffSum / normalsPenalty_initial)
+            maxNormalsTerm = c3 * (maxNormalsDiff / maxNormalsDiff_initial)
 
             # print(f"Normals diff sum: {normalsDiffSum}, max normals diff: {maxNormalsDiff}")
 
@@ -272,7 +248,7 @@ class RunSetup_MeshHF:
 
             # print(f"Time elapsed for whole objective calc: {time.time() - t0}")
 
-            return [maxHFTerm + sumHFTerm + normalsPenalty + maxNormalsTerm, normalizationValues, normalsPenalty, maxNormalsTerm]
+            return [maxHFTerm + sumHFTerm + normalsPenalty + maxNormalsTerm, normalsPenalty, maxNormalsTerm]
             # return maxHFTerm + sumHFTerm + normalsPenalty + energyTerm
             #return [maxHFTerm + sumHFTerm + normalsPenalty + energyTerm + hfDiffTerm, maxHFTerm, sumHFTerm, normalsPenalty, energyTerm] 
             #objectiveFunction value: [0]       
@@ -292,9 +268,8 @@ class RunSetup_MeshHF:
 
             for val in sweep_values:
                 my_trimeshSolid = trimeshSolid.copy()
-                normalizationValues = []
                 coefficients_list[idx_to_vary] = val
-                directoryName = self.makeDirectories(f"spheretestv5_{idx_to_vary}", coefficients_list)
+                directoryName = self.makeDirectories(f"spheretest7_{idx_to_vary}", coefficients_list)
                 #meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
                 maxHF = self.opt.meshHFOpt(
                     objectiveFunction,  
@@ -305,7 +280,6 @@ class RunSetup_MeshHF:
                     self.fwd.calculateIntegratedEnergy,
                     my_trimeshSolid, 
                     coefficients_list,
-                    normalizationValues,
                     threshold=0.00000001, 
                     delta=0.01, 
                     id=directoryName
@@ -338,7 +312,6 @@ class RunSetup_MeshHF:
                             my_trimeshSolid = trimeshSolid.copy()
                             # coefficients_list[0] = c0
                             coefficients_list = [c0, c1, c2, c3, 0.0]
-                            normalizationValues = []
                             directoryName = self.makeDirectories(f"run{id}", coefficients_list)
                             #meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
                             maxHF = self.opt.meshHFOpt(
@@ -350,7 +323,6 @@ class RunSetup_MeshHF:
                                 self.fwd.calculateIntegratedEnergy,
                                 my_trimeshSolid, 
                                 coefficients_list,
-                                normalizationValues,
                                 threshold=0.00000001, 
                                 delta=0.01, 
                                 id=directoryName
@@ -419,13 +391,12 @@ class RunSetup_MeshHF:
         # sweep_coefficients_and_record_output(coefficients_list, 2, sweep_c2)
 
         # sweep_c3 = [1000, 5000, 10000]
-        sweep_c3 = [1000]
+        sweep_c3 = [500]
         sweep_coefficients_and_record_output(coefficients_list, 3, sweep_c3)
 
         # #more runs 
         # my_trimeshSolid = trimeshSolid.copy()
         # coefficientsList = [0.0, 100, 0.0, 0.0, 0.0]
-        # normalizationValues = []
         # # # coefficientsList = [21.16, 0.53, 8.95, c3]
         # # # coefficientsList = [0, 0, 0, c3]
         # # # coefficientsList = [30.0, 1.0, 14.0, 4.55]
@@ -444,7 +415,6 @@ class RunSetup_MeshHF:
         #         self.fwd.calculateIntegratedEnergy,
         #         my_trimeshSolid, 
         #         coefficientsList,
-        #         normalizationValues,
         #         threshold=0.000001, 
         #         delta=0.01, 
         #         id=directoryName
@@ -471,4 +441,3 @@ if __name__ == '__main__':
 
 
         
-
