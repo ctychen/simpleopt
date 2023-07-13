@@ -174,7 +174,7 @@ class OptModel_MeshHF:
 
             # print(f"New objective function value: {new_objVal}")
 
-            if count and count % 30 == 0: #count % 5 == 0: 
+            if count and count % 10 == 0: #count % 5 == 0: 
 
                 # x_count = np.linspace(0, len(max_hf_each_run), len(max_hf_each_run))
                 # fig = px.scatter(x = x_count, y = max_hf_each_run)
