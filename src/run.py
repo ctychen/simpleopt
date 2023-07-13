@@ -106,30 +106,30 @@ class RunSetup_MeshHF:
 
         return 
     
-    def findCornerFaces(self, trimeshSolid):
-        # map each vertex to all the faces that contain it
-        vertex_to_face_map = {}
-        all_vertices = trimeshSolid.vertices
-        for face_index, face in enumerate(trimeshSolid.faces):
-            for vertex in face:
-                if vertex in vertex_to_face_map:
-                    vertex_to_face_map[vertex].append(face_index)
-                else:
-                    vertex_to_face_map[vertex] = [face_index]
+    # def findCornerFaces(self, trimeshSolid):
+    #     # map each vertex to all the faces that contain it
+    #     vertex_to_face_map = {}
+    #     all_vertices = trimeshSolid.vertices
+    #     for face_index, face in enumerate(trimeshSolid.faces):
+    #         for vertex in face:
+    #             if vertex in vertex_to_face_map:
+    #                 vertex_to_face_map[vertex].append(face_index)
+    #             else:
+    #                 vertex_to_face_map[vertex] = [face_index]
 
-        # identify corner faces
-        corner_faces = set()
-        # for vertex, faces in vertex_to_face_map.items():
-        #     # print(vertex)
-        #     # print(all_vertices[vertex])
-        #     # if len(faces) !=6 and all_vertices[vertex][1] <= 10.0 and ((all_vertices[vertex][2] == 0.0) or (all_vertices[vertex][2] == 10.0)):  # a vertex is at a corner if it's not part of 6 faces, and we only want corners not the top edge 
-        #     if len(faces) !=6 and ((all_vertices[vertex][1] == 10.0) or (all_vertices[vertex][1] == 0.0)) and ((all_vertices[vertex][2] == 0.0) or (all_vertices[vertex][2] == 10.0)):  # a vertex is at a corner if it's not part of 6 faces, and we only want corners not the top edge 
-        #     #if len(faces) != 6:  # a vertex is at a corner if it's not part of 6 faces
-        #         #should maybe add a condition for vertex y coordinates?
-        #         #since this shouldn't stop us from moving elements on the top sharp edge - but we only want to 
-        #         #exclude vertices on y=10.0, not ymax? 
-        #         corner_faces.update(faces)
-        return corner_faces
+    #     # identify corner faces
+    #     corner_faces = set()
+    #     # for vertex, faces in vertex_to_face_map.items():
+    #     #     # print(vertex)
+    #     #     # print(all_vertices[vertex])
+    #     #     # if len(faces) !=6 and all_vertices[vertex][1] <= 10.0 and ((all_vertices[vertex][2] == 0.0) or (all_vertices[vertex][2] == 10.0)):  # a vertex is at a corner if it's not part of 6 faces, and we only want corners not the top edge 
+    #     #     if len(faces) !=6 and ((all_vertices[vertex][1] == 10.0) or (all_vertices[vertex][1] == 0.0)) and ((all_vertices[vertex][2] == 0.0) or (all_vertices[vertex][2] == 10.0)):  # a vertex is at a corner if it's not part of 6 faces, and we only want corners not the top edge 
+    #     #     #if len(faces) != 6:  # a vertex is at a corner if it's not part of 6 faces
+    #     #         #should maybe add a condition for vertex y coordinates?
+    #     #         #since this shouldn't stop us from moving elements on the top sharp edge - but we only want to 
+    #     #         #exclude vertices on y=10.0, not ymax? 
+    #     #         corner_faces.update(faces)
+    #     return corner_faces
 
     def runOptimization(self):
 
@@ -139,10 +139,9 @@ class RunSetup_MeshHF:
         #find which faces are on corners - don't want to take those into account for difference in normals? 
         #reasoning is more than 1 adjacent face, and more than 1 normal to compare as a result? 
         #maybe this is not the way to go? 
-        corner_faces = self.findCornerFaces(self.box.trimeshSolid)
+        # corner_faces = self.findCornerFaces(self.box.trimeshSolid)
         adjacency = trimeshSolid.face_adjacency
-        filtered_adjacency = np.array([pair for pair in adjacency if pair[0] not in corner_faces and pair[1] not in corner_faces])
-        # print(f"Filtered adjacency: {filtered_adjacency}, type: {type(filtered_adjacency)}")
+        # filtered_adjacency = np.array([pair for pair in adjacency if pair[0] not in corner_faces and pair[1] not in corner_faces])
         
         def calculateNormalsDiff(trimeshSolid):
             """
@@ -152,14 +151,14 @@ class RunSetup_MeshHF:
             # adjacency = trimeshSolid.face_adjacency 
 
             normals = trimeshSolid.face_normals
-            # normalsDiff = normals[adjacency[:, 0]] - normals[adjacency[:, 1]]
-            #every element of filtered_adjacency: array([720, 723])]
-            normalsDiff = normals[filtered_adjacency[:, 0]] - normals[filtered_adjacency[:, 1]]
+            normalsDiff = normals[adjacency[:, 0]] - normals[adjacency[:, 1]]
+            #normalsDiff = normals[filtered_adjacency[:, 0]] - normals[filtered_adjacency[:, 1]]
 
             normalsDiffMagnitude = np.linalg.norm(normalsDiff, axis=1)
 
-            reference_direction = np.array([0, 1, 0])  #"upwards" direction that we want it to move in 
-            normalRefDotProducts = np.dot(normals, reference_direction)
+            # reference_direction = np.array([0, 1, 0])  #"upwards" direction that we want it to move in 
+            # normalRefDotProducts = np.dot(normals, reference_direction)
+            normalRefDotProducts = 0 #not actually using this for anything now so 
 
             return normalsDiffMagnitude, normalRefDotProducts
 
@@ -176,23 +175,23 @@ class RunSetup_MeshHF:
             # )[0]
             return [] #should we keep this for sphere runs? 
 
-        def calculateHeatFluxDiff(trimeshSolid):
-            adjacency_info = trimeshSolid.face_adjacency
+        # def calculateHeatFluxDiff(trimeshSolid):
+        #     adjacency_info = trimeshSolid.face_adjacency
 
-            allHF = self.fwd.calculateAllHF(trimeshSolid)
-            heat_flux_diffs = []
+        #     allHF = self.fwd.calculateAllHF(trimeshSolid)
+        #     heat_flux_diffs = []
 
-            for face_pair in adjacency_info:
-                face1, face2 = face_pair
+        #     for face_pair in adjacency_info:
+        #         face1, face2 = face_pair
 
-                # Get the heat flux values for the adjacent faces
-                heat_flux_face1 = allHF[face1]
-                heat_flux_face2 = allHF[face2]
+        #         # Get the heat flux values for the adjacent faces
+        #         heat_flux_face1 = allHF[face1]
+        #         heat_flux_face2 = allHF[face2]
 
-                heat_flux_diff = abs(heat_flux_face1 - heat_flux_face2)
-                heat_flux_diffs.append(heat_flux_diff)
+        #         heat_flux_diff = abs(heat_flux_face1 - heat_flux_face2)
+        #         heat_flux_diffs.append(heat_flux_diff)
             
-            return heat_flux_diffs
+        #     return heat_flux_diffs
         
         q_mesh_initial = self.fwd.calculateAllHF(trimeshSolid)
         maxHF_initial = self.fwd.filteredCalculateMaxHF(q_mesh_initial, unconstrainedFaces = [])
@@ -208,6 +207,8 @@ class RunSetup_MeshHF:
 
         def objectiveFunction(trimeshSolid, coefficientsList, unconstrainedFaces):
 
+            t0 = time.time()
+
             c0 = coefficientsList[0] #max heat flux term
             c1 = coefficientsList[1] #sum heat flux, unweighted, term
             c2 = coefficientsList[2] #normals diff term
@@ -216,6 +217,8 @@ class RunSetup_MeshHF:
             c4 = coefficientsList[4] #heat flux diff term
 
             q_mesh_all = self.fwd.calculateAllHF(trimeshSolid)
+
+            print(f"Time elapsed for q_mesh_all: {time.time() - t0}")
 
             unconstrainedFaces = [] #only keep this for cases with hf only on top face? 
 
@@ -232,6 +235,8 @@ class RunSetup_MeshHF:
 
             # print(f"Terms: {maxHFTerm}, {sumHFTerm}, {normalsPenalty}, {energyTerm}")
             # print(f"Terms divided by constants: {maxHFTerm/c0}, {sumHFTerm/c1}, {normalsPenalty/c2}, {energyTerm/c3}")
+
+            print(f"Time elapsed for whole objective calc: {time.time() - t0}")
 
             return maxHFTerm + sumHFTerm + normalsPenalty + energyTerm
             #return [maxHFTerm + sumHFTerm + normalsPenalty + energyTerm + hfDiffTerm, maxHFTerm, sumHFTerm, normalsPenalty, energyTerm] 
@@ -253,7 +258,7 @@ class RunSetup_MeshHF:
             for val in sweep_values:
                 my_trimeshSolid = trimeshSolid.copy()
                 coefficients_list[idx_to_vary] = val
-                directoryName = self.makeDirectories(f"7sphere_{idx_to_vary}", coefficients_list)
+                directoryName = self.makeDirectories(f"6sphere3_{idx_to_vary}", coefficients_list)
                 #meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
                 maxHF = self.opt.meshHFOpt(
                     objectiveFunction,  

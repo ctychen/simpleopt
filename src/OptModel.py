@@ -49,7 +49,7 @@ class OptModel_MeshHF:
         #
 
         # use_set = set(np.where(allmeshelementsHF >= 0.0)[0]) #changed for 3sphere test
-        use_set = set(np.where(allmeshelementsHF >= 0.0)[0]) #used for test_2dir (the right one)
+        use_set = set(np.where(allmeshelementsHF > 0.0)[0]) 
         # use_set = set(np.where(tri_mesh.triangles_center[1] >= 10.0)[0])
 
         # Sort indices based on allmeshelementsHF values in descending order
@@ -152,7 +152,7 @@ class OptModel_MeshHF:
         prev_objVal = 2000
         curr_objVal = 0
 
-        # t0 = time.time()
+        t0 = time.time()
 
         #faces to NOT move
         facesToKeep = indicesToNotMove
@@ -167,7 +167,9 @@ class OptModel_MeshHF:
             updateHFProfile(trimeshSolid) 
 
             #makeHFProfile(self, trimeshSolid)
-            # print(f"Time elapsed for GD {count}: {time.time() - t0}")
+            print(f"Time elapsed for GD {count}: {time.time() - t0}")
+
+            input()
 
             new_objVal = hfObjectiveFcn(trimeshSolid, coefficientsList, facesToMove)
             all_objective_function_values.append(new_objVal)
