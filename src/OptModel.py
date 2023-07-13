@@ -63,12 +63,12 @@ class OptModel_MeshHF:
 
                     for vertexIdx in face:  #vertexIdx is VERTEX INDICES
 
-                        obj_beforeMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)
+                        obj_beforeMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
 
                         for j in range(3): #for every dimension - move the vertex a bit and calculate the change in objectiveFunction
 
                             tri_mesh.vertices[vertexIdx, j] += delta
-                            obj_afterMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)
+                            obj_afterMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
 
                             tri_mesh.vertices[vertexIdx, j] -= delta
 
@@ -131,10 +131,14 @@ class OptModel_MeshHF:
         # constrainedVIdx = np.unique(trimeshSolid.faces[list(constrainedFaces)].ravel())
 
         print(f"Objective function with coefficients: {coefficientsList}")
-        all_objective_function_values = [hfObjectiveFcn(trimeshSolid, coefficientsList, facesToMove)]
+        objFcn = hfObjectiveFcn(trimeshSolid, coefficientsList, facesToMove)
+        # all_objective_function_values = [hfObjectiveFcn(trimeshSolid, coefficientsList, facesToMove)]
+        all_objective_function_values = [objFcn[0]]
+        all_sum_normals_diff = [objFcn[1]]
+        all_max_normals_diff = [objFcn[2]]
         hf_all_mesh = calcHFAllMesh(trimeshSolid)
-        max_hf_each_run = [calcMaxHF(hf_all_mesh, facesToMove)]
-        sum_hf_each_run = [calcEnergy(hf_all_mesh, trimeshSolid)] # sum_hf_each_run = [calcEnergy(hf_all_mesh)]
+        # max_hf_each_run = [calcMaxHF(hf_all_mesh, facesToMove)]
+        # sum_hf_each_run = [calcEnergy(hf_all_mesh, trimeshSolid)] # sum_hf_each_run = [calcEnergy(hf_all_mesh)]
 
         # make VTK to display HF on surface
         self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"{id}", count=4242)
@@ -159,14 +163,20 @@ class OptModel_MeshHF:
             #makeHFProfile(self, trimeshSolid)
             # print(f"Time elapsed for GD {count}: {time.time() - t0}")
 
-            new_objVal = hfObjectiveFcn(trimeshSolid, coefficientsList, facesToMove)
+            # new_objVal = hfObjectiveFcn(trimeshSolid, coefficientsList, facesToMove)
+            new_objVal_all = hfObjectiveFcn(trimeshSolid, coefficientsList, facesToMove)
+            new_objVal = new_objVal_all[0]
+            new_sum_normals_diff = new_objVal_all[1]
+            new_max_normals_diff = new_objVal_all[2]
             all_objective_function_values.append(new_objVal)
+            all_sum_normals_diff.append(new_sum_normals_diff)
+            all_max_normals_diff.append(new_max_normals_diff)
 
             prev_objVal = curr_objVal
             curr_objVal = new_objVal
 
-            new_max_hf = calcMaxHF(hf_all_mesh, facesToMove)
-            max_hf_each_run.append(new_max_hf)
+            # new_max_hf = calcMaxHF(hf_all_mesh, facesToMove)
+            # max_hf_each_run.append(new_max_hf)
 
             ##this is for plotting surface fit onto mesh
             # if count % 5 == 0:
@@ -201,15 +211,37 @@ class OptModel_MeshHF:
 
             count += 1
         
-        self.plotRun(all_objective_function_values, max_hf_each_run, f"{id}")
+        # self.plotRun(all_objective_function_values, max_hf_each_run, f"{id}")
         self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"{id}", count)
-        finalMaxHF = np.min(max_hf_each_run)
-        print(f"Finished run, maxHF is {finalMaxHF}")
+        self.plotMaxNormalsDiff(all_max_normals_diff, f"{id}")
+        self.plotNormalsDiff(all_sum_normals_diff, f"{id}")
+        # finalMaxHF = np.min(max_hf_each_run)
+        # print(f"Finished run, maxHF is {finalMaxHF}")
+        print(f"Finished run")
         
-        return finalMaxHF, trimeshSolid
+        return trimeshSolid
+        # return finalMaxHF, trimeshSolid
 
         #when process is done, the mesh should have been modified - so return it 
         # return trimeshSolid
+
+    def plotMaxNormalsDiff(self, max_normals_diff_runs, directoryName):
+        x_count = np.linspace(0, len(max_normals_diff_runs), len(max_normals_diff_runs))
+        fig = px.scatter(x = x_count, y = max_normals_diff_runs)
+        fig.update_xaxes(title_text='Iterations')
+        fig.update_yaxes(title_text='Max normals difference')
+        fig.show()            
+        output_file = f"{directoryName}/max_normals_diff_each_run.html"
+        pio.write_html(fig, output_file)
+
+    def plotNormalsDiff(self, normals_diff_runs, directoryName):
+        x_count = np.linspace(0, len(normals_diff_runs), len(normals_diff_runs))
+        fig = px.scatter(x = x_count, y = normals_diff_runs)
+        fig.update_xaxes(title_text='Iterations')
+        fig.update_yaxes(title_text='Sum of normals difference')
+        fig.show()            
+        output_file = f"{directoryName}/sum_normals_diff_each_run.html"
+        pio.write_html(fig, output_file)
 
 
     def plotHFVTK(self, hfValues, trimeshSolid, fileDir, count):

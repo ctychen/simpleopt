@@ -8,6 +8,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import plotly.io as pio
 from plotly.subplots import make_subplots
+import plotly.express as px
 
 import matplotlib.pyplot as plt
 
@@ -47,25 +48,25 @@ class RunSetup_MeshHF:
     def __init__(self):
         g_obj = lambda qvals: max(qvals) #+ qvals.count(max(qvals)) #maybe changing obj function helps??
 
-        # stpPath = "unit_test_cube.step" #"unit_test_cone.step" 
-        stpPath = "test_pfc_block.step" #"unit_test_pfc.step" #for multiple directions 
+        stpPath = "unit_test_cube.step" #"unit_test_cone.step" 
+        # stpPath = "test_pfc_block.step" #"unit_test_pfc.step" #for multiple directions 
 
         stlPath = " " #"box.stl"
 
-        qDirIn = [[0.707, -0.707, 0.0], [-0.707, -0.707, 0.0]] #[m]
-        # qDirIn = [0.0, -1.0, 0.0] #[m]
+        # qDirIn = [[0.707, -0.707, 0.0], [-0.707, -0.707, 0.0]] #[m]
+        qDirIn = [0.0, -1.0, 0.0] #[m]
         # qDirIn = [0.707, -0.707, 0.0] #[m]
         # qDirIn = [-0.707, -0.707, 0.0] #[m]
         # qDirIn = [0.0, -0.707, 0.707] #[m]
         # qDirIn = [0.0, -0.707, -0.707] #[m]
-        # qMagIn = 10.0 #[W/m^2]
-        qMagIn = [10.0, 10.0] #[W/m^2]
+        qMagIn = 10.0 #[W/m^2]
+        # qMagIn = [10.0, 10.0] #[W/m^2]
 #
         self.box = Solid.MeshSolid(stlPath, stpPath)
         #self.box = Solid.MeshSolid(stlPath, stpPath) #normally, use this one!
 
-        # self.fwd = ForwardModel.ForwardModel_MeshHF(self.box, qMagIn, qDirIn, hfMode='uniform') 
-        self.fwd = ForwardModel.ForwardModel_MeshHF(self.box, qMagIn, qDirIn, hfMode='uniform_multiple') 
+        self.fwd = ForwardModel.ForwardModel_MeshHF(self.box, qMagIn, qDirIn, hfMode='uniform') 
+        # self.fwd = ForwardModel.ForwardModel_MeshHF(self.box, qMagIn, qDirIn, hfMode='uniform_multiple') 
         # self.fwd = ForwardModel.ForwardModel_MeshHF(self.box, qMagIn, qDirIn, hfMode='exponnorm') 
         self.opt = OptModel.OptModel_MeshHF()
 
@@ -147,6 +148,7 @@ class RunSetup_MeshHF:
         def calculateNormalsDiff(trimeshSolid):
             """
             calculate differences between normal vectors of adjacent faces - ideally this should also be minimized?  
+            also find max diff btwn adjacent normals
             """
             #"(n, 2) list of face indices. Each pair of faces in the list shares an edge, making them adjacent"
             # adjacency = trimeshSolid.face_adjacency 
@@ -155,9 +157,9 @@ class RunSetup_MeshHF:
             normalsDiff = normals[adjacency[:, 0]] - normals[adjacency[:, 1]]
             normalsDiffMagnitude = np.linalg.norm(normalsDiff, axis=1)
 
-            normalRefDotProducts = 0 #not actually using this for anything now so 
+            maxNormalsDiff = np.max(normalsDiffMagnitude)
 
-            return normalsDiffMagnitude, normalRefDotProducts
+            return normalsDiffMagnitude, maxNormalsDiff
 
 
         # def facesToKeep(mesh_center_xvals, mesh_center_yvals, mesh_center_zvals):
@@ -174,25 +176,27 @@ class RunSetup_MeshHF:
 
         def facesToKeep(trimeshSolid):
             #this should be for faces to NOT use (so they shouldn't move)
-            normals = trimeshSolid.face_normals
-            mesh_centers = trimeshSolid.triangles_center
-            mesh_center_yvals = mesh_centers[:, 1]
-            mesh_center_xvals = mesh_centers[:, 0]
-            mesh_center_zvals = mesh_centers[:, 2]
-            return np.where(
-                #find normals in unit directions (+/- x, y, z)
-                # (normals[:, 0] == 1.0) | (normals[:, 0] == -1.0) |    
-                # (normals[:, 1] == 1.0) | (normals[:, 1] == -1.0) |
-                # (normals[:, 2] == 1.0) | (normals[:, 2] == -1.0) 
+            return []
+            # normals = trimeshSolid.face_normals
+            # mesh_centers = trimeshSolid.triangles_center
+            # mesh_center_yvals = mesh_centers[:, 1]
+            # mesh_center_xvals = mesh_centers[:, 0]
+            # mesh_center_zvals = mesh_centers[:, 2]
+            # return np.where(
+            #     #find normals in unit directions (+/- x, y, z)
+            #     # (normals[:, 0] == 1.0) | (normals[:, 0] == -1.0) |    
+            #     # (normals[:, 1] == 1.0) | (normals[:, 1] == -1.0) |
+            #     # (normals[:, 2] == 1.0) | (normals[:, 2] == -1.0) 
                 
-                mesh_center_yvals <= 10.0
-            )[0]
+            #     mesh_center_yvals <= 10.0
+            # )[0]
 
         
         q_mesh_initial = self.fwd.calculateAllHF(trimeshSolid)
         maxHF_initial = self.fwd.filteredCalculateMaxHF(q_mesh_initial, unconstrainedFaces = [])
         sumHF_initial = self.fwd.calculateHFMeshSum(q_mesh_initial)
-        normalsDiff_initial, normalRefDotProducts_initial = calculateNormalsDiff(trimeshSolid)
+        # normalsDiff_initial, normalRefDotProducts_initial = calculateNormalsDiff(trimeshSolid)
+        normalsDiff_initial, maxNormalsDiff_initial = calculateNormalsDiff(trimeshSolid)
         normalsPenalty_initial = np.sum(normalsDiff_initial)
         energy_initial = self.fwd.calculateIntegratedEnergy(q_mesh_initial, trimeshSolid)
 
@@ -208,7 +212,7 @@ class RunSetup_MeshHF:
             c0 = coefficientsList[0] #max heat flux term
             c1 = coefficientsList[1] #sum heat flux, unweighted, term
             c2 = coefficientsList[2] #normals diff term
-            c3 = coefficientsList[3] #energy term
+            c3 = coefficientsList[3] #max normals term now 
 
             c4 = coefficientsList[4] #heat flux diff term
 
@@ -223,18 +227,24 @@ class RunSetup_MeshHF:
             maxHFTerm = 0#c0 * (self.fwd.filteredCalculateMaxHF(q_mesh_all, unconstrainedFaces) / maxHF_initial)
             sumHFTerm = 0#c1 * (self.fwd.calculateHFMeshSum(q_mesh_all) / sumHF_initial) #self.fwd.calculateHFMeshSum(trimeshSolid)
 
-            normalsDiff, normalRefDotProducts = calculateNormalsDiff(trimeshSolid)
-            normalsPenalty = c2 * (np.sum(normalsDiff) / normalsPenalty_initial)
+            # normalsDiff, normalRefDotProducts = calculateNormalsDiff(trimeshSolid)
+            normalsDiff, maxNormalsDiff = calculateNormalsDiff(trimeshSolid)
+            normalsDiffSum = np.sum(normalsDiff)
+            normalsPenalty = c2 * (normalsDiffSum / normalsPenalty_initial)
+            maxNormalsTerm = c3 * (maxNormalsDiff / maxNormalsDiff_initial)
+
+            # print(f"Normals diff sum: {normalsDiffSum}, max normals diff: {maxNormalsDiff}")
 
             # energyTerm = c3 * self.fwd.calculateIntegratedEnergy(q_mesh_all) #self.fwd.calculateIntegratedEnergy(trimeshSolid)
-            energyTerm = 0#c3 * (self.fwd.calculateIntegratedEnergy(q_mesh_all, trimeshSolid) / energy_initial)
+            # energyTerm = 0#c3 * (self.fwd.calculateIntegratedEnergy(q_mesh_all, trimeshSolid) / energy_initial)
 
             # print(f"Terms: {maxHFTerm}, {sumHFTerm}, {normalsPenalty}, {energyTerm}")
             # print(f"Terms divided by constants: {maxHFTerm/c0}, {sumHFTerm/c1}, {normalsPenalty/c2}, {energyTerm/c3}")
 
             # print(f"Time elapsed for whole objective calc: {time.time() - t0}")
 
-            return maxHFTerm + sumHFTerm + normalsPenalty + energyTerm
+            return [maxHFTerm + sumHFTerm + normalsPenalty + maxNormalsTerm, normalsPenalty, maxNormalsTerm]
+            # return maxHFTerm + sumHFTerm + normalsPenalty + energyTerm
             #return [maxHFTerm + sumHFTerm + normalsPenalty + energyTerm + hfDiffTerm, maxHFTerm, sumHFTerm, normalsPenalty, energyTerm] 
             #objectiveFunction value: [0]       
             
@@ -254,7 +264,7 @@ class RunSetup_MeshHF:
             for val in sweep_values:
                 my_trimeshSolid = trimeshSolid.copy()
                 coefficients_list[idx_to_vary] = val
-                directoryName = self.makeDirectories(f"testpfc2_{idx_to_vary}", coefficients_list)
+                directoryName = self.makeDirectories(f"spheretest_{idx_to_vary}", coefficients_list)
                 #meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
                 maxHF = self.opt.meshHFOpt(
                     objectiveFunction,  
@@ -344,7 +354,7 @@ class RunSetup_MeshHF:
         ## For variable sweep testing
         #coefficients_list = [21.16, 0.53, 14.0, 4.55, 0.0]
         # coefficients_list = [0.0, 100.0, 0.0, 0.0, 0.0]
-        coefficients_list = [0, 0, 0, 0, 0]
+        coefficients_list = [0, 0, 3000, 0, 0]
         # sweep_c0 = [0.0, 10.0, 20.0, 30.0]
         # sweep_c1 = [0.0, 0.53, 1.06, 1.59]
         # sweep_c2 = [0.0, 14.0, 28.0, 42.0]
@@ -370,13 +380,14 @@ class RunSetup_MeshHF:
 
         # sweep_c2 = [4000, 5000, 6000]
         # sweep_c2 = [5000]
-        sweep_c2 = [100]
+        # sweep_c2 = [100]
         # sweep_c2 = [3000, 3500, 4000, 4500, 5500, 6000]
 
-        sweep_coefficients_and_record_output(coefficients_list, 2, sweep_c2)
+        # sweep_coefficients_and_record_output(coefficients_list, 2, sweep_c2)
 
         # sweep_c3 = [1000, 5000, 10000]
-        # sweep_coefficients_and_record_output(coefficients_list, 3, sweep_c3)
+        sweep_c3 = [5000]
+        sweep_coefficients_and_record_output(coefficients_list, 3, sweep_c3)
 
         # #more runs 
         # my_trimeshSolid = trimeshSolid.copy()
