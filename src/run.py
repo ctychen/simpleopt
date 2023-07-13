@@ -160,35 +160,34 @@ class RunSetup_MeshHF:
             return normalsDiffMagnitude, normalRefDotProducts
 
 
-        def facesToKeep(mesh_center_xvals, mesh_center_yvals, mesh_center_zvals):
+        # def facesToKeep(mesh_center_xvals, mesh_center_yvals, mesh_center_zvals):
 
-            # return np.where(
-            #     #this should be for faces to NOT use
-            #     #don't want to move anything below the slanted faces
-            #     #don't want to move sides - keep those planar, and those are @ z=0 and z=10
-            #     (mesh_center_yvals <= 10.0) #| #or should we keep this for sphere runs? 
-            #     # (mesh_center_zvals == 0.0) |
-            #     # (mesh_center_zvals == 10.0)
-            # )[0]
-            return [] #should we keep this for sphere runs? 
+        #     # return np.where(
+        #     #     #this should be for faces to NOT use
+        #     #     #don't want to move anything below the slanted faces
+        #     #     #don't want to move sides - keep those planar, and those are @ z=0 and z=10
+        #     #     (mesh_center_yvals <= 10.0) #| #or should we keep this for sphere runs? 
+        #     #     # (mesh_center_zvals == 0.0) |
+        #     #     # (mesh_center_zvals == 10.0)
+        #     # )[0]
+        #     return [] #should we keep this for sphere runs? 
 
-        # def calculateHeatFluxDiff(trimeshSolid):
-        #     adjacency_info = trimeshSolid.face_adjacency
+        def facesToKeep(trimeshSolid):
+            #this should be for faces to NOT use (so they shouldn't move)
+            normals = trimeshSolid.face_normals
+            mesh_centers = trimeshSolid.triangles_center
+            mesh_center_yvals = mesh_centers[:, 1]
+            mesh_center_xvals = mesh_centers[:, 0]
+            mesh_center_zvals = mesh_centers[:, 2]
+            return np.where(
+                #find normals in unit directions (+/- x, y, z)
+                # (normals[:, 0] == 1.0) | (normals[:, 0] == -1.0) |    
+                # (normals[:, 1] == 1.0) | (normals[:, 1] == -1.0) |
+                # (normals[:, 2] == 1.0) | (normals[:, 2] == -1.0) 
+                
+                mesh_center_yvals <= 10.0
+            )[0]
 
-        #     allHF = self.fwd.calculateAllHF(trimeshSolid)
-        #     heat_flux_diffs = []
-
-        #     for face_pair in adjacency_info:
-        #         face1, face2 = face_pair
-
-        #         # Get the heat flux values for the adjacent faces
-        #         heat_flux_face1 = allHF[face1]
-        #         heat_flux_face2 = allHF[face2]
-
-        #         heat_flux_diff = abs(heat_flux_face1 - heat_flux_face2)
-        #         heat_flux_diffs.append(heat_flux_diff)
-            
-        #     return heat_flux_diffs
         
         q_mesh_initial = self.fwd.calculateAllHF(trimeshSolid)
         maxHF_initial = self.fwd.filteredCalculateMaxHF(q_mesh_initial, unconstrainedFaces = [])
@@ -255,7 +254,7 @@ class RunSetup_MeshHF:
             for val in sweep_values:
                 my_trimeshSolid = trimeshSolid.copy()
                 coefficients_list[idx_to_vary] = val
-                directoryName = self.makeDirectories(f"6sphere3_{idx_to_vary}", coefficients_list)
+                directoryName = self.makeDirectories(f"testpfc2_{idx_to_vary}", coefficients_list)
                 #meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
                 maxHF = self.opt.meshHFOpt(
                     objectiveFunction,  
@@ -371,7 +370,8 @@ class RunSetup_MeshHF:
 
         # sweep_c2 = [4000, 5000, 6000]
         # sweep_c2 = [5000]
-        sweep_c2 = [3000, 3500, 4000, 4500, 5500, 6000]
+        sweep_c2 = [2000]
+        # sweep_c2 = [3000, 3500, 4000, 4500, 5500, 6000]
 
         sweep_coefficients_and_record_output(coefficients_list, 2, sweep_c2)
 

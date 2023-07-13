@@ -121,7 +121,8 @@ class OptModel_MeshHF:
         # constrainedFaces = set(constraint(mesh_center_xvals, mesh_center_yvals, mesh_center_zvals))
         # constrainedFaces = set(constraint(mesh_center_xvals, mesh_center_yvals, mesh_center_zvals))
 
-        indicesToNotMove = set(constraint(mesh_center_xvals, mesh_center_yvals, mesh_center_zvals))
+        # indicesToNotMove = set(constraint(mesh_center_xvals, mesh_center_yvals, mesh_center_zvals))
+        indicesToNotMove = set(constraint(trimeshSolid))
         allIndices = set(range(len(mesh_center_xvals)))  # assuming all arrays are the same length
         facesToMove = allIndices-  indicesToNotMove #faces to move
 
