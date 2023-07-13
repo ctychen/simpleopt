@@ -49,7 +49,7 @@ class OptModel_MeshHF:
         #
 
         # use_set = set(np.where(allmeshelementsHF >= 0.0)[0]) #changed for 3sphere test
-        use_set = set(np.where(allmeshelementsHF > 0.0)[0]) #used for test_2dir (the right one)
+        use_set = set(np.where(allmeshelementsHF >= 0.0)[0]) #used for test_2dir (the right one)
         # use_set = set(np.where(tri_mesh.triangles_center[1] >= 10.0)[0])
 
         # Sort indices based on allmeshelementsHF values in descending order
