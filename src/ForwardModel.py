@@ -147,9 +147,8 @@ class ForwardModel_MeshHF:
             q_mesh_all = np.array(q_mesh_all)
 
         elif self.hfMode == "uniform_multiple":
-            normals = trimeshSolid.face_normals
-
             #this works for 2 HF magnitudes and directions but not more - would have to generalize?
+            normals = trimeshSolid.face_normals
             dot_product_q0 = np.dot(normals, self.q_dir[0])
             mask_q0 = dot_product_q0 > 0
             q0_mesh = -1 * np.where(mask_q0, 0, dot_product_q0) * self.q_mag[0]

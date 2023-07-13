@@ -30,7 +30,6 @@ class OptModel_MeshHF:
         """
         return
     
-
     def gradientDescentHF(self, tri_mesh, objectiveFunction, allmeshelementsHF, facesToKeep, facesToMove, coefficientsList, delta, filedir, count):
         """
         gradient descent implementation for heat flux minimization
@@ -64,16 +63,12 @@ class OptModel_MeshHF:
 
                     for vertexIdx in face:  #vertexIdx is VERTEX INDICES
 
-                        # obj_beforeMoving_allvals = objectiveFunction(tri_mesh, coefficientsList, constrainedFaces)
-                        # obj_beforeMoving = obj_beforeMoving_allvals[0]
                         obj_beforeMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)
 
                         for j in range(3): #for every dimension - move the vertex a bit and calculate the change in objectiveFunction
 
                             tri_mesh.vertices[vertexIdx, j] += delta
-                            #obj_afterMoving_allvals = objectiveFunction(tri_mesh, coefficientsList, constrainedFaces)
                             obj_afterMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)
-                            #obj_afterMoving = obj_afterMoving_allvals[0]
 
                             tri_mesh.vertices[vertexIdx, j] -= delta
 
@@ -86,12 +81,6 @@ class OptModel_MeshHF:
                         tri_mesh.vertices[vertexIdx, 0] -= (delta * gradient[vertexIdx, 0])
                         tri_mesh.vertices[vertexIdx, 1] -= (delta * gradient[vertexIdx, 1])
                         tri_mesh.vertices[vertexIdx, 2] -= (delta * gradient[vertexIdx, 2])    
-
-                        # print(f"Gradient for vertex {vertexIdx} is {gradient[vertexIdx]}")
-                        # print(f"Before moving, objective: {obj_beforeMoving_allvals[1]}, {obj_beforeMoving_allvals[2]}, {obj_beforeMoving_allvals[3]}, {obj_beforeMoving_allvals[4]}")
-
-                        #self.plotHFVTK(calcHFAllMesh(tri_mesh), tri_mesh, f"{id}", count=vertexIdx)
-                        # tri_mesh.export(f"{vertexIdx}_{gradient[vertexIdx, 0]}_{gradient[vertexIdx, 1]}_{gradient[vertexIdx, 2]}.stl")
 
                         # input()
 
@@ -152,12 +141,12 @@ class OptModel_MeshHF:
         prev_objVal = 2000
         curr_objVal = 0
 
-        t0 = time.time()
+        # t0 = time.time()
 
         #faces to NOT move
         facesToKeep = indicesToNotMove
 
-        while abs(prev_objVal - curr_objVal) > threshold and count < 150: #should be =200 but also testing right now
+        while abs(prev_objVal - curr_objVal) > threshold and count < 150:
 
             hf_all_mesh = calcHFAllMesh(trimeshSolid)
 
@@ -167,9 +156,7 @@ class OptModel_MeshHF:
             updateHFProfile(trimeshSolid) 
 
             #makeHFProfile(self, trimeshSolid)
-            print(f"Time elapsed for GD {count}: {time.time() - t0}")
-
-            input()
+            # print(f"Time elapsed for GD {count}: {time.time() - t0}")
 
             new_objVal = hfObjectiveFcn(trimeshSolid, coefficientsList, facesToMove)
             all_objective_function_values.append(new_objVal)

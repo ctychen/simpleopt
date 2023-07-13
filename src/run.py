@@ -11,6 +11,7 @@ from plotly.subplots import make_subplots
 
 import matplotlib.pyplot as plt
 
+
 try:
     runMode = os.environ["runMode"]
 except:
@@ -46,25 +47,25 @@ class RunSetup_MeshHF:
     def __init__(self):
         g_obj = lambda qvals: max(qvals) #+ qvals.count(max(qvals)) #maybe changing obj function helps??
 
-        stpPath = "unit_test_cube.step" #"unit_test_cone.step" 
-        # stpPath = "test_pfc_block.step" #"unit_test_pfc.step" #for multiple directions 
+        # stpPath = "unit_test_cube.step" #"unit_test_cone.step" 
+        stpPath = "test_pfc_block.step" #"unit_test_pfc.step" #for multiple directions 
 
         stlPath = " " #"box.stl"
 
-        # qDirIn = [[0.707, -0.707, 0.0], [-0.707, -0.707, 0.0]] #[m]
-        qDirIn = [0.0, -1.0, 0.0] #[m]
+        qDirIn = [[0.707, -0.707, 0.0], [-0.707, -0.707, 0.0]] #[m]
+        # qDirIn = [0.0, -1.0, 0.0] #[m]
         # qDirIn = [0.707, -0.707, 0.0] #[m]
         # qDirIn = [-0.707, -0.707, 0.0] #[m]
         # qDirIn = [0.0, -0.707, 0.707] #[m]
         # qDirIn = [0.0, -0.707, -0.707] #[m]
-        qMagIn = 10.0 #[W/m^2]
-        # qMagIn = [10.0, 10.0] #[W/m^2]
+        # qMagIn = 10.0 #[W/m^2]
+        qMagIn = [10.0, 10.0] #[W/m^2]
 #
         self.box = Solid.MeshSolid(stlPath, stpPath)
         #self.box = Solid.MeshSolid(stlPath, stpPath) #normally, use this one!
 
-        self.fwd = ForwardModel.ForwardModel_MeshHF(self.box, qMagIn, qDirIn, hfMode='uniform') 
-        # self.fwd = ForwardModel.ForwardModel_MeshHF(self.box, qMagIn, qDirIn, hfMode='uniform_multiple') 
+        # self.fwd = ForwardModel.ForwardModel_MeshHF(self.box, qMagIn, qDirIn, hfMode='uniform') 
+        self.fwd = ForwardModel.ForwardModel_MeshHF(self.box, qMagIn, qDirIn, hfMode='uniform_multiple') 
         # self.fwd = ForwardModel.ForwardModel_MeshHF(self.box, qMagIn, qDirIn, hfMode='exponnorm') 
         self.opt = OptModel.OptModel_MeshHF()
 
@@ -152,12 +153,8 @@ class RunSetup_MeshHF:
 
             normals = trimeshSolid.face_normals
             normalsDiff = normals[adjacency[:, 0]] - normals[adjacency[:, 1]]
-            #normalsDiff = normals[filtered_adjacency[:, 0]] - normals[filtered_adjacency[:, 1]]
-
             normalsDiffMagnitude = np.linalg.norm(normalsDiff, axis=1)
 
-            # reference_direction = np.array([0, 1, 0])  #"upwards" direction that we want it to move in 
-            # normalRefDotProducts = np.dot(normals, reference_direction)
             normalRefDotProducts = 0 #not actually using this for anything now so 
 
             return normalsDiffMagnitude, normalRefDotProducts
@@ -218,7 +215,7 @@ class RunSetup_MeshHF:
 
             q_mesh_all = self.fwd.calculateAllHF(trimeshSolid)
 
-            print(f"Time elapsed for q_mesh_all: {time.time() - t0}")
+            # print(f"Time elapsed for q_mesh_all: {time.time() - t0}")
 
             unconstrainedFaces = [] #only keep this for cases with hf only on top face? 
 
@@ -236,7 +233,7 @@ class RunSetup_MeshHF:
             # print(f"Terms: {maxHFTerm}, {sumHFTerm}, {normalsPenalty}, {energyTerm}")
             # print(f"Terms divided by constants: {maxHFTerm/c0}, {sumHFTerm/c1}, {normalsPenalty/c2}, {energyTerm/c3}")
 
-            print(f"Time elapsed for whole objective calc: {time.time() - t0}")
+            # print(f"Time elapsed for whole objective calc: {time.time() - t0}")
 
             return maxHFTerm + sumHFTerm + normalsPenalty + energyTerm
             #return [maxHFTerm + sumHFTerm + normalsPenalty + energyTerm + hfDiffTerm, maxHFTerm, sumHFTerm, normalsPenalty, energyTerm] 
@@ -373,7 +370,8 @@ class RunSetup_MeshHF:
         # sweep_coefficients_and_record_output(coefficients_list, 1, sweep_c1)
 
         # sweep_c2 = [4000, 5000, 6000]
-        sweep_c2 = [5000]
+        # sweep_c2 = [5000]
+        sweep_c2 = [3000, 3500, 4000, 4500, 5500, 6000]
 
         sweep_coefficients_and_record_output(coefficients_list, 2, sweep_c2)
 
