@@ -397,7 +397,7 @@ class RunSetup_MeshHF:
         # sweep_coefficients_and_record_output(coefficients_list, 2, sweep_c2)
 
         # sweep_c3 = [1000, 5000, 10000]
-        sweep_c3 = [700]
+        sweep_c3 = [150]
         sweep_coefficients_and_record_output(coefficients_list, 3, sweep_c3)
 
         # #more runs 

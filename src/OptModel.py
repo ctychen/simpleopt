@@ -158,7 +158,7 @@ class OptModel_MeshHF:
         all_sum_normals_diff = [objFcn[1]]
         all_max_normals_diff = [objFcn[2]]
         hf_all_mesh = calcHFAllMesh(trimeshSolid)
-        # max_hf_each_run = [calcMaxHF(hf_all_mesh, facesToMove)]
+        max_hf_each_run = [calcMaxHF(hf_all_mesh, facesToMove)]
         # sum_hf_each_run = [calcEnergy(hf_all_mesh, trimeshSolid)] # sum_hf_each_run = [calcEnergy(hf_all_mesh)]
 
         # make VTK to display HF on surface
@@ -182,9 +182,6 @@ class OptModel_MeshHF:
             #recalculate the hf profile on the surface - don't need this for spheretests
             # updateHFProfile(trimeshSolid) 
 
-            #makeHFProfile(self, trimeshSolid)
-            # print(f"Time elapsed for GD {count}: {time.time() - t0}")
-
             # new_objVal = hfObjectiveFcn(trimeshSolid, coefficientsList, facesToMove)
             new_objVal_all = hfObjectiveFcn(trimeshSolid, coefficientsList, facesToMove)
             new_objVal = new_objVal_all[0]
@@ -197,8 +194,8 @@ class OptModel_MeshHF:
             prev_objVal = curr_objVal
             curr_objVal = new_objVal
 
-            # new_max_hf = calcMaxHF(hf_all_mesh, facesToMove)
-            # max_hf_each_run.append(new_max_hf)
+            new_max_hf = calcMaxHF(hf_all_mesh, facesToMove)
+            max_hf_each_run.append(new_max_hf)
 
             ##this is for plotting surface fit onto mesh
             # if count % 5 == 0:
@@ -238,6 +235,7 @@ class OptModel_MeshHF:
         self.plotMaxNormalsDiff(all_max_normals_diff, f"{id}")
         self.plotNormalsDiff(all_sum_normals_diff, f"{id}")
         self.plotObjectiveFunction(all_objective_function_values, f"{id}")
+        self.plotMaxHF(max_hf_each_run, f"{id}")    
         # finalMaxHF = np.min(max_hf_each_run)
         # print(f"Finished run, maxHF is {finalMaxHF}")
         print(f"Finished run")
@@ -273,6 +271,15 @@ class OptModel_MeshHF:
         fig.update_yaxes(title_text='Objective Function Values')
         fig.show()            
         output_file = f"{directoryName}/objective_each_run.html"
+        pio.write_html(fig, output_file)
+
+    def plotMaxHF(self, maxHFValues, directoryName):
+        x_count = np.linspace(0, len(maxHFValues), len(maxHFValues))
+        fig = px.scatter(x = x_count, y = maxHFValues)
+        fig.update_xaxes(title_text='Iterations')
+        fig.update_yaxes(title_text='Max HF Values')
+        fig.show()            
+        output_file = f"{directoryName}/max_hf_each_run.html"
         pio.write_html(fig, output_file)
 
 
