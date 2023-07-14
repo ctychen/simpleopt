@@ -48,26 +48,26 @@ class RunSetup_MeshHF:
     def __init__(self):
         g_obj = lambda qvals: max(qvals) #+ qvals.count(max(qvals)) #maybe changing obj function helps??
 
-        stpPath = "unit_test_cube.step" #"unit_test_cone.step" 
+        # stpPath = "unit_test_cube.step" #"unit_test_cone.step" 
         # stpPath = "test_sphere.step"
-        # stpPath = "test_pfc_block.step" #"unit_test_pfc.step" #for multiple directions 
+        stpPath = "test_pfc_block.step" #for multiple directions 
 
         stlPath = " " #"box.stl"
 
-        # qDirIn = [[0.707, -0.707, 0.0], [-0.707, -0.707, 0.0]] #[m]
-        qDirIn = [0.0, -1.0, 0.0] #[m]
+        qDirIn = [[0.707, -0.707, 0.0], [-0.707, -0.707, 0.0]] #[m]
+        # qDirIn = [0.0, -1.0, 0.0] #[m]
         # qDirIn = [0.707, -0.707, 0.0] #[m]
         # qDirIn = [-0.707, -0.707, 0.0] #[m]
         # qDirIn = [0.0, -0.707, 0.707] #[m]
         # qDirIn = [0.0, -0.707, -0.707] #[m]
-        qMagIn = 10.0 #[W/m^2]
-        # qMagIn = [10.0, 10.0] #[W/m^2]
+        # qMagIn = 10.0 #[W/m^2]
+        qMagIn = [10.0, 10.0] #[W/m^2]
 #
         self.box = Solid.MeshSolid(stlPath, stpPath)
         #self.box = Solid.MeshSolid(stlPath, stpPath) #normally, use this one!
 
-        self.fwd = ForwardModel.ForwardModel_MeshHF(self.box, qMagIn, qDirIn, hfMode='uniform') 
-        # self.fwd = ForwardModel.ForwardModel_MeshHF(self.box, qMagIn, qDirIn, hfMode='uniform_multiple') 
+        # self.fwd = ForwardModel.ForwardModel_MeshHF(self.box, qMagIn, qDirIn, hfMode='uniform') 
+        self.fwd = ForwardModel.ForwardModel_MeshHF(self.box, qMagIn, qDirIn, hfMode='uniform_multiple') 
         # self.fwd = ForwardModel.ForwardModel_MeshHF(self.box, qMagIn, qDirIn, hfMode='exponnorm') 
         self.opt = OptModel.OptModel_MeshHF()
 
@@ -184,20 +184,21 @@ class RunSetup_MeshHF:
 
         def facesToKeep(trimeshSolid):
             #this should be for faces to NOT use (so they shouldn't move)
-            return []
-            # normals = trimeshSolid.face_normals
-            # mesh_centers = trimeshSolid.triangles_center
-            # mesh_center_yvals = mesh_centers[:, 1]
+            # return []
+
+            normals = trimeshSolid.face_normals
+            mesh_centers = trimeshSolid.triangles_center
+            mesh_center_yvals = mesh_centers[:, 1]
             # mesh_center_xvals = mesh_centers[:, 0]
             # mesh_center_zvals = mesh_centers[:, 2]
-            # return np.where(
-            #     #find normals in unit directions (+/- x, y, z)
-            #     # (normals[:, 0] == 1.0) | (normals[:, 0] == -1.0) |    
-            #     # (normals[:, 1] == 1.0) | (normals[:, 1] == -1.0) |
-            #     # (normals[:, 2] == 1.0) | (normals[:, 2] == -1.0) 
+            return np.where(
+                #find normals in unit directions (+/- x, y, z)
+                # (normals[:, 0] == 1.0) | (normals[:, 0] == -1.0) |    
+                # (normals[:, 1] == 1.0) | (normals[:, 1] == -1.0) |
+                # (normals[:, 2] == 1.0) | (normals[:, 2] == -1.0) 
                 
-            #     mesh_center_yvals <= 10.0
-            # )[0]
+                mesh_center_yvals <= 10.0
+            )[0]
 
         
         q_mesh_initial = self.fwd.calculateAllHF(trimeshSolid)
@@ -233,8 +234,8 @@ class RunSetup_MeshHF:
 
             #for below: normalize all terms by dividing by initial values from pre-modification cube
 
-            maxHFTerm = 0#c0 * (self.fwd.filteredCalculateMaxHF(q_mesh_all, unconstrainedFaces) / maxHF_initial)
-            sumHFTerm = 0#c1 * (self.fwd.calculateHFMeshSum(q_mesh_all) / sumHF_initial) #self.fwd.calculateHFMeshSum(trimeshSolid)
+            maxHFTerm = c0 * (self.fwd.filteredCalculateMaxHF(q_mesh_all, unconstrainedFaces) / maxHF_initial)
+            sumHFTerm = c1 * (self.fwd.calculateHFMeshSum(q_mesh_all) / sumHF_initial) #self.fwd.calculateHFMeshSum(trimeshSolid)
 
             # normalsDiff, normalRefDotProducts = calculateNormalsDiff(trimeshSolid)
             normalsDiff, maxNormalsDiff = calculateNormalsDiff(trimeshSolid)
@@ -275,7 +276,7 @@ class RunSetup_MeshHF:
             for val in sweep_values:
                 my_trimeshSolid = trimeshSolid.copy()
                 coefficients_list[idx_to_vary] = val
-                directoryName = self.makeDirectories(f"spheretest11_{idx_to_vary}", coefficients_list)
+                directoryName = self.makeDirectories(f"tiletest_{idx_to_vary}", coefficients_list)
                 #meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
                 maxHF = self.opt.meshHFOpt(
                     objectiveFunction,  
@@ -365,7 +366,8 @@ class RunSetup_MeshHF:
         ## For variable sweep testing
         #coefficients_list = [21.16, 0.53, 14.0, 4.55, 0.0]
         # coefficients_list = [0.0, 100.0, 0.0, 0.0, 0.0]
-        coefficients_list = [0, 0, 1500, 0, 0]
+        # coefficients_list = [0, 0, 1500, 0, 0]
+        coefficients_list = [0, 0, 1500, 5000, 200]
         # sweep_c0 = [0.0, 10.0, 20.0, 30.0]
         # sweep_c1 = [0.0, 0.53, 1.06, 1.59]
         # sweep_c2 = [0.0, 14.0, 28.0, 42.0]
@@ -385,9 +387,11 @@ class RunSetup_MeshHF:
 
         # sweep_c0 = [50.0, 100.0, 300.0, 500.0]
 
+        # sweep_c0 = [50]
         # sweep_coefficients_and_record_output(coefficients_list, 0, sweep_c0)
 
-        # sweep_coefficients_and_record_output(coefficients_list, 1, sweep_c1)
+        sweep_c1 = [100]
+        sweep_coefficients_and_record_output(coefficients_list, 1, sweep_c1)
 
         # sweep_c2 = [4000, 5000, 6000]
         # sweep_c2 = [5000]
@@ -397,8 +401,8 @@ class RunSetup_MeshHF:
         # sweep_coefficients_and_record_output(coefficients_list, 2, sweep_c2)
 
         # sweep_c3 = [1000, 5000, 10000]
-        sweep_c3 = [150]
-        sweep_coefficients_and_record_output(coefficients_list, 3, sweep_c3)
+        # sweep_c3 = [150]
+        # sweep_coefficients_and_record_output(coefficients_list, 3, sweep_c3)
 
         # #more runs 
         # my_trimeshSolid = trimeshSolid.copy()
