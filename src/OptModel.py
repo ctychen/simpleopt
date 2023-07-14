@@ -47,6 +47,12 @@ class OptModel_MeshHF:
         #this way the faces with the highest hf's get moved/gradients calculated first 
         #
 
+        mesh_centers = tri_mesh.triangles_center
+        mesh_center_yvals = mesh_centers[:, 1]
+        # use_set = set(np.where(
+        #     (allmeshelementsHF > 0.0) &
+        #     (mesh_center_yvals <= 10.0)
+        # )[0])
         use_set = set(np.where(allmeshelementsHF > 0.0)[0]) #for pfctest
         # use_set = set(np.where(allmeshelementsHF >= -10.0)[0]) #for spheretest10-11
         # use_set = set(np.where(allmeshelementsHF > 0.0)[0]) 
@@ -77,7 +83,7 @@ class OptModel_MeshHF:
 
         for idx in sortedFaceIndices: 
             if idx not in facesToKeep: # if idx in constrainedFaces: 
-                if idx in use_set: 
+                if idx in use_set:
                     face = tri_mesh.faces[idx]
                     for vertexIdx in face:  #vertexIdx is VERTEX INDICES
                         obj_beforeMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]

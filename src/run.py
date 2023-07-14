@@ -197,7 +197,7 @@ class RunSetup_MeshHF:
                 # (normals[:, 1] == 1.0) | (normals[:, 1] == -1.0) |
                 # (normals[:, 2] == 1.0) | (normals[:, 2] == -1.0) 
                 
-                mesh_center_yvals <= 10.0
+                mesh_center_yvals <= 11.0
             )[0]
 
         
@@ -255,7 +255,7 @@ class RunSetup_MeshHF:
             # print(f"Time elapsed for whole objective calc: {time.time() - t0}")
             # input()
 
-            return [maxHFTerm + sumHFTerm + normalsPenalty + maxNormalsTerm, normalsPenalty, maxNormalsTerm]
+            return [maxHFTerm + sumHFTerm + (normalsPenalty + maxNormalsTerm), normalsPenalty, maxNormalsTerm]
             # return maxHFTerm + sumHFTerm + normalsPenalty + energyTerm
             #return [maxHFTerm + sumHFTerm + normalsPenalty + energyTerm + hfDiffTerm, maxHFTerm, sumHFTerm, normalsPenalty, energyTerm] 
             #objectiveFunction value: [0]       
@@ -276,7 +276,7 @@ class RunSetup_MeshHF:
             for val in sweep_values:
                 my_trimeshSolid = trimeshSolid.copy()
                 coefficients_list[idx_to_vary] = val
-                directoryName = self.makeDirectories(f"tiletest_{idx_to_vary}", coefficients_list)
+                directoryName = self.makeDirectories(f"tiletest2_{idx_to_vary}", coefficients_list)
                 #meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
                 maxHF = self.opt.meshHFOpt(
                     objectiveFunction,  
@@ -365,27 +365,7 @@ class RunSetup_MeshHF:
 
         ## For variable sweep testing
         #coefficients_list = [21.16, 0.53, 14.0, 4.55, 0.0]
-        # coefficients_list = [0.0, 100.0, 0.0, 0.0, 0.0]
-        # coefficients_list = [0, 0, 1500, 0, 0]
-        coefficients_list = [0, 0, 1500, 5000, 200]
-        # sweep_c0 = [0.0, 10.0, 20.0, 30.0]
-        # sweep_c1 = [0.0, 0.53, 1.06, 1.59]
-        # sweep_c2 = [0.0, 14.0, 28.0, 42.0]
-        # sweep_c3 = [0.0, 2.275, 4.55, 6.825]
-
-        # sweep_c0 = [1.0, 5.0, 10.0, 15.0]
-        # sweep_c1 = [50, 100, 200, 500]
-        # sweep_c2 = [50, 100, 200, 500]
-        # sweep_c3 = [1.0, 5.0, 10.0, 15.0]
-
-        # sweep_c3 = [300, 500, 1000, 2000]
-        # sweep_c2 = [700, 1000, 2000, 5000]
-
-        # sweep_c1 = [1.0, 10.0, 50.0, 100.0]
-        # sweep_c1 = [50.0, 100.0, 300.0, 500.0]
-        # sweep_c2 = [10.0, 50.0, 100.0, 300.0, 500.0, 1000.0, 1500.0, 2000.0]
-
-        # sweep_c0 = [50.0, 100.0, 300.0, 500.0]
+        coefficients_list = [0, 0, 5000, 200, 0] #[0, 0, 1500, 150, 0]
 
         # sweep_c0 = [50]
         # sweep_coefficients_and_record_output(coefficients_list, 0, sweep_c0)
@@ -445,9 +425,5 @@ if __name__ == '__main__':
     setup.runOptimization()
 
     print(f"Time elapsed: {time.time() - t0}")
-
-
-
-
 
         
