@@ -49,6 +49,7 @@ class RunSetup_MeshHF:
         g_obj = lambda qvals: max(qvals) #+ qvals.count(max(qvals)) #maybe changing obj function helps??
 
         stpPath = "unit_test_cube.step" #"unit_test_cone.step" 
+        # stpPath = "test_sphere.step"
         # stpPath = "test_pfc_block.step" #"unit_test_pfc.step" #for multiple directions 
 
         stlPath = " " #"box.stl"
@@ -163,8 +164,12 @@ class RunSetup_MeshHF:
             clipped_dot_product = np.clip(dot_product, -1.0, 1.0)
             allAnglesBetweenNormals = np.arccos(clipped_dot_product)
             maxAngleBetweenNormals = np.max(allAnglesBetweenNormals)
+            #for sphere, normals diff is close to 180deg, so would want to actually minimize the diff from 180 deg, for our max angle?
+            #cube starts with max angle of 90deg, which makes sense, and we want the max angle to approach 180deg
+            maxAngleDiff = np.pi - maxAngleBetweenNormals
             # print(f"Max normals diff (angle): {maxAngleBetweenNormals}")
-            return normalsDiffMagnitude, maxAngleBetweenNormals
+            # return normalsDiffMagnitude, maxAngleBetweenNormals
+            return normalsDiffMagnitude, maxAngleDiff
 
 
         # def facesToKeep(mesh_center_xvals, mesh_center_yvals, mesh_center_zvals):
@@ -208,6 +213,7 @@ class RunSetup_MeshHF:
         print(f"Initial max HF: {maxHF_initial}")
         print(f"Initial sum HF: {sumHF_initial}")
         print(f"Initial normals penalty: {normalsPenalty_initial}")
+        print(f"Initial max angle between normals: {maxNormalsDiff_initial}")
         print(f"Initial energy: {energy_initial}")
 
         def objectiveFunction(trimeshSolid, coefficientsList, unconstrainedFaces):
@@ -238,7 +244,7 @@ class RunSetup_MeshHF:
             normalsPenalty = c2 * (normalsDiffSum / normalsPenalty_initial)
             maxNormalsTerm = c3 * (maxNormalsDiff / maxNormalsDiff_initial)
 
-            # print(f"Normals diff sum: {normalsDiffSum}, max normals diff: {maxNormalsDiff}")
+            # print(f"Normals diff sum: {normalsDiffSum}, max angle between normals: {maxNormalsDiff}")
 
             # energyTerm = c3 * self.fwd.calculateIntegratedEnergy(q_mesh_all) #self.fwd.calculateIntegratedEnergy(trimeshSolid)
             # energyTerm = 0#c3 * (self.fwd.calculateIntegratedEnergy(q_mesh_all, trimeshSolid) / energy_initial)
@@ -247,6 +253,7 @@ class RunSetup_MeshHF:
             # print(f"Terms divided by constants: {maxHFTerm/c0}, {sumHFTerm/c1}, {normalsPenalty/c2}, {energyTerm/c3}")
 
             # print(f"Time elapsed for whole objective calc: {time.time() - t0}")
+            # input()
 
             return [maxHFTerm + sumHFTerm + normalsPenalty + maxNormalsTerm, normalsPenalty, maxNormalsTerm]
             # return maxHFTerm + sumHFTerm + normalsPenalty + energyTerm
@@ -269,7 +276,7 @@ class RunSetup_MeshHF:
             for val in sweep_values:
                 my_trimeshSolid = trimeshSolid.copy()
                 coefficients_list[idx_to_vary] = val
-                directoryName = self.makeDirectories(f"spheretest9_{idx_to_vary}", coefficients_list)
+                directoryName = self.makeDirectories(f"spheretest10_{idx_to_vary}", coefficients_list)
                 #meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
                 maxHF = self.opt.meshHFOpt(
                     objectiveFunction,  
