@@ -48,8 +48,8 @@ class RunSetup_MeshHF:
     def __init__(self):
         g_obj = lambda qvals: max(qvals) #+ qvals.count(max(qvals)) #maybe changing obj function helps??
 
-        # stpPath = "unit_test_cube.step" #"unit_test_cone.step" 
-        stpPath = "test_sphere.step"
+        stpPath = "unit_test_cube.step" #"unit_test_cone.step" 
+        # stpPath = "test_sphere.step"
         # stpPath = "test_pfc_block.step" #"unit_test_pfc.step" #for multiple directions 
 
         stlPath = " " #"box.stl"
@@ -163,14 +163,11 @@ class RunSetup_MeshHF:
             dot_product = np.einsum('ij,ij->i', normals_0, normals_1)
             clipped_dot_product = np.clip(dot_product, -1.0, 1.0)
             allAnglesBetweenNormals = np.arccos(clipped_dot_product)
-            # print(f"All angles between normals: {allAnglesBetweenNormals}")
-            # print(f"All differences from 180deg: {np.pi - allAnglesBetweenNormals}")
             maxAngleBetweenNormals = np.max(allAnglesBetweenNormals)
-            #for sphere, normals diff is close to 180deg, so would want to actually minimize the diff from 180 deg, for our max angle?
-            #cube starts with max angle of 90deg, which makes sense, and we want the max angle to approach 180deg
+            return normalsDiffMagnitude, maxAngleBetweenNormals
             # maxAngleDiff = np.pi - maxAngleBetweenNormals
             # return normalsDiffMagnitude, maxAngleDiff
-            return normalsDiffMagnitude, maxAngleBetweenNormals
+            
 
 
         # def facesToKeep(mesh_center_xvals, mesh_center_yvals, mesh_center_zvals):
@@ -400,7 +397,7 @@ class RunSetup_MeshHF:
         # sweep_coefficients_and_record_output(coefficients_list, 2, sweep_c2)
 
         # sweep_c3 = [1000, 5000, 10000]
-        sweep_c3 = [500]
+        sweep_c3 = [250]
         sweep_coefficients_and_record_output(coefficients_list, 3, sweep_c3)
 
         # #more runs 

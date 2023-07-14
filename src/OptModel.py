@@ -53,7 +53,7 @@ class OptModel_MeshHF:
         # use_set = set(np.where(tri_mesh.triangles_center[1] >= 10.0)[0])
 
         # Sort indices based on allmeshelementsHF values in descending order
-        sortedFaceIndices = np.argsort(allmeshelementsHF)[::-1]
+        # sortedFaceIndices = np.argsort(allmeshelementsHF)[::-1]
         # meshFaces = tri_mesh.faces
         # sortedFaceIndices = meshFaces
         gradient = np.zeros_like(tri_mesh.vertices)
@@ -103,7 +103,7 @@ class OptModel_MeshHF:
 
         #                 # input()
 
-        return tri_mesh
+        # return tri_mesh
 
 
     # def meshHFOpt(self, hfObjectiveFcn, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
@@ -129,6 +129,8 @@ class OptModel_MeshHF:
         #determine faces where constraint holds
         #constraint: don't move mesh element if its centroid is too low (not on the top/y=10 face)
         #check for this when we first run the code - no need to recalculate this a bunch of times, in theory
+
+        # #commented out for spheretests since don't need this 
         mesh_centers = trimeshSolid.triangles_center
         mesh_center_yvals = mesh_centers[:, 1]
         mesh_center_xvals = mesh_centers[:, 0]
@@ -176,8 +178,9 @@ class OptModel_MeshHF:
 
             #calc the gradient
             trimeshSolid = self.gradientDescentHF(trimeshSolid, hfObjectiveFcn, hf_all_mesh, facesToKeep, facesToMove, coefficientsList, delta, f"test{id}", count)
-            #recalculate the hf profile on the surface
-            updateHFProfile(trimeshSolid) 
+            
+            #recalculate the hf profile on the surface - don't need this for spheretests
+            # updateHFProfile(trimeshSolid) 
 
             #makeHFProfile(self, trimeshSolid)
             # print(f"Time elapsed for GD {count}: {time.time() - t0}")
@@ -234,6 +237,7 @@ class OptModel_MeshHF:
         self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"{id}", count)
         self.plotMaxNormalsDiff(all_max_normals_diff, f"{id}")
         self.plotNormalsDiff(all_sum_normals_diff, f"{id}")
+        self.plotObjectiveFunction(all_objective_function_values, f"{id}")
         # finalMaxHF = np.min(max_hf_each_run)
         # print(f"Finished run, maxHF is {finalMaxHF}")
         print(f"Finished run")
@@ -260,6 +264,15 @@ class OptModel_MeshHF:
         fig.update_yaxes(title_text='Sum of normals difference')
         fig.show()            
         output_file = f"{directoryName}/sum_normals_diff_each_run.html"
+        pio.write_html(fig, output_file)
+
+    def plotObjectiveFunction(self, objectiveFunctionValues, directoryName):
+        x_count = np.linspace(0, len(objectiveFunctionValues), len(objectiveFunctionValues))
+        fig = px.scatter(x = x_count, y = objectiveFunctionValues)
+        fig.update_xaxes(title_text='Iterations')
+        fig.update_yaxes(title_text='Objective Function Values')
+        fig.show()            
+        output_file = f"{directoryName}/objective_each_run.html"
         pio.write_html(fig, output_file)
 
 
