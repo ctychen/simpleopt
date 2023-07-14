@@ -365,7 +365,7 @@ class RunSetup_MeshHF:
 
         ## For variable sweep testing
         #coefficients_list = [21.16, 0.53, 14.0, 4.55, 0.0]
-        coefficients_list = [0, 0, 5000, 200, 0] #[0, 0, 1500, 150, 0]
+        coefficients_list = [300, 0, 1500, 150, 0] #[0, 0, 5000, 200, 0] 
 
         # sweep_c0 = [50]
         # sweep_coefficients_and_record_output(coefficients_list, 0, sweep_c0)
