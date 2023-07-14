@@ -365,7 +365,7 @@ class RunSetup_MeshHF:
         ## For variable sweep testing
         #coefficients_list = [21.16, 0.53, 14.0, 4.55, 0.0]
         # coefficients_list = [0.0, 100.0, 0.0, 0.0, 0.0]
-        coefficients_list = [0, 0, 5000, 0, 0]
+        coefficients_list = [0, 0, 1500, 0, 0]
         # sweep_c0 = [0.0, 10.0, 20.0, 30.0]
         # sweep_c1 = [0.0, 0.53, 1.06, 1.59]
         # sweep_c2 = [0.0, 14.0, 28.0, 42.0]
@@ -397,7 +397,7 @@ class RunSetup_MeshHF:
         # sweep_coefficients_and_record_output(coefficients_list, 2, sweep_c2)
 
         # sweep_c3 = [1000, 5000, 10000]
-        sweep_c3 = [250]
+        sweep_c3 = [700]
         sweep_coefficients_and_record_output(coefficients_list, 3, sweep_c3)
 
         # #more runs 
