@@ -11,6 +11,7 @@ import plotly.io as pio
 from plotly.subplots import make_subplots
 import plotly.express as px
 
+from multiprocessing import Process
 
 import vtk
 from vtk import vtkPolyData, vtkPoints, vtkCellArray, vtkDoubleArray, vtkPolyDataWriter, vtkTriangle
@@ -30,6 +31,11 @@ class OptModel_MeshHF:
         """
         return
     
+    def doGradientCalc(j, gradientList, delta, tri_mesh, vertexIdx, objectiveFunction, coefficientsList, facesToMove):
+        #inputs: array of gradients to modify
+        
+        return
+    
     def gradientDescentHF(self, tri_mesh, objectiveFunction, allmeshelementsHF, facesToKeep, facesToMove, coefficientsList, delta, filedir, count):
         """
         gradient descent implementation for heat flux minimization
@@ -37,15 +43,6 @@ class OptModel_MeshHF:
         calc gradient for each element by moving vertices a small amount and finding change in objective function
         move each vertex based on gradient * delta when all gradients calculated
         """ 
-
-        #process now:
-        #find all vertices and all heat fluxes for all faces
-        #make array of 0s with same length as list of faces
-        #sort heat flux list by magnitude
-        #assign face (list of vertices) to same index that its hf is at so those stay linked
-        #convert list of faces to list of vertices, keeping the order
-        #this way the faces with the highest hf's get moved/gradients calculated first 
-        #
 
         use_set = set(np.where(allmeshelementsHF >= -10.0)[0]) #changed for 3sphere test
         gradient = np.zeros_like(tri_mesh.vertices)

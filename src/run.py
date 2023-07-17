@@ -184,7 +184,7 @@ class RunSetup_MeshHF:
 
             normalsDiff, maxNormalsDiff = calculateNormalsDiff(trimeshSolid)
             normalsDiffSum = np.sum(normalsDiff)
-            normalsPenalty = c2 * (normalsDiffSum / numFaces)
+            normalsPenalty = c2 * ((normalsDiffSum / normalsPenalty_initial) / numFaces)
             maxNormalsTerm = c3 * maxNormalsDiff
 
             return [maxHFTerm + sumHFTerm + normalsPenalty + maxNormalsTerm, normalsPenalty, maxNormalsTerm]    
@@ -205,7 +205,7 @@ class RunSetup_MeshHF:
             for val in sweep_values:
                 my_trimeshSolid = trimeshSolid.copy()
                 coefficients_list[idx_to_vary] = val
-                directoryName = self.makeDirectories(f"new_sphere_test_{idx_to_vary}", coefficients_list)
+                directoryName = self.makeDirectories(f"new_sphere_test_try2_{idx_to_vary}", coefficients_list)
                 #meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
                 maxHF = self.opt.meshHFOpt(
                     objectiveFunction,  
@@ -295,7 +295,7 @@ class RunSetup_MeshHF:
         ## For variable sweep testing
         # coefficients_list = [0, 0, 1500, 0, 0]
         # coefficients_list = [0, 0, 29698.489, 0, 0]
-        coefficients_list = [0, 0, 29698.48962, 0, 0]
+        coefficients_list = [0, 0, 29698.48962 * 84.8528, 0, 0]
 
         # sweep_c3 = [200]
         sweep_c3 = [220]
