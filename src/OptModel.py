@@ -47,15 +47,7 @@ class OptModel_MeshHF:
         #this way the faces with the highest hf's get moved/gradients calculated first 
         #
 
-        # use_set = set(np.where(allmeshelementsHF >= 0.0)[0]) #changed for 3sphere test
         use_set = set(np.where(allmeshelementsHF >= -10.0)[0]) #changed for 3sphere test
-        # use_set = set(np.where(allmeshelementsHF > 0.0)[0]) 
-        # use_set = set(np.where(tri_mesh.triangles_center[1] >= 10.0)[0])
-
-        # Sort indices based on allmeshelementsHF values in descending order
-        # sortedFaceIndices = np.argsort(allmeshelementsHF)[::-1]
-        # meshFaces = tri_mesh.faces
-        # sortedFaceIndices = meshFaces
         gradient = np.zeros_like(tri_mesh.vertices)
 
         for idx in use_set:
@@ -67,7 +59,6 @@ class OptModel_MeshHF:
                     obj_afterMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
                     tri_mesh.vertices[vertexIdx, j] -= delta
                     gradient[vertexIdx, j] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
-                    # print(f"After moving, objective: {obj_afterMoving_allvals[1]}, {obj_afterMoving_allvals[2]}, {obj_afterMoving_allvals[3]}, {obj_afterMoving_allvals[4]}") 
                 #basically - move each vertex and update it
                 tri_mesh.vertices[vertexIdx, 0] -= (delta * gradient[vertexIdx, 0])
                 tri_mesh.vertices[vertexIdx, 1] -= (delta * gradient[vertexIdx, 1])
@@ -172,7 +163,7 @@ class OptModel_MeshHF:
         #faces to NOT move
         facesToKeep = indicesToNotMove
 
-        while abs(prev_objVal - curr_objVal) > threshold and count < 150:
+        while abs(prev_objVal - curr_objVal) > threshold and count < 500:
 
             hf_all_mesh = calcHFAllMesh(trimeshSolid)
 
