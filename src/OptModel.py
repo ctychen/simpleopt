@@ -11,7 +11,8 @@ import plotly.io as pio
 from plotly.subplots import make_subplots
 import plotly.express as px
 
-from multiprocessing import Process
+import pandas as pd
+import multiprocessing
 
 import vtk
 from vtk import vtkPolyData, vtkPoints, vtkCellArray, vtkDoubleArray, vtkPolyDataWriter, vtkTriangle
@@ -29,11 +30,10 @@ class OptModel_MeshHF:
         """
         TODO: figure out what properties we actually need for optmodel, and what can just be fcn inputs
         """
-        return
-    
-    def doGradientCalc(j, gradientList, delta, tri_mesh, vertexIdx, objectiveFunction, coefficientsList, facesToMove):
-        #inputs: array of gradients to modify
-        
+        self.Ncores = multiprocessing.cpu_count() - 2 #reserve 2 cores for overhead
+        #in case we run on single core machine
+        if self.Ncores <= 0:
+            self.Ncores = 1
         return
     
     def gradientDescentHF(self, tri_mesh, objectiveFunction, allmeshelementsHF, facesToKeep, facesToMove, coefficientsList, delta, filedir, count):
@@ -63,35 +63,49 @@ class OptModel_MeshHF:
 
         return tri_mesh
 
-        # for idx in sortedFaceIndices: 
-        #     if idx not in facesToKeep: # if idx in constrainedFaces: 
-        #         if idx in use_set: 
-        #             face = tri_mesh.faces[idx]
+    # def gradientDescentHF(self, tri_mesh, objectiveFunction, allmeshelementsHF, facesToKeep, facesToMove, coefficientsList, delta, filedir, count):
+    #     """
+    #     gradient descent implementation for heat flux minimization
+    #     takes in trimesh object and sorts elements by HF to deal with worst elements first
+    #     calc gradient for each element by moving vertices a small amount and finding change in objective function
+    #     move each vertex based on gradient * delta when all gradients calculated
+    #     """ 
 
-        #             for vertexIdx in face:  #vertexIdx is VERTEX INDICES
+    #     use_set = set(np.where(allmeshelementsHF >= -10.0)[0]) #changed for 3sphere test
+    #     gradient = np.zeros_like(tri_mesh.vertices)
 
-        #                 obj_beforeMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
+    #     def parallelGradientCalc(j):
+    #         """
+    #         calculate gradient for each vertex in parallel
+    #         """
+    #         tri_mesh.vertices[vertexIdx, j] += delta
+    #         obj_afterMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
+    #         tri_mesh.vertices[vertexIdx, j] -= delta
+    #         gradientValue = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
+    #         return gradientValue
 
-        #                 for j in range(3): #for every dimension - move the vertex a bit and calculate the change in objectiveFunction
+    #     for idx in use_set:
+    #         face = tri_mesh.faces[idx]
+    #         for vertexIdx in face:  #vertexIdx is VERTEX INDICES
+    #             obj_beforeMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
+    #             # for j in range(3): #for every dimension - move the vertex a bit and calculate the change in objectiveFunction
+    #             #     tri_mesh.vertices[vertexIdx, j] += delta
+    #             #     obj_afterMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
+    #             #     tri_mesh.vertices[vertexIdx, j] -= delta
+    #             #     gradient[vertexIdx, j] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
+    #             #basically - move each vertex and update it
+    #             pool = multiprocessing.Pool(self.Ncores)
+    #             gradient[vertexIdx, :] = np.asarray(pool.map(parallelGradientCalc, np.arange(3)))  
+    #             print(f"gradient: {gradient}")
+    #             pool.close()
+    #             pool.join() 
+    #             del pool
 
-        #                     tri_mesh.vertices[vertexIdx, j] += delta
-        #                     obj_afterMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
+    #             tri_mesh.vertices[vertexIdx, 0] -= (delta * gradient[vertexIdx, 0])
+    #             tri_mesh.vertices[vertexIdx, 1] -= (delta * gradient[vertexIdx, 1])
+    #             tri_mesh.vertices[vertexIdx, 2] -= (delta * gradient[vertexIdx, 2])
 
-        #                     tri_mesh.vertices[vertexIdx, j] -= delta
-
-        #                     gradient[vertexIdx, j] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
-
-        #                     # print(f"After moving, objective: {obj_afterMoving_allvals[1]}, {obj_afterMoving_allvals[2]}, {obj_afterMoving_allvals[3]}, {obj_afterMoving_allvals[4]}")
-                    
-        #                 #basically - move each vertex and update it
-
-        #                 tri_mesh.vertices[vertexIdx, 0] -= (delta * gradient[vertexIdx, 0])
-        #                 tri_mesh.vertices[vertexIdx, 1] -= (delta * gradient[vertexIdx, 1])
-        #                 tri_mesh.vertices[vertexIdx, 2] -= (delta * gradient[vertexIdx, 2])    
-
-        #                 # input()
-
-        # return tri_mesh
+    #     return tri_mesh
 
 
     # def meshHFOpt(self, hfObjectiveFcn, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
@@ -114,30 +128,17 @@ class OptModel_MeshHF:
 
         count = 0
  
-        #determine faces where constraint holds
-        #constraint: don't move mesh element if its centroid is too low (not on the top/y=10 face)
-        #check for this when we first run the code - no need to recalculate this a bunch of times, in theory
-
         # #commented out for spheretests since don't need this 
         mesh_centers = trimeshSolid.triangles_center
         mesh_center_yvals = mesh_centers[:, 1]
         mesh_center_xvals = mesh_centers[:, 0]
         mesh_center_zvals = mesh_centers[:, 2]
 
-        # constrainedFaces = set(np.where(constraint(mesh_center_xvals, mesh_center_yvals, mesh_center_zvals))[0])
-
-        #faces TO move 
-        # constrainedFaces = set(constraint(mesh_center_xvals, mesh_center_yvals, mesh_center_zvals))
-        # constrainedFaces = set(constraint(mesh_center_xvals, mesh_center_yvals, mesh_center_zvals))
 
         # indicesToNotMove = set(constraint(mesh_center_xvals, mesh_center_yvals, mesh_center_zvals))
         indicesToNotMove = set(constraint(trimeshSolid))
         allIndices = set(range(len(mesh_center_xvals)))  # assuming all arrays are the same length
-        facesToMove = allIndices-  indicesToNotMove #faces to move
-
-        # constrainedFaces = set(np.where(mesh_center_yvals == 10.0)[0]) #this should isolate the y-vaues but should check
-        #also - constrainedFaces is a set, not a list - so need to convert it first
-        # constrainedVIdx = np.unique(trimeshSolid.faces[list(constrainedFaces)].ravel())
+        facesToMove = allIndices - indicesToNotMove #faces to move
 
         print(f"Objective function with coefficients: {coefficientsList}")
         objFcn = hfObjectiveFcn(trimeshSolid, coefficientsList, facesToMove)
@@ -147,7 +148,6 @@ class OptModel_MeshHF:
         all_max_normals_diff = [objFcn[2]]
         hf_all_mesh = calcHFAllMesh(trimeshSolid)
         max_hf_each_run = [calcMaxHF(hf_all_mesh, facesToMove)]
-        # sum_hf_each_run = [calcEnergy(hf_all_mesh, trimeshSolid)] # sum_hf_each_run = [calcEnergy(hf_all_mesh)]
 
         # make VTK to display HF on surface
         self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"{id}", count=4242)
