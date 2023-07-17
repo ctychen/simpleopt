@@ -209,6 +209,8 @@ class RunSetup_MeshHF:
         normalsPenalty_initial = np.sum(normalsDiff_initial)
         energy_initial = self.fwd.calculateIntegratedEnergy(q_mesh_initial, trimeshSolid)
 
+        numFaces = len(trimeshSolid.faces)  
+
         print(f"Initial max HF: {maxHF_initial}")
         print(f"Initial sum HF: {sumHF_initial}")
         print(f"Initial normals penalty: {normalsPenalty_initial}")
@@ -234,13 +236,16 @@ class RunSetup_MeshHF:
 
             #for below: normalize all terms by dividing by initial values from pre-modification cube
 
-            maxHFTerm = c0 * (self.fwd.filteredCalculateMaxHF(q_mesh_all, unconstrainedFaces) / maxHF_initial)
-            sumHFTerm = c1 * (self.fwd.calculateHFMeshSum(q_mesh_all) / sumHF_initial) #self.fwd.calculateHFMeshSum(trimeshSolid)
+            # maxHFTerm = c0 * (self.fwd.filteredCalculateMaxHF(q_mesh_all, unconstrainedFaces) / maxHF_initial)
+            maxHFTerm = c0 * self.fwd.filteredCalculateMaxHF(q_mesh_all, unconstrainedFaces)    #try not dividing by initial value
+            #sumHFTerm = c1 * (self.fwd.calculateHFMeshSum(q_mesh_all) / sumHF_initial) #self.fwd.calculateHFMeshSum(trimeshSolid)
+            sumHFTerm = c1 * (self.fwd.calculateHFMeshSum(q_mesh_all) / numFaces) 
 
             # normalsDiff, normalRefDotProducts = calculateNormalsDiff(trimeshSolid)
             normalsDiff, maxNormalsDiff = calculateNormalsDiff(trimeshSolid)
             normalsDiffSum = np.sum(normalsDiff)
-            normalsPenalty = c2 * (normalsDiffSum / normalsPenalty_initial)
+            # normalsPenalty = c2 * (normalsDiffSum / normalsPenalty_initial)
+            normalsPenalty = c2 * (normalsDiffSum / numFaces)
             maxNormalsTerm = c3 * maxNormalsDiff #(maxNormalsDiff / maxNormalsDiff_initial)
 
             # print(f"Normals diff sum: {normalsDiffSum}, max angle between normals: {maxNormalsDiff}")
