@@ -174,7 +174,8 @@ class OptModel_MeshHF:
             trimeshSolid = self.gradientDescentHF(trimeshSolid, hfObjectiveFcn, hf_all_mesh, facesToKeep, facesToMove, coefficientsList, delta, f"test{id}", count)
             
             #recalculate the hf profile on the surface - don't need this for spheretests
-            # updateHFProfile(trimeshSolid) 
+            #ensure that heat flux on elements is updated to reflect new mesh
+            updateHFProfile(trimeshSolid) 
 
             # new_objVal = hfObjectiveFcn(trimeshSolid, coefficientsList, facesToMove)
             new_objVal_all = hfObjectiveFcn(trimeshSolid, coefficientsList, facesToMove)

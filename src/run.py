@@ -276,7 +276,7 @@ class RunSetup_MeshHF:
             for val in sweep_values:
                 my_trimeshSolid = trimeshSolid.copy()
                 coefficients_list[idx_to_vary] = val
-                directoryName = self.makeDirectories(f"tiletest2_{idx_to_vary}", coefficients_list)
+                directoryName = self.makeDirectories(f"tiletest3_{idx_to_vary}", coefficients_list)
                 #meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
                 maxHF = self.opt.meshHFOpt(
                     objectiveFunction,  
@@ -365,7 +365,7 @@ class RunSetup_MeshHF:
 
         ## For variable sweep testing
         #coefficients_list = [21.16, 0.53, 14.0, 4.55, 0.0]
-        coefficients_list = [300, 0, 1500, 150, 0] #[0, 0, 5000, 200, 0] 
+        coefficients_list = [500, 0, 1500, 150, 0] #[300, 0, 500, 150, 0] #[300, 0, 1500, 150, 0] #[0, 0, 5000, 200, 0] 
 
         # sweep_c0 = [50]
         # sweep_coefficients_and_record_output(coefficients_list, 0, sweep_c0)
