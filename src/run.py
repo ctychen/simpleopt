@@ -121,13 +121,6 @@ class RunSetup_MeshHF:
         adjacency = trimeshSolid.face_adjacency
 
         def calculateNormalsDiff(trimeshSolid):
-            """
-            calculate differences between normal vectors of adjacent faces - ideally this should also be minimized?  
-            also find max diff btwn adjacent normals
-            """
-            #"(n, 2) list of face indices. Each pair of faces in the list shares an edge, making them adjacent"
-            # adjacency = trimeshSolid.face_adjacency 
-
             normals = trimeshSolid.face_normals
             # normalsDiff = normals[adjacency[:, 0]] - normals[adjacency[:, 1]]
             # normalsDiffMagnitude = np.linalg.norm(normalsDiff, axis=1)
@@ -144,6 +137,7 @@ class RunSetup_MeshHF:
             maxAngleBetweenNormals = np.max(allAnglesBetweenNormals)
 
             return sumVertexDefects, maxVertexDefect, maxAngleBetweenNormals 
+        
             #return normalsDiffMagnitude, maxAngleBetweenNormals
 
         # def calculateNormalsDiff(trimeshSolid):
@@ -388,12 +382,20 @@ class RunSetup_MeshHF:
         # sweep_coefficients_and_record_output(coefficients_list, 3, sweep_c3)
 
         # coefficients_list = [0, 0, 50, 0, 0]
-        # sweep_c4 = [10, 50, 100, 500]
-        # sweep_coefficients_and_record_output(coefficients_list, 4, sweep_c4)    
+        # sweep_c4 = [60, 70, 80, 90]
+        # sweep_coefficients_and_record_output(coefficients_list, 4, sweep_c4)  
 
-        coefficients_list = [0, 0, 50, 0, 10]
-        sweep_c3 = [10, 50, 100, 500]
-        sweep_coefficients_and_record_output(coefficients_list, 3, sweep_c3)   
+        coefficients_list = [0, 0, 0, 0, 0]
+        sweep_c2 = [50]
+        sweep_coefficients_and_record_output(coefficients_list, 2, sweep_c2)    
+
+        # coefficients_list = [0, 0, 50, 0, 10]
+        # sweep_c3 = [10, 30, 50, 100]
+        # sweep_coefficients_and_record_output(coefficients_list, 3, sweep_c3)   
+
+        # coefficients_list = [0, 0, 50, 0, 0]
+        # sweep_c3 = [20, 30, 40, 60, 70]
+        # sweep_coefficients_and_record_output(coefficients_list, 3, sweep_c3)  
 
         # coefficients_list = [0, 0, 0, 200, 0]
         # # sweep_c2 = [1000, 5000, 10000]
