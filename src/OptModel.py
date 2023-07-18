@@ -36,98 +36,6 @@ class OptModel_MeshHF:
             self.Ncores = 1
         return
     
-    # def gradientDescentHF(self, tri_mesh, objectiveFunction, allmeshelementsHF, facesToKeep, facesToMove, coefficientsList, delta, filedir, count):
-    #     """
-    #     gradient descent implementation for heat flux minimization
-    #     takes in trimesh object and sorts elements by HF to deal with worst elements first
-    #     calc gradient for each element by moving vertices a small amount and finding change in objective function
-    #     move each vertex based on gradient * delta when all gradients calculated
-    #     """ 
-
-    #     use_set = set(np.where(allmeshelementsHF >= -10.0)[0]) #changed for 3sphere test
-    #     gradient = np.zeros_like(tri_mesh.vertices)
-
-    #     for idx in use_set:
-    #         face = tri_mesh.faces[idx]
-    #         for vertexIdx in face:  #vertexIdx is VERTEX INDICES
-    #             obj_beforeMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
-    #             for j in range(3): #for every dimension - move the vertex a bit and calculate the change in objectiveFunction
-    #                 tri_mesh.vertices[vertexIdx, j] += delta
-    #                 obj_afterMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
-    #                 tri_mesh.vertices[vertexIdx, j] -= delta
-    #                 gradient[vertexIdx, j] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
-    #             #basically - move each vertex and update it
-    #             tri_mesh.vertices[vertexIdx, 0] -= (delta * gradient[vertexIdx, 0])
-    #             tri_mesh.vertices[vertexIdx, 1] -= (delta * gradient[vertexIdx, 1])
-    #             tri_mesh.vertices[vertexIdx, 2] -= (delta * gradient[vertexIdx, 2])
-
-    #     return tri_mesh
-
-
-    # def gradientDescentHF(self, tri_mesh, objectiveFunction, allmeshelementsHF, facesToKeep, facesToMove, coefficientsList, delta, filedir, count):
-    #     """
-    #     gradient descent implementation for heat flux minimization
-    #     takes in trimesh object and sorts elements by HF to deal with worst elements first
-    #     calc gradient for each element by moving vertices a small amount and finding change in objective function
-    #     move each vertex based on gradient * delta when all gradients calculated
-    #     """ 
-    #     use_set = set(np.where(allmeshelementsHF >= -10.0)[0]) #changed for 3sphere test
-    #     gradient = np.zeros_like(tri_mesh.vertices)
-
-    #     useFaces = tri_mesh.faces[list(use_set)]
-    #     flattenedVtx = useFaces.flatten() #np.flatten(useFaces)
-    #     uniqueVtx = np.unique(flattenedVtx)
-    #     print(f"uniqueVtx: {uniqueVtx}")
-    #     # input()
-    #     for j in range(3): #for every dimension - move the vertex a bit and calculate the change in objectiveFunction
-    #         obj_beforeMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
-    #         print(f"objective before moving: {obj_beforeMoving}")
-    #         tri_mesh.vertices[uniqueVtx, j] += delta
-    #         obj_afterMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
-    #         print(f"objective after moving: {obj_afterMoving}")
-    #         tri_mesh.vertices[uniqueVtx, j] -= delta
-    #         gradient[uniqueVtx, j] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
-    #         # print(f"gradient: {gradient}")
-    #         # input()
-    #     #basically - move each vertex and update it
-    #     tri_mesh.vertices[uniqueVtx, 0] -= (delta * gradient[uniqueVtx, 0])
-    #     tri_mesh.vertices[uniqueVtx, 1] -= (delta * gradient[uniqueVtx, 1])
-    #     tri_mesh.vertices[uniqueVtx, 2] -= (delta * gradient[uniqueVtx, 2])
-    #     # print(f"gradient: {gradient}")
-    #     # input()
-
-    #     return tri_mesh
-    
-
-    # def gradientDescentHF(self, tri_mesh, objectiveFunction, allmeshelementsHF, facesToKeep, facesToMove, coefficientsList, delta, filedir, count):
-    #     """
-    #     gradient descent implementation for heat flux minimization
-    #     takes in trimesh object and sorts elements by HF to deal with worst elements first
-    #     calc gradient for each element by moving vertices a small amount and finding change in objective function
-    #     move each vertex based on gradient * delta when all gradients calculated
-    #     """ 
-    #     use_set = set(np.where(allmeshelementsHF >= -10.0)[0]) #changed for 3sphere test
-    #     gradient = np.zeros_like(tri_mesh.vertices)
-
-    #     useFaces = tri_mesh.faces[list(use_set)]
-    #     flattenedVtx = useFaces.flatten() #np.flatten(useFaces)
-    #     uniqueVtx = np.unique(flattenedVtx)
-    #     # print(f"uniqueVtx: {uniqueVtx}")
-    #     for vertex in uniqueVtx:
-    #         for j in range(3): 
-    #             obj_beforeMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
-    #             tri_mesh.vertices[vertex, j] += delta
-    #             obj_afterMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
-    #             tri_mesh.vertices[vertex, j] -= delta
-    #             gradient[vertex, j] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
-    #             # print("gradient: {gradient}")
-    #     #basically - move each vertex and update it
-    #     tri_mesh.vertices[uniqueVtx, 0] -= (delta * gradient[uniqueVtx, 0])
-    #     tri_mesh.vertices[uniqueVtx, 1] -= (delta * gradient[uniqueVtx, 1])
-    #     tri_mesh.vertices[uniqueVtx, 2] -= (delta * gradient[uniqueVtx, 2])
-    #     # print(f"gradient: {gradient}")
-
-    #     return tri_mesh
 
     def gradientDescentHF(self, tri_mesh, objectiveFunction, allmeshelementsHF, facesToKeep, facesToMove, coefficientsList, delta, filedir, count):
         """
@@ -140,10 +48,8 @@ class OptModel_MeshHF:
         gradient = np.zeros_like(tri_mesh.vertices)
 
         useFaces = tri_mesh.faces[list(use_set)]
-        flattenedVtx = useFaces.flatten() #np.flatten(useFaces)
+        flattenedVtx = useFaces.flatten() 
         uniqueVtx = np.unique(flattenedVtx)
-        # print(f"uniqueVtx: {uniqueVtx}")
-        # for vertex in uniqueVtx:
         for vertex in np.nditer(uniqueVtx):
             obj_beforeMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
             for j in range(3): 
@@ -151,12 +57,10 @@ class OptModel_MeshHF:
                 obj_afterMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
                 tri_mesh.vertices[vertex, j] -= delta
                 gradient[vertex, j] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
-                # print("gradient: {gradient}")
         #basically - move each vertex and update it
         tri_mesh.vertices[uniqueVtx, 0] -= (delta * gradient[uniqueVtx, 0])
         tri_mesh.vertices[uniqueVtx, 1] -= (delta * gradient[uniqueVtx, 1])
         tri_mesh.vertices[uniqueVtx, 2] -= (delta * gradient[uniqueVtx, 2])
-        # print(f"gradient: {gradient}")
 
         return tri_mesh
 
@@ -213,7 +117,7 @@ class OptModel_MeshHF:
         #faces to NOT move
         facesToKeep = indicesToNotMove
 
-        while abs(prev_objVal - curr_objVal) > threshold and count < 100:
+        while abs(prev_objVal - curr_objVal) > threshold and count < 150:
 
             hf_all_mesh = calcHFAllMesh(trimeshSolid)
 
@@ -237,8 +141,8 @@ class OptModel_MeshHF:
             prev_objVal = curr_objVal
             curr_objVal = new_objVal
 
-            new_max_hf = calcMaxHF(hf_all_mesh, facesToMove)
-            max_hf_each_run.append(new_max_hf)
+            # new_max_hf = calcMaxHF(hf_all_mesh, facesToMove)
+            # max_hf_each_run.append(new_max_hf)
 
             ##this is for plotting surface fit onto mesh
             # if count % 5 == 0:
@@ -278,7 +182,8 @@ class OptModel_MeshHF:
         self.plotMaxNormalsDiff(all_max_normals_diff, f"{id}")
         self.plotNormalsDiff(all_sum_normals_diff, f"{id}")
         self.plotObjectiveFunction(all_objective_function_values, f"{id}")
-        self.plotMaxHF(max_hf_each_run, f"{id}")    
+        # self.plotMaxHF(max_hf_each_run, f"{id}")  
+          
         # finalMaxHF = np.min(max_hf_each_run)
         # print(f"Finished run, maxHF is {finalMaxHF}")
         print(f"Finished run")

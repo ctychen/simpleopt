@@ -78,8 +78,8 @@ class RunSetup_MeshHF:
         c1 = coefficientsList[1]
         c2 = coefficientsList[2]
         c3 = coefficientsList[3]
-        # c4 = coefficientsList[4]
-        runName = runID + f'_c0_{c0:.5f}_c1_{c1:.5f}_c2_{c2:.5f}_c3_{c3:.5f}' #f'_c0_{c0:.2f}_c1_{c1:.2f}_c2_{c2:.2f}_c3_{c3:.2f}'
+        c4 = coefficientsList[4]
+        runName = runID + f'_c0_{c0:.5f}_c1_{c1:.5f}_c2_{c2:.5f}_c3_{c3:.5f}_c4_{c4:.5f}' #f'_c0_{c0:.2f}_c1_{c1:.2f}_c2_{c2:.2f}_c3_{c3:.2f}'
         runName = runName.replace(".", "-")
 
         directoryName = f"{runName}" #running this within docker container means can't save to external without bindmount aaa
@@ -133,12 +133,8 @@ class RunSetup_MeshHF:
             # normalsDiffMagnitude = np.linalg.norm(normalsDiff, axis=1)
 
             vertex_defects = trimeshSolid.vertex_defects
-            # print(f"Vertex defects: {vertex_defects}")
-            # print(f"Max vertex defect: {np.max(np.abs(vertex_defects))}")
-            # print(f"Min vertex defect: {np.min(np.abs(vertex_defects))}")
             sumVertexDefects = np.sum(np.abs(vertex_defects))
             maxVertexDefect = np.max(np.abs(vertex_defects))    
-            # print(f"Sum vertex defects: {sumVertexDefects}")
 
             normals_0 = normals[adjacency[:, 0]]
             normals_1 = normals[adjacency[:, 1]]
@@ -146,10 +142,36 @@ class RunSetup_MeshHF:
             clipped_dot_product = np.clip(dot_product, -1.0, 1.0)
             allAnglesBetweenNormals = np.arccos(clipped_dot_product)
             maxAngleBetweenNormals = np.max(allAnglesBetweenNormals)
-            maxAngleBetweenNormals = 0
 
             return sumVertexDefects, maxVertexDefect, maxAngleBetweenNormals 
             #return normalsDiffMagnitude, maxAngleBetweenNormals
+
+        # def calculateNormalsDiff(trimeshSolid):
+        #     """
+        #     calculate differences between normal vectors of adjacent faces - ideally this should also be minimized?  
+        #     also find max diff btwn adjacent normals
+        #     """
+        #     #"(n, 2) list of face indices. Each pair of faces in the list shares an edge, making them adjacent"
+        #     # adjacency = trimeshSolid.face_adjacency 
+
+        #     # normals = trimeshSolid.face_normals
+        #     # normalsDiff = normals[adjacency[:, 0]] - normals[adjacency[:, 1]]
+        #     # normalsDiffMagnitude = np.linalg.norm(normalsDiff, axis=1)
+
+        #     vertex_defects = trimeshSolid.vertex_defects
+        #     sumVertexDefects = np.sum(np.abs(vertex_defects))
+        #     maxVertexDefect = np.max(np.abs(vertex_defects))    
+
+        #     # normals_0 = normals[adjacency[:, 0]]
+        #     # normals_1 = normals[adjacency[:, 1]]
+        #     # dot_product = np.einsum('ij,ij->i', normals_0, normals_1)
+        #     # clipped_dot_product = np.clip(dot_product, -1.0, 1.0)
+        #     # allAnglesBetweenNormals = np.arccos(clipped_dot_product)
+        #     # maxAngleBetweenNormals = np.max(allAnglesBetweenNormals)
+        #     maxAngleBetweenNormals = 0
+
+        #     return sumVertexDefects, maxVertexDefect, maxAngleBetweenNormals 
+        #     #return normalsDiffMagnitude, maxAngleBetweenNormals
             
 
         def facesToKeep(trimeshSolid):
@@ -250,9 +272,10 @@ class RunSetup_MeshHF:
                 c1_runvals.append(coefficients_list[1])
                 c2_runvals.append(coefficients_list[2])
                 c3_runvals.append(coefficients_list[3])
+                c4_runvals.append(coefficients_list[4])
                 # maxhf_vals.append(maxHF)
             
-            self.makeSweepCSV(c0_runvals, c1_runvals, c2_runvals, c3_runvals, maxhf_vals, f"newspheretest{idx_to_vary}/1/{idx_to_vary}")
+            # self.makeSweepCSV(c0_runvals, c1_runvals, c2_runvals, c3_runvals, c4_runvals, f"newspheretest{idx_to_vary}/1/{idx_to_vary}")
             return 
         
         def big_sweep_coefficients_and_record_output(sweep_values_c0, sweep_values_c1, sweep_values_c2, sweep_values_c3, sweep_values_c4, id):
@@ -364,9 +387,13 @@ class RunSetup_MeshHF:
         # sweep_c3 = [10, 20, 30, 40]
         # sweep_coefficients_and_record_output(coefficients_list, 3, sweep_c3)
 
-        coefficients_list = [0, 0, 50, 0, 0]
-        sweep_c4 = [10, 50, 100, 500]
-        sweep_coefficients_and_record_output(coefficients_list, 4, sweep_c4)    
+        # coefficients_list = [0, 0, 50, 0, 0]
+        # sweep_c4 = [10, 50, 100, 500]
+        # sweep_coefficients_and_record_output(coefficients_list, 4, sweep_c4)    
+
+        coefficients_list = [0, 0, 50, 0, 10]
+        sweep_c3 = [10, 50, 100, 500]
+        sweep_coefficients_and_record_output(coefficients_list, 3, sweep_c3)   
 
         # coefficients_list = [0, 0, 0, 200, 0]
         # # sweep_c2 = [1000, 5000, 10000]
