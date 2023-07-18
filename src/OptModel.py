@@ -64,6 +64,71 @@ class OptModel_MeshHF:
     #     return tri_mesh
 
 
+    # def gradientDescentHF(self, tri_mesh, objectiveFunction, allmeshelementsHF, facesToKeep, facesToMove, coefficientsList, delta, filedir, count):
+    #     """
+    #     gradient descent implementation for heat flux minimization
+    #     takes in trimesh object and sorts elements by HF to deal with worst elements first
+    #     calc gradient for each element by moving vertices a small amount and finding change in objective function
+    #     move each vertex based on gradient * delta when all gradients calculated
+    #     """ 
+    #     use_set = set(np.where(allmeshelementsHF >= -10.0)[0]) #changed for 3sphere test
+    #     gradient = np.zeros_like(tri_mesh.vertices)
+
+    #     useFaces = tri_mesh.faces[list(use_set)]
+    #     flattenedVtx = useFaces.flatten() #np.flatten(useFaces)
+    #     uniqueVtx = np.unique(flattenedVtx)
+    #     print(f"uniqueVtx: {uniqueVtx}")
+    #     # input()
+    #     for j in range(3): #for every dimension - move the vertex a bit and calculate the change in objectiveFunction
+    #         obj_beforeMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
+    #         print(f"objective before moving: {obj_beforeMoving}")
+    #         tri_mesh.vertices[uniqueVtx, j] += delta
+    #         obj_afterMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
+    #         print(f"objective after moving: {obj_afterMoving}")
+    #         tri_mesh.vertices[uniqueVtx, j] -= delta
+    #         gradient[uniqueVtx, j] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
+    #         # print(f"gradient: {gradient}")
+    #         # input()
+    #     #basically - move each vertex and update it
+    #     tri_mesh.vertices[uniqueVtx, 0] -= (delta * gradient[uniqueVtx, 0])
+    #     tri_mesh.vertices[uniqueVtx, 1] -= (delta * gradient[uniqueVtx, 1])
+    #     tri_mesh.vertices[uniqueVtx, 2] -= (delta * gradient[uniqueVtx, 2])
+    #     # print(f"gradient: {gradient}")
+    #     # input()
+
+    #     return tri_mesh
+    
+
+    # def gradientDescentHF(self, tri_mesh, objectiveFunction, allmeshelementsHF, facesToKeep, facesToMove, coefficientsList, delta, filedir, count):
+    #     """
+    #     gradient descent implementation for heat flux minimization
+    #     takes in trimesh object and sorts elements by HF to deal with worst elements first
+    #     calc gradient for each element by moving vertices a small amount and finding change in objective function
+    #     move each vertex based on gradient * delta when all gradients calculated
+    #     """ 
+    #     use_set = set(np.where(allmeshelementsHF >= -10.0)[0]) #changed for 3sphere test
+    #     gradient = np.zeros_like(tri_mesh.vertices)
+
+    #     useFaces = tri_mesh.faces[list(use_set)]
+    #     flattenedVtx = useFaces.flatten() #np.flatten(useFaces)
+    #     uniqueVtx = np.unique(flattenedVtx)
+    #     # print(f"uniqueVtx: {uniqueVtx}")
+    #     for vertex in uniqueVtx:
+    #         for j in range(3): 
+    #             obj_beforeMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
+    #             tri_mesh.vertices[vertex, j] += delta
+    #             obj_afterMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
+    #             tri_mesh.vertices[vertex, j] -= delta
+    #             gradient[vertex, j] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
+    #             # print("gradient: {gradient}")
+    #     #basically - move each vertex and update it
+    #     tri_mesh.vertices[uniqueVtx, 0] -= (delta * gradient[uniqueVtx, 0])
+    #     tri_mesh.vertices[uniqueVtx, 1] -= (delta * gradient[uniqueVtx, 1])
+    #     tri_mesh.vertices[uniqueVtx, 2] -= (delta * gradient[uniqueVtx, 2])
+    #     # print(f"gradient: {gradient}")
+
+    #     return tri_mesh
+
     def gradientDescentHF(self, tri_mesh, objectiveFunction, allmeshelementsHF, facesToKeep, facesToMove, coefficientsList, delta, filedir, count):
         """
         gradient descent implementation for heat flux minimization
@@ -71,22 +136,27 @@ class OptModel_MeshHF:
         calc gradient for each element by moving vertices a small amount and finding change in objective function
         move each vertex based on gradient * delta when all gradients calculated
         """ 
-        use_set = list(set(np.where(allmeshelementsHF >= -10.0)[0])) #changed for 3sphere test
+        use_set = set(np.where(allmeshelementsHF >= -10.0)[0]) #changed for 3sphere test
         gradient = np.zeros_like(tri_mesh.vertices)
 
-        useFaces = tri_mesh.faces[use_set]
+        useFaces = tri_mesh.faces[list(use_set)]
         flattenedVtx = useFaces.flatten() #np.flatten(useFaces)
         uniqueVtx = np.unique(flattenedVtx)
-        obj_beforeMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
-        for j in range(3): #for every dimension - move the vertex a bit and calculate the change in objectiveFunction
-            tri_mesh.vertices[uniqueVtx, j] += delta
-            obj_afterMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
-            tri_mesh.vertices[uniqueVtx, j] -= delta
-            gradient[uniqueVtx, j] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
+        # print(f"uniqueVtx: {uniqueVtx}")
+        # for vertex in uniqueVtx:
+        for vertex in np.nditer(uniqueVtx):
+            obj_beforeMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
+            for j in range(3): 
+                tri_mesh.vertices[vertex, j] += delta
+                obj_afterMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
+                tri_mesh.vertices[vertex, j] -= delta
+                gradient[vertex, j] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
+                # print("gradient: {gradient}")
         #basically - move each vertex and update it
         tri_mesh.vertices[uniqueVtx, 0] -= (delta * gradient[uniqueVtx, 0])
         tri_mesh.vertices[uniqueVtx, 1] -= (delta * gradient[uniqueVtx, 1])
         tri_mesh.vertices[uniqueVtx, 2] -= (delta * gradient[uniqueVtx, 2])
+        # print(f"gradient: {gradient}")
 
         return tri_mesh
 

@@ -251,7 +251,20 @@ class RunSetup_MeshHF:
                             coefficients_list = [c0, c1, c2, c3, 0.0]
                             directoryName = self.makeDirectories(f"run{id}", coefficients_list)
                             #meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
-                            maxHF = self.opt.meshHFOpt(
+                            # maxHF = self.opt.meshHFOpt(
+                            #     objectiveFunction,  
+                            #     facesToKeep,
+                            #     self.fwd.makeHFProfile,
+                            #     self.fwd.calculateAllHF,
+                            #     self.fwd.filteredCalculateMaxHF, #self.fwd.calculateMaxHF,
+                            #     self.fwd.calculateIntegratedEnergy,
+                            #     my_trimeshSolid, 
+                            #     coefficients_list,
+                            #     threshold=0.00000001, 
+                            #     delta=0.01, 
+                            #     id=directoryName
+                            # )[0]
+                            self.opt.meshHFOpt(
                                 objectiveFunction,  
                                 facesToKeep,
                                 self.fwd.makeHFProfile,
@@ -263,12 +276,12 @@ class RunSetup_MeshHF:
                                 threshold=0.00000001, 
                                 delta=0.01, 
                                 id=directoryName
-                            )[0]
+                            )
                             c0_runvals.append(coefficients_list[0])
                             c1_runvals.append(coefficients_list[1])
                             c2_runvals.append(coefficients_list[2])
                             c3_runvals.append(coefficients_list[3])
-                            maxhf_vals.append(maxHF)
+                            # maxhf_vals.append(maxHF)
             
             self.makeSweepCSV(c0_runvals, c1_runvals, c2_runvals, c3_runvals, maxhf_vals, f"sweep3_{id}")
             return 
@@ -298,12 +311,16 @@ class RunSetup_MeshHF:
         # coefficients_list = [0, 0, 29698.489, 0, 0]
         # coefficients_list = [0, 0, 29698.48962 * 84.8528, 0, 0]
         # coefficients_list = [0, 0, 29698.48962, 0, 0]
-        c2val = (5000 * 504)/84.85281374238572
-        coefficients_list = [0, 0, c2val, 0, 0]
+        # c2val = [50, 100, 500, 1000] #(5000 * 504)/84.85281374238572
+        # coefficients_list = [0, 0, c2val, 0, 0]
 
         # sweep_c3 = [200]
-        sweep_c3 = [200]
-        sweep_coefficients_and_record_output(coefficients_list, 3, sweep_c3)
+        # sweep_c3 = [200]
+        # sweep_coefficients_and_record_output(coefficients_list, 3, sweep_c3)
+
+        coefficients_list = [0, 0, 0, 200, 0]
+        sweep_c2 = [1000, 5000, 10000]
+        sweep_coefficients_and_record_output(coefficients_list, 2, sweep_c2)
 
         return 
 
