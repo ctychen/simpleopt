@@ -185,7 +185,7 @@ class RunSetup_MeshHF:
             normalsDiff, maxNormalsDiff = calculateNormalsDiff(trimeshSolid)
             normalsDiffSum = np.sum(normalsDiff)
             # normalsPenalty = c2 * ((normalsDiffSum / normalsPenalty_initial) / numFaces)
-            normalsPenalty = c2 * (normalsDiffSum / numFaces)
+            normalsPenalty = (c2 * normalsPenalty_initial) * (normalsDiffSum / numFaces)
             maxNormalsTerm = c3 * maxNormalsDiff
 
             return [maxHFTerm + sumHFTerm + normalsPenalty + maxNormalsTerm, normalsPenalty, maxNormalsTerm]    
@@ -206,9 +206,9 @@ class RunSetup_MeshHF:
             for val in sweep_values:
                 my_trimeshSolid = trimeshSolid.copy()
                 coefficients_list[idx_to_vary] = val
-                directoryName = self.makeDirectories(f"newspheretest_{idx_to_vary}", coefficients_list)
+                directoryName = self.makeDirectories(f"newspheretest{idx_to_vary}/test_", coefficients_list)
                 #meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
-                maxHF = self.opt.meshHFOpt(
+                self.opt.meshHFOpt(
                     objectiveFunction,  
                     facesToKeep,
                     self.fwd.makeHFProfile,
@@ -220,14 +220,14 @@ class RunSetup_MeshHF:
                     threshold=0.00000001, 
                     delta=0.01, 
                     id=directoryName
-                )[0]
+                )
                 c0_runvals.append(coefficients_list[0])
                 c1_runvals.append(coefficients_list[1])
                 c2_runvals.append(coefficients_list[2])
                 c3_runvals.append(coefficients_list[3])
-                maxhf_vals.append(maxHF)
+                # maxhf_vals.append(maxHF)
             
-            self.makeSweepCSV(c0_runvals, c1_runvals, c2_runvals, c3_runvals, maxhf_vals, f"{directoryName}/{idx_to_vary}")
+            self.makeSweepCSV(c0_runvals, c1_runvals, c2_runvals, c3_runvals, maxhf_vals, f"newspheretest{idx_to_vary}/{idx_to_vary}")
             return 
         
         def big_sweep_coefficients_and_record_output(sweep_values_c0, sweep_values_c1, sweep_values_c2, sweep_values_c3, id):
@@ -242,48 +242,61 @@ class RunSetup_MeshHF:
             c3_runvals = []
             maxhf_vals = []
 
-            for c0 in sweep_values_c0:
-                for c1 in sweep_values_c1: 
-                    for c2 in sweep_values_c2:
-                        for c3 in sweep_values_c3: 
-                            my_trimeshSolid = trimeshSolid.copy()
-                            # coefficients_list[0] = c0
-                            coefficients_list = [c0, c1, c2, c3, 0.0]
-                            directoryName = self.makeDirectories(f"run{id}", coefficients_list)
-                            #meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
-                            # maxHF = self.opt.meshHFOpt(
-                            #     objectiveFunction,  
-                            #     facesToKeep,
-                            #     self.fwd.makeHFProfile,
-                            #     self.fwd.calculateAllHF,
-                            #     self.fwd.filteredCalculateMaxHF, #self.fwd.calculateMaxHF,
-                            #     self.fwd.calculateIntegratedEnergy,
-                            #     my_trimeshSolid, 
-                            #     coefficients_list,
-                            #     threshold=0.00000001, 
-                            #     delta=0.01, 
-                            #     id=directoryName
-                            # )[0]
-                            self.opt.meshHFOpt(
-                                objectiveFunction,  
-                                facesToKeep,
-                                self.fwd.makeHFProfile,
-                                self.fwd.calculateAllHF,
-                                self.fwd.filteredCalculateMaxHF, #self.fwd.calculateMaxHF,
-                                self.fwd.calculateIntegratedEnergy,
-                                my_trimeshSolid, 
-                                coefficients_list,
-                                threshold=0.00000001, 
-                                delta=0.01, 
-                                id=directoryName
-                            )
-                            c0_runvals.append(coefficients_list[0])
-                            c1_runvals.append(coefficients_list[1])
-                            c2_runvals.append(coefficients_list[2])
-                            c3_runvals.append(coefficients_list[3])
+            # for c0 in sweep_values_c0:
+                # for c1 in sweep_values_c1: 
+                #     for c2 in sweep_values_c2:
+                #         for c3 in sweep_values_c3: 
+                #             my_trimeshSolid = trimeshSolid.copy()
+                #             # coefficients_list[0] = c0
+                #             coefficients_list = [c0, c1, c2, c3, 0.0]
+                #             directoryName = self.makeDirectories(f"randomspheretest_{id}/test_", coefficients_list)
+                            
+                #             self.opt.meshHFOpt(
+                #                 objectiveFunction,  
+                #                 facesToKeep,
+                #                 self.fwd.makeHFProfile,
+                #                 self.fwd.calculateAllHF,
+                #                 self.fwd.filteredCalculateMaxHF, #self.fwd.calculateMaxHF,
+                #                 self.fwd.calculateIntegratedEnergy,
+                #                 my_trimeshSolid, 
+                #                 coefficients_list,
+                #                 threshold=0.00000001, 
+                #                 delta=0.01, 
+                #                 id=directoryName
+                #             )
+                #             c0_runvals.append(coefficients_list[0])
+                #             c1_runvals.append(coefficients_list[1])
+                #             c2_runvals.append(coefficients_list[2])
+                #             c3_runvals.append(coefficients_list[3])
                             # maxhf_vals.append(maxHF)
+
+            for c2 in sweep_values_c2:
+                for c3 in sweep_values_c3: 
+                    my_trimeshSolid = trimeshSolid.copy()
+                    # coefficients_list[0] = c0
+                    coefficients_list = [0, 0, c2, c3, 0.0]
+                    directoryName = self.makeDirectories(f"randomspheretest_{id}/test_", coefficients_list)
+                    
+                    self.opt.meshHFOpt(
+                        objectiveFunction,  
+                        facesToKeep,
+                        self.fwd.makeHFProfile,
+                        self.fwd.calculateAllHF,
+                        self.fwd.filteredCalculateMaxHF, #self.fwd.calculateMaxHF,
+                        self.fwd.calculateIntegratedEnergy,
+                        my_trimeshSolid, 
+                        coefficients_list,
+                        threshold=0.00000001, 
+                        delta=0.01, 
+                        id=directoryName
+                    )
+                    c0_runvals.append(coefficients_list[0])
+                    c1_runvals.append(coefficients_list[1])
+                    c2_runvals.append(coefficients_list[2])
+                    c3_runvals.append(coefficients_list[3])
+                    # maxhf_vals.append(maxHF)
             
-            self.makeSweepCSV(c0_runvals, c1_runvals, c2_runvals, c3_runvals, maxhf_vals, f"sweep3_{id}")
+            self.makeSweepCSV(c0_runvals, c1_runvals, c2_runvals, c3_runvals, maxhf_vals, f"randomspheretest_{id}/{id}")
             return 
 
         ## For bulk variable sweep testing
@@ -318,9 +331,18 @@ class RunSetup_MeshHF:
         # sweep_c3 = [200]
         # sweep_coefficients_and_record_output(coefficients_list, 3, sweep_c3)
 
-        coefficients_list = [0, 0, 0, 200, 0]
-        sweep_c2 = [1000, 5000, 10000]
-        sweep_coefficients_and_record_output(coefficients_list, 2, sweep_c2)
+        # coefficients_list = [0, 0, 0, 200, 0]
+        # # sweep_c2 = [1000, 5000, 10000]
+        # import random 
+        # sweep_c2 = [random.uniform(800, 10000) for _ in range(3)]
+        # sweep_coefficients_and_record_output(coefficients_list, 2, sweep_c2)
+
+        import random
+        sweep_values_c0 = [0]
+        sweep_values_c1 = [0]
+        sweep_values_c2 = [random.uniform(700, 7000) for _ in range(2)]
+        sweep_values_c3 = [random.uniform(100, 800) for _ in range(2)]
+        big_sweep_coefficients_and_record_output(sweep_values_c0, sweep_values_c1, sweep_values_c2, sweep_values_c3, id=0)
 
         return 
 
