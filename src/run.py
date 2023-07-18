@@ -47,8 +47,8 @@ class RunSetup_MeshHF:
     def __init__(self):
         g_obj = lambda qvals: max(qvals) #+ qvals.count(max(qvals)) #maybe changing obj function helps??
 
-        # stpPath = "unit_test_cube.step" #"unit_test_cone.step" 
-        stpPath = "test_sphere.step"
+        stpPath = "unit_test_cube.step" #"unit_test_cone.step" 
+        # stpPath = "test_sphere.step"
         # stpPath = "test_pfc_block.step" #"unit_test_pfc.step" #for multiple directions 
 
         stlPath = " " #"box.stl"
@@ -146,6 +146,7 @@ class RunSetup_MeshHF:
             clipped_dot_product = np.clip(dot_product, -1.0, 1.0)
             allAnglesBetweenNormals = np.arccos(clipped_dot_product)
             maxAngleBetweenNormals = np.max(allAnglesBetweenNormals)
+            maxAngleBetweenNormals = 0
 
             return sumVertexDefects, maxVertexDefect, maxAngleBetweenNormals 
             #return normalsDiffMagnitude, maxAngleBetweenNormals
@@ -224,12 +225,13 @@ class RunSetup_MeshHF:
             c1_runvals = []
             c2_runvals = []
             c3_runvals = []
+            c4_runvals = []
             maxhf_vals = []
 
             for val in sweep_values:
                 my_trimeshSolid = trimeshSolid.copy()
                 coefficients_list[idx_to_vary] = val
-                directoryName = self.makeDirectories(f"newspheretest{idx_to_vary}/test_", coefficients_list)
+                directoryName = self.makeDirectories(f"newspheretest{idx_to_vary}/1/test_", coefficients_list)
                 #meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
                 self.opt.meshHFOpt(
                     objectiveFunction,  
@@ -250,10 +252,10 @@ class RunSetup_MeshHF:
                 c3_runvals.append(coefficients_list[3])
                 # maxhf_vals.append(maxHF)
             
-            self.makeSweepCSV(c0_runvals, c1_runvals, c2_runvals, c3_runvals, maxhf_vals, f"newspheretest{idx_to_vary}/{idx_to_vary}")
+            self.makeSweepCSV(c0_runvals, c1_runvals, c2_runvals, c3_runvals, maxhf_vals, f"newspheretest{idx_to_vary}/1/{idx_to_vary}")
             return 
         
-        def big_sweep_coefficients_and_record_output(sweep_values_c0, sweep_values_c1, sweep_values_c2, sweep_values_c3, id):
+        def big_sweep_coefficients_and_record_output(sweep_values_c0, sweep_values_c1, sweep_values_c2, sweep_values_c3, sweep_values_c4, id):
             """
             run through possible values of one coefficient while keeping the rest fixed
             do optimization and save results and attempted combinations to csv
@@ -263,6 +265,7 @@ class RunSetup_MeshHF:
             c1_runvals = []
             c2_runvals = []
             c3_runvals = []
+            c4_runvals = []
             maxhf_vals = []
 
             # for c0 in sweep_values_c0:
@@ -294,10 +297,10 @@ class RunSetup_MeshHF:
                             # maxhf_vals.append(maxHF)
 
             for c2 in sweep_values_c2:
-                for c3 in sweep_values_c3: 
+                for c4 in sweep_values_c4: 
                     my_trimeshSolid = trimeshSolid.copy()
                     # coefficients_list[0] = c0
-                    coefficients_list = [0, 0, c2, c3, 0.0]
+                    coefficients_list = [0, 0, c2, 0, c4]
                     directoryName = self.makeDirectories(f"randomspheretest2_{id}/test_", coefficients_list)
                     
                     self.opt.meshHFOpt(
@@ -317,9 +320,10 @@ class RunSetup_MeshHF:
                     c1_runvals.append(coefficients_list[1])
                     c2_runvals.append(coefficients_list[2])
                     c3_runvals.append(coefficients_list[3])
+                    c4_runvals.append(coefficients_list[4])
                     # maxhf_vals.append(maxHF)
             
-            self.makeSweepCSV(c0_runvals, c1_runvals, c2_runvals, c3_runvals, maxhf_vals, f"randomspheretest2_{id}/{id}")
+            self.makeSweepCSV(c0_runvals, c1_runvals, c2_runvals, c3_runvals, c4_runvals, maxhf_vals, f"randomspheretest2_{id}/{id}")
             return 
 
         ## For bulk variable sweep testing
@@ -352,9 +356,17 @@ class RunSetup_MeshHF:
 
         # sweep_c3 = [200]
         #overall : c2 = c2 * sumVertexDefects, c3 = c3 * maxAngleBetweenNormals, c4 = c4 * maxVertexDefects   
-        coefficients_list = [0, 0, 0, 0, 0]
-        sweep_c2 = [50, 500, 5000]
-        sweep_coefficients_and_record_output(coefficients_list, 2, sweep_c2)
+        # coefficients_list = [0, 0, 0, 0, 0]
+        # # sweep_c2 = [50, 500, 5000]
+        # sweep_c2 = [46, 48, 52]
+        # sweep_coefficients_and_record_output(coefficients_list, 2, sweep_c2)
+        # coefficients_list = [0, 0, 50, 0, 0]
+        # sweep_c3 = [10, 20, 30, 40]
+        # sweep_coefficients_and_record_output(coefficients_list, 3, sweep_c3)
+
+        coefficients_list = [0, 0, 50, 0, 0]
+        sweep_c4 = [10, 50, 100, 500]
+        sweep_coefficients_and_record_output(coefficients_list, 4, sweep_c4)    
 
         # coefficients_list = [0, 0, 0, 200, 0]
         # # sweep_c2 = [1000, 5000, 10000]
