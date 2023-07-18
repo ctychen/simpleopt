@@ -65,78 +65,30 @@ class OptModel_MeshHF:
 
 
     def gradientDescentHF(self, tri_mesh, objectiveFunction, allmeshelementsHF, facesToKeep, facesToMove, coefficientsList, delta, filedir, count):
-        f = tri_mesh.faces
-        # v = tri_mesh.vertices
-        v = tri_mesh.vertices.copy()
+        """
+        gradient descent implementation for heat flux minimization
+        takes in trimesh object and sorts elements by HF to deal with worst elements first
+        calc gradient for each element by moving vertices a small amount and finding change in objective function
+        move each vertex based on gradient * delta when all gradients calculated
+        """ 
+        use_set = list(set(np.where(allmeshelementsHF >= -10.0)[0])) #changed for 3sphere test
         gradient = np.zeros_like(tri_mesh.vertices)
-        flattened_vertex_indices= f.flatten()
-        reduced_vertices_indices = np.unique(flattened_vertex_indices) #and also apply any other 
-        print(f"Reduced vertices: {reduced_vertices_indices}, length: {len(reduced_vertices_indices)}")
-        # map reduced vertices back to original vertices
-        map_from_reduced_vertices = np.array([np.where(tri_mesh.vertices == vertex)[0][0] for vertex in reduced_vertices_indices])
-        print(f"Map from reduced vertices: {map_from_reduced_vertices}, length: {len(map_from_reduced_vertices)}")  
 
-        for vertex_idx in reduced_vertices_indices:
-            obj_beforeMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
-            for j in range(3):
-                v[vertex_idx, j] += delta
-                obj_afterMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
-                v[vertex_idx, j] -= delta   
-                gradient[vertex_idx, j] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
-  
-            # v[vertex_idx, 0] -= (delta * gradient[vertex_idx, 0])
-            # v[vertex_idx, 1] -= (delta * gradient[vertex_idx, 1])
-            # v[vertex_idx, 2] -= (delta * gradient[vertex_idx, 2])
-
-        #map back to original vertices - is this the right way to do this? 
-        tri_mesh.vertices = v[map_from_reduced_vertices]
+        useFaces = tri_mesh.faces[use_set]
+        flattenedVtx = useFaces.flatten() #np.flatten(useFaces)
+        uniqueVtx = np.unique(flattenedVtx)
+        obj_beforeMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
+        for j in range(3): #for every dimension - move the vertex a bit and calculate the change in objectiveFunction
+            tri_mesh.vertices[uniqueVtx, j] += delta
+            obj_afterMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
+            tri_mesh.vertices[uniqueVtx, j] -= delta
+            gradient[uniqueVtx, j] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
+        #basically - move each vertex and update it
+        tri_mesh.vertices[uniqueVtx, 0] -= (delta * gradient[uniqueVtx, 0])
+        tri_mesh.vertices[uniqueVtx, 1] -= (delta * gradient[uniqueVtx, 1])
+        tri_mesh.vertices[uniqueVtx, 2] -= (delta * gradient[uniqueVtx, 2])
 
         return tri_mesh
-    
-
-    # def gradientDescentHF(self, tri_mesh, objectiveFunction, allmeshelementsHF, facesToKeep, facesToMove, coefficientsList, delta, filedir, count):
-    #     """
-    #     gradient descent implementation for heat flux minimization
-    #     takes in trimesh object and sorts elements by HF to deal with worst elements first
-    #     calc gradient for each element by moving vertices a small amount and finding change in objective function
-    #     move each vertex based on gradient * delta when all gradients calculated
-    #     """ 
-
-    #     use_set = set(np.where(allmeshelementsHF >= -10.0)[0]) #changed for 3sphere test
-    #     gradient = np.zeros_like(tri_mesh.vertices)
-
-    #     def parallelGradientCalc(j):
-    #         """
-    #         calculate gradient for each vertex in parallel
-    #         """
-    #         tri_mesh.vertices[vertexIdx, j] += delta
-    #         obj_afterMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
-    #         tri_mesh.vertices[vertexIdx, j] -= delta
-    #         gradientValue = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
-    #         return gradientValue
-
-    #     for idx in use_set:
-    #         face = tri_mesh.faces[idx]
-    #         for vertexIdx in face:  #vertexIdx is VERTEX INDICES
-    #             obj_beforeMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
-    #             # for j in range(3): #for every dimension - move the vertex a bit and calculate the change in objectiveFunction
-    #             #     tri_mesh.vertices[vertexIdx, j] += delta
-    #             #     obj_afterMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
-    #             #     tri_mesh.vertices[vertexIdx, j] -= delta
-    #             #     gradient[vertexIdx, j] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
-    #             #basically - move each vertex and update it
-    #             pool = multiprocessing.Pool(self.Ncores)
-    #             gradient[vertexIdx, :] = np.asarray(pool.map(parallelGradientCalc, np.arange(3)))  
-    #             print(f"gradient: {gradient}")
-    #             pool.close()
-    #             pool.join() 
-    #             del pool
-
-    #             tri_mesh.vertices[vertexIdx, 0] -= (delta * gradient[vertexIdx, 0])
-    #             tri_mesh.vertices[vertexIdx, 1] -= (delta * gradient[vertexIdx, 1])
-    #             tri_mesh.vertices[vertexIdx, 2] -= (delta * gradient[vertexIdx, 2])
-
-    #     return tri_mesh
 
 
     # def meshHFOpt(self, hfObjectiveFcn, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
@@ -186,7 +138,7 @@ class OptModel_MeshHF:
         prev_objVal = 2000
         curr_objVal = 0
 
-        # t0 = time.time()
+        t0 = time.time()
 
         #faces to NOT move
         facesToKeep = indicesToNotMove
@@ -197,6 +149,8 @@ class OptModel_MeshHF:
 
             #calc the gradient
             trimeshSolid = self.gradientDescentHF(trimeshSolid, hfObjectiveFcn, hf_all_mesh, facesToKeep, facesToMove, coefficientsList, delta, f"test{id}", count)
+
+            print(f"{count}: gradient descent time: {time.time() - t0}")
             
             #recalculate the hf profile on the surface - don't need this for spheretests
             # updateHFProfile(trimeshSolid) 

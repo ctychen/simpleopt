@@ -179,8 +179,8 @@ class RunSetup_MeshHF:
 
             unconstrainedFaces = [] #only keep this for cases with hf only on top face? 
 
-            maxHFTerm = c0 * self.fwd.filteredCalculateMaxHF(q_mesh_all, unconstrainedFaces)    #try not dividing by initial value
-            sumHFTerm = c1 * (self.fwd.calculateHFMeshSum(q_mesh_all) / numFaces) 
+            maxHFTerm = 0 #c0 * self.fwd.filteredCalculateMaxHF(q_mesh_all, unconstrainedFaces)    #try not dividing by initial value
+            sumHFTerm = 0 #c1 * (self.fwd.calculateHFMeshSum(q_mesh_all) / numFaces) 
 
             normalsDiff, maxNormalsDiff = calculateNormalsDiff(trimeshSolid)
             normalsDiffSum = np.sum(normalsDiff)
@@ -206,7 +206,7 @@ class RunSetup_MeshHF:
             for val in sweep_values:
                 my_trimeshSolid = trimeshSolid.copy()
                 coefficients_list[idx_to_vary] = val
-                directoryName = self.makeDirectories(f"new_sphere_test_parallel_{idx_to_vary}", coefficients_list)
+                directoryName = self.makeDirectories(f"newspheretest_{idx_to_vary}", coefficients_list)
                 #meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
                 maxHF = self.opt.meshHFOpt(
                     objectiveFunction,  
