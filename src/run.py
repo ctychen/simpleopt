@@ -47,8 +47,8 @@ class RunSetup_MeshHF:
     def __init__(self):
         g_obj = lambda qvals: max(qvals) #+ qvals.count(max(qvals)) #maybe changing obj function helps??
 
-        stpPath = "unit_test_cube.step" #"unit_test_cone.step" 
-        # stpPath = "test_sphere.step"
+        # stpPath = "unit_test_cube.step" #"unit_test_cone.step" 
+        stpPath = "test_sphere.step"
         # stpPath = "test_pfc_block.step" #"unit_test_pfc.step" #for multiple directions 
 
         stlPath = " " #"box.stl"
@@ -129,8 +129,16 @@ class RunSetup_MeshHF:
             # adjacency = trimeshSolid.face_adjacency 
 
             normals = trimeshSolid.face_normals
-            normalsDiff = normals[adjacency[:, 0]] - normals[adjacency[:, 1]]
-            normalsDiffMagnitude = np.linalg.norm(normalsDiff, axis=1)
+            # normalsDiff = normals[adjacency[:, 0]] - normals[adjacency[:, 1]]
+            # normalsDiffMagnitude = np.linalg.norm(normalsDiff, axis=1)
+
+            vertex_defects = trimeshSolid.vertex_defects
+            # print(f"Vertex defects: {vertex_defects}")
+            # print(f"Max vertex defect: {np.max(np.abs(vertex_defects))}")
+            # print(f"Min vertex defect: {np.min(np.abs(vertex_defects))}")
+            sumVertexDefects = np.sum(np.abs(vertex_defects))
+            maxVertexDefect = np.max(np.abs(vertex_defects))    
+            # print(f"Sum vertex defects: {sumVertexDefects}")
 
             normals_0 = normals[adjacency[:, 0]]
             normals_1 = normals[adjacency[:, 1]]
@@ -138,7 +146,9 @@ class RunSetup_MeshHF:
             clipped_dot_product = np.clip(dot_product, -1.0, 1.0)
             allAnglesBetweenNormals = np.arccos(clipped_dot_product)
             maxAngleBetweenNormals = np.max(allAnglesBetweenNormals)
-            return normalsDiffMagnitude, maxAngleBetweenNormals
+
+            return sumVertexDefects, maxVertexDefect, maxAngleBetweenNormals 
+            #return normalsDiffMagnitude, maxAngleBetweenNormals
             
 
         def facesToKeep(trimeshSolid):
@@ -150,17 +160,23 @@ class RunSetup_MeshHF:
         maxHF_initial = self.fwd.filteredCalculateMaxHF(q_mesh_initial, unconstrainedFaces = [])
         sumHF_initial = self.fwd.calculateHFMeshSum(q_mesh_initial)
         # normalsDiff_initial, normalRefDotProducts_initial = calculateNormalsDiff(trimeshSolid)
-        normalsDiff_initial, maxNormalsDiff_initial = calculateNormalsDiff(trimeshSolid)
-        normalsPenalty_initial = np.sum(normalsDiff_initial)
+        # normalsDiff_initial, maxNormalsDiff_initial = calculateNormalsDiff(trimeshSolid)
+        sumVertexDefects_initial, maxVertexDefect_initial, maxAngleBetweenNormals_initial = calculateNormalsDiff(trimeshSolid)   
+        # normalsPenalty_initial = np.sum(normalsDiff_initial)
         energy_initial = self.fwd.calculateIntegratedEnergy(q_mesh_initial, trimeshSolid)
 
         numFaces = len(trimeshSolid.faces)  #for normalizing terms in objective function
 
         print(f"Initial max HF: {maxHF_initial}")
         print(f"Initial sum HF: {sumHF_initial}")
-        print(f"Initial normals penalty: {normalsPenalty_initial}")
-        print(f"Initial max angle between normals: {maxNormalsDiff_initial}")
+        # print(f"Initial normals penalty: {normalsPenalty_initial}")
+        # print(f"Initial max angle between normals: {maxNormalsDiff_initial}")
+        print(f"Initial sum vertex defects: {sumVertexDefects_initial}")
+        print(f"Initial max vertex defect: {maxVertexDefect_initial}")
+        print(f"Initial max angle between normals: {maxAngleBetweenNormals_initial}")
         print(f"Initial energy: {energy_initial}")
+
+        # input()
 
         def objectiveFunction(trimeshSolid, coefficientsList, unconstrainedFaces):
 
@@ -182,13 +198,20 @@ class RunSetup_MeshHF:
             maxHFTerm = 0 #c0 * self.fwd.filteredCalculateMaxHF(q_mesh_all, unconstrainedFaces)    #try not dividing by initial value
             sumHFTerm = 0 #c1 * (self.fwd.calculateHFMeshSum(q_mesh_all) / numFaces) 
 
-            normalsDiff, maxNormalsDiff = calculateNormalsDiff(trimeshSolid)
-            normalsDiffSum = np.sum(normalsDiff)
+            # normalsDiff, maxNormalsDiff = calculateNormalsDiff(trimeshSolid)
+            # normalsDiffSum = np.sum(normalsDiff)
             # normalsPenalty = c2 * ((normalsDiffSum / normalsPenalty_initial) / numFaces)
-            normalsPenalty = (c2 * normalsPenalty_initial) * (normalsDiffSum / numFaces)
-            maxNormalsTerm = c3 * maxNormalsDiff
+            # normalsPenalty = (c2) * (normalsDiffSum / numFaces)
 
-            return [maxHFTerm + sumHFTerm + normalsPenalty + maxNormalsTerm, normalsPenalty, maxNormalsTerm]    
+            # sumVertexDefects, maxAngleBetweenNormals = calculateNormalsDiff(trimeshSolid) 
+            sumVertexDefects, maxVertexDefects, maxAngleBetweenNormals = calculateNormalsDiff(trimeshSolid)  
+            normalsPenalty = c2 * sumVertexDefects
+            maxNormalsTerm = c3 * maxAngleBetweenNormals
+            maxVertexDefectsTerm = c4 * maxVertexDefects    
+
+            # print(f"Sum of vertex defects: {sumVertexDefects}")
+
+            return [maxHFTerm + sumHFTerm + normalsPenalty + maxNormalsTerm + maxVertexDefectsTerm, normalsPenalty, maxNormalsTerm]    
             
 
         def sweep_coefficients_and_record_output(coefficients_list, idx_to_vary, sweep_values):
@@ -275,7 +298,7 @@ class RunSetup_MeshHF:
                     my_trimeshSolid = trimeshSolid.copy()
                     # coefficients_list[0] = c0
                     coefficients_list = [0, 0, c2, c3, 0.0]
-                    directoryName = self.makeDirectories(f"randomspheretest_{id}/test_", coefficients_list)
+                    directoryName = self.makeDirectories(f"randomspheretest2_{id}/test_", coefficients_list)
                     
                     self.opt.meshHFOpt(
                         objectiveFunction,  
@@ -296,7 +319,7 @@ class RunSetup_MeshHF:
                     c3_runvals.append(coefficients_list[3])
                     # maxhf_vals.append(maxHF)
             
-            self.makeSweepCSV(c0_runvals, c1_runvals, c2_runvals, c3_runvals, maxhf_vals, f"randomspheretest_{id}/{id}")
+            self.makeSweepCSV(c0_runvals, c1_runvals, c2_runvals, c3_runvals, maxhf_vals, f"randomspheretest2_{id}/{id}")
             return 
 
         ## For bulk variable sweep testing
@@ -323,13 +346,15 @@ class RunSetup_MeshHF:
         # coefficients_list = [0, 0, 1500, 0, 0]
         # coefficients_list = [0, 0, 29698.489, 0, 0]
         # coefficients_list = [0, 0, 29698.48962 * 84.8528, 0, 0]
-        # coefficients_list = [0, 0, 29698.48962, 0, 0]
+        # coefficients_list = [0, 0, 29698.48962, 0, 0] #original was * normalsPenalty_initial
         # c2val = [50, 100, 500, 1000] #(5000 * 504)/84.85281374238572
         # coefficients_list = [0, 0, c2val, 0, 0]
 
         # sweep_c3 = [200]
-        # sweep_c3 = [200]
-        # sweep_coefficients_and_record_output(coefficients_list, 3, sweep_c3)
+        #overall : c2 = c2 * sumVertexDefects, c3 = c3 * maxAngleBetweenNormals, c4 = c4 * maxVertexDefects   
+        coefficients_list = [0, 0, 0, 0, 0]
+        sweep_c2 = [50, 500, 5000]
+        sweep_coefficients_and_record_output(coefficients_list, 2, sweep_c2)
 
         # coefficients_list = [0, 0, 0, 200, 0]
         # # sweep_c2 = [1000, 5000, 10000]
@@ -337,12 +362,13 @@ class RunSetup_MeshHF:
         # sweep_c2 = [random.uniform(800, 10000) for _ in range(3)]
         # sweep_coefficients_and_record_output(coefficients_list, 2, sweep_c2)
 
-        import random
-        sweep_values_c0 = [0]
-        sweep_values_c1 = [0]
-        sweep_values_c2 = [random.uniform(700, 7000) for _ in range(2)]
-        sweep_values_c3 = [random.uniform(100, 800) for _ in range(2)]
-        big_sweep_coefficients_and_record_output(sweep_values_c0, sweep_values_c1, sweep_values_c2, sweep_values_c3, id=0)
+        # import random
+        # sweep_values_c0 = [0]
+        # sweep_values_c1 = [0]
+        # # sweep_values_c2 = [random.uniform(700, 7000) for _ in range(2)]
+        # sweep_values_c2 = [random.uniform(10000, 34000) for _ in range(2)]
+        # sweep_values_c3 = [random.uniform(100, 800) for _ in range(2)]
+        # big_sweep_coefficients_and_record_output(sweep_values_c0, sweep_values_c1, sweep_values_c2, sweep_values_c3, id=0)
 
         return 
 
