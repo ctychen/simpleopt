@@ -247,7 +247,7 @@ class RunSetup_MeshHF:
             for val in sweep_values:
                 my_trimeshSolid = trimeshSolid.copy()
                 coefficients_list[idx_to_vary] = val
-                directoryName = self.makeDirectories(f"newspheretest{idx_to_vary}/1/test_", coefficients_list)
+                directoryName = self.makeDirectories(f"newspheretestsv3{idx_to_vary}/1/test_", coefficients_list)
                 #meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
                 self.opt.meshHFOpt(
                     objectiveFunction,  
@@ -385,7 +385,8 @@ class RunSetup_MeshHF:
         # sweep_c4 = [60, 70, 80, 90]
         # sweep_coefficients_and_record_output(coefficients_list, 4, sweep_c4)  
 
-        coefficients_list = [0, 0, 0, 0, 0]
+        coefficients_list = [0, 0, 0, 20, 10]
+        # sweep_c2 = [50]
         sweep_c2 = [50]
         sweep_coefficients_and_record_output(coefficients_list, 2, sweep_c2)    
 

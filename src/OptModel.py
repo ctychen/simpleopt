@@ -117,7 +117,7 @@ class OptModel_MeshHF:
         #faces to NOT move
         facesToKeep = indicesToNotMove
 
-        while abs(prev_objVal - curr_objVal) > threshold and count < 150:
+        while abs(prev_objVal - curr_objVal) > threshold and count < 100:
 
             hf_all_mesh = calcHFAllMesh(trimeshSolid)
 
