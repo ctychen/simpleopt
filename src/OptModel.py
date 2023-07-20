@@ -103,13 +103,13 @@ class OptModel_MeshHF:
         # currentVerticesGrid = np.array([np.tile(tri_mesh.vertices, (numVtx, 1)) for _ in range(3)])
         currentVerticesGrid = np.array([np.tile(tri_mesh.vertices[np.newaxis, :], (numVtx, 1, 1)) for _ in range(3)])
 
-        print(f"shape of currentVerticesGrid: {currentVerticesGrid.shape}")
-        print(f"length of currentVerticesGrid: {len(currentVerticesGrid)}")
-        print(f"shape of 0th element of currentVerticesGrid: {currentVerticesGrid[0].shape}")
-        print(f"shape of 0th element of 0th element of currentVerticesGrid: {currentVerticesGrid[0][0].shape}")
+        # print(f"shape of currentVerticesGrid: {currentVerticesGrid.shape}")
+        # print(f"length of currentVerticesGrid: {len(currentVerticesGrid)}")
+        # print(f"shape of 0th element of currentVerticesGrid: {currentVerticesGrid[0].shape}")
+        # print(f"shape of 0th element of 0th element of currentVerticesGrid: {currentVerticesGrid[0][0].shape}")
         # print(f"0th element of 0th element of currentVerticesGrid: {currentVerticesGrid[0][0]}")
 
-        print(f"objective function for 0th element: {objectiveFunction(trimesh.Trimesh(vertices=currentVerticesGrid[0][0], faces=all_faces), coefficientsList, facesToMove)[0]}")
+        # print(f"objective function for 0th element: {objectiveFunction(trimesh.Trimesh(vertices=currentVerticesGrid[0][0], faces=all_faces), coefficientsList, facesToMove)[0]}")
 
         # print(len([objectiveFunction(trimesh.Trimesh(vertices=currentVerticesGrid[i], faces=all_faces), coefficientsList, facesToMove)[0] for i in range(len(currentVerticesGrid))]))
 
@@ -131,18 +131,24 @@ class OptModel_MeshHF:
         ).reshape(numVtx, 3)
         #entry for tag in tags for entry in entries
         
-        print(currentObjectiveFcnValues.shape)
-        print(f"Current objective function values: {currentObjectiveFcnValues}")
-        #.reshape(numVtx, 3)
+        # print(currentObjectiveFcnValues.shape)
+        # print(f"Current objective function values: {currentObjectiveFcnValues}")
 
         newVerticesGrid = currentVerticesGrid.copy()
         # indices = np.arange(numVtx)
         # newVerticesGrid[0, indices, :, 0] -= delta
         # newVerticesGrid[1, indices, :, 1] += delta 
         # newVerticesGrid[2, indices, :, 2] -= delta 
-        newVerticesGrid[0, :, 0] -= delta
-        newVerticesGrid[1, :, 1] += delta 
-        newVerticesGrid[2, :, 2] -= delta 
+
+        print(f"before moving: {newVerticesGrid[0][0][0]}")
+
+        newVerticesGrid[0, :, :, 0] += delta
+        newVerticesGrid[1, :, :, 1] += delta 
+        newVerticesGrid[2, :, :, 2] += delta 
+
+        print(f"after moving: {newVerticesGrid[0][0][0]}") 
+
+        input()
 
         # newObjectiveFcnValues = np.array(
         #     [objectiveFunction(newVerticesGrid[i], coefficientsList, facesToMove)[0] for i in range(len(newVerticesGrid))] 
@@ -155,11 +161,13 @@ class OptModel_MeshHF:
             [objectiveFunction(trimesh.Trimesh(vertices=newVerticesGrid[dim][vtx], faces=all_faces), coefficientsList, facesToMove)[0] for vtx in range(numVtx) for dim in range(len(newVerticesGrid))]
         ).reshape(numVtx, 3)
 
-        print(newObjectiveFcnValues.shape)
+        # print(newObjectiveFcnValues.shape)
+        print(f"Previous objective function values: {currentObjectiveFcnValues}")
         print(f"Current objective function values: {newObjectiveFcnValues}")
         # input()
 
-        gradient = (newObjectiveFcnValues - currentObjectiveFcnValues) / (2 * delta)    
+        gradient = (newObjectiveFcnValues - currentObjectiveFcnValues) / (2 * delta) 
+        print(f"gradient: {gradient}")   
 
         #basically - move each vertex and update it
         tri_mesh.vertices[uniqueVtx, 0] -= (delta * gradient[uniqueVtx, 0])
