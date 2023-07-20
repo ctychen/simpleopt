@@ -119,18 +119,18 @@ class RunSetup_MeshHF:
         #maybe this is not the way to go? 
         # corner_faces = self.findCornerFaces(self.box.trimeshSolid)
         adjacency = trimeshSolid.face_adjacency
+        numVertices = len(trimeshSolid.vertices) 
+        print(f"Shape of trimesh vertices: {trimeshSolid.vertices.shape}")  
+        numFaces = len(trimeshSolid.faces)
+        print(f"Number of trimesh solid vertices: {numVertices}")
+        print(f"Number of trimesh solid faces: {numFaces}")
 
         def calculateNormalsDiff(trimeshSolid):
             normals = trimeshSolid.face_normals
-            # normalsDiff = normals[adjacency[:, 0]] - normals[adjacency[:, 1]]
-            # normalsDiffMagnitude = np.linalg.norm(normalsDiff, axis=1)
 
             vertex_defects = trimeshSolid.vertex_defects
             sumVertexDefects = np.sum(np.abs(vertex_defects))
-            print(f"Vertex defects - sum: {sumVertexDefects}")
-            print(f"Length of vertex defects: {len(vertex_defects)}")
-            input()
-            sumVertexDefects = sumVertexDefects / len(vertex_defects)   #normalize by number of vertices
+
             maxVertexDefect = np.max(np.abs(vertex_defects))    
 
             normals_0 = normals[adjacency[:, 0]]
@@ -140,7 +140,8 @@ class RunSetup_MeshHF:
             allAnglesBetweenNormals = np.arccos(clipped_dot_product)
             maxAngleBetweenNormals = np.max(allAnglesBetweenNormals)
 
-            return sumVertexDefects, maxVertexDefect, maxAngleBetweenNormals 
+            return sumVertexDefects, maxVertexDefect, maxAngleBetweenNormals
+            #return sumVertexDefects, maxVertexDefect, maxAngleBetweenNormals 
         
             #return normalsDiffMagnitude, maxAngleBetweenNormals
 
@@ -249,7 +250,7 @@ class RunSetup_MeshHF:
             for val in sweep_values:
                 my_trimeshSolid = trimeshSolid.copy()
                 coefficients_list[idx_to_vary] = val
-                directoryName = self.makeDirectories(f"v23_newspheretests{idx_to_vary}/1/test_", coefficients_list)
+                directoryName = self.makeDirectories(f"v23_newspheretests{idx_to_vary}/highres/test_", coefficients_list)
                 #meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
                 self.opt.meshHFOpt(
                     objectiveFunction,  
@@ -389,7 +390,8 @@ class RunSetup_MeshHF:
 
         coefficients_list = [0, 0, 0, 0, 0] #[0, 0, 0, 20, 10]
         # sweep_c2 = [50]
-        sweep_c2 = [50 * 254] 
+        # sweep_c2 = [50 * 254] 
+        sweep_c2 = [50 * (254.0 / 1244.0) * 2] #[50 * (254.0 / 1244.0)] #[50 * 2 * (1244.0 / 254.0)]
         sweep_coefficients_and_record_output(coefficients_list, 2, sweep_c2)    
 
         # coefficients_list = [0, 0, 50, 0, 10]
