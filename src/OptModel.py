@@ -102,9 +102,16 @@ class OptModel_MeshHF:
         numVtx = len(tri_mesh.vertices)
         # currentVerticesGrid = np.array([np.tile(tri_mesh.vertices, (numVtx, 1)) for _ in range(3)])
         currentVerticesGrid = np.array([np.tile(tri_mesh.vertices[np.newaxis, :], (numVtx, 1, 1)) for _ in range(3)])
-        # print(f"shape of currentVerticesGrid: {currentVerticesGrid.shape}")
-        # print(f"shape of 0th element of currentVerticesGrid: {currentVerticesGrid[0].shape}")
+
+        print(f"shape of currentVerticesGrid: {currentVerticesGrid.shape}")
+        print(f"length of currentVerticesGrid: {len(currentVerticesGrid)}")
+        print(f"shape of 0th element of currentVerticesGrid: {currentVerticesGrid[0].shape}")
+        print(f"shape of 0th element of 0th element of currentVerticesGrid: {currentVerticesGrid[0][0].shape}")
         # print(f"0th element of 0th element of currentVerticesGrid: {currentVerticesGrid[0][0]}")
+
+        print(f"objective function for 0th element: {objectiveFunction(trimesh.Trimesh(vertices=currentVerticesGrid[0][0], faces=all_faces), coefficientsList, facesToMove)[0]}")
+
+        # print(len([objectiveFunction(trimesh.Trimesh(vertices=currentVerticesGrid[i], faces=all_faces), coefficientsList, facesToMove)[0] for i in range(len(currentVerticesGrid))]))
 
         #todo change objective function to take in array of vertices, and array of faces, instead of trimesh object? 
         # currentObjectiveFcnValues = np.array(
@@ -115,11 +122,17 @@ class OptModel_MeshHF:
         # )
         # funcValues = np.array([func(new_array[i]) for i in range(len(new_array))]).reshape(len(meshVtx), 3)
         
+        # currentObjectiveFcnValues = np.array(
+        #     [objectiveFunction(trimesh.Trimesh(vertices=currentVerticesGrid[i], faces=all_faces), coefficientsList, facesToMove)[0] for i in range(len(currentVerticesGrid))]
+        # ).reshape(numVtx, 3)
+
         currentObjectiveFcnValues = np.array(
-            [objectiveFunction(trimesh.Trimesh(vertices=currentVerticesGrid[i], faces=all_faces), coefficientsList, facesToMove)[0] for i in range(len(currentVerticesGrid))]
+            [objectiveFunction(trimesh.Trimesh(vertices=currentVerticesGrid[dim][vtx], faces=all_faces), coefficientsList, facesToMove)[0] for vtx in range(numVtx) for dim in range(len(currentVerticesGrid))]
         ).reshape(numVtx, 3)
+        #entry for tag in tags for entry in entries
         
         print(currentObjectiveFcnValues.shape)
+        print(f"Current objective function values: {currentObjectiveFcnValues}")
         #.reshape(numVtx, 3)
 
         newVerticesGrid = currentVerticesGrid.copy()
@@ -134,13 +147,17 @@ class OptModel_MeshHF:
         # newObjectiveFcnValues = np.array(
         #     [objectiveFunction(newVerticesGrid[i], coefficientsList, facesToMove)[0] for i in range(len(newVerticesGrid))] 
         # )
+        # newObjectiveFcnValues = np.array(
+        #     [objectiveFunction(trimesh.Trimesh(vertices=newVerticesGrid[i], faces=all_faces), coefficientsList, facesToMove)[0] for i in range(len(newVerticesGrid))] 
+        # ).reshape(numVtx, 3)
+
         newObjectiveFcnValues = np.array(
-            [objectiveFunction(trimesh.Trimesh(vertices=newVerticesGrid[i], faces=all_faces), coefficientsList, facesToMove)[0] for i in range(len(newVerticesGrid))] 
+            [objectiveFunction(trimesh.Trimesh(vertices=newVerticesGrid[dim][vtx], faces=all_faces), coefficientsList, facesToMove)[0] for vtx in range(numVtx) for dim in range(len(newVerticesGrid))]
         ).reshape(numVtx, 3)
 
         print(newObjectiveFcnValues.shape)
-        input()
-        #.reshape(numVtx, 3)
+        print(f"Current objective function values: {newObjectiveFcnValues}")
+        # input()
 
         gradient = (newObjectiveFcnValues - currentObjectiveFcnValues) / (2 * delta)    
 
