@@ -2,6 +2,8 @@ import numpy as np
 import plotly.graph_objects as go
 import plotly.io as pio
 
+import Solid
+
 class ForwardModel_MeshHF: 
 
     def __init__(self, solidObj, q_mag, q_dir, hfMode): 

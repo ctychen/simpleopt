@@ -6,6 +6,9 @@ import numpy as np
 
 import time
 
+import Solid
+import trimesh
+
 import plotly.graph_objects as go
 import plotly.io as pio
 from plotly.subplots import make_subplots
@@ -37,6 +40,36 @@ class OptModel_MeshHF:
         return
     
 
+    # def gradientDescentHF(self, tri_mesh, objectiveFunction, allmeshelementsHF, facesToKeep, facesToMove, coefficientsList, delta, filedir, count):
+    #     """
+    #     gradient descent implementation for heat flux minimization
+    #     takes in trimesh object and sorts elements by HF to deal with worst elements first
+    #     calc gradient for each element by moving vertices a small amount and finding change in objective function
+    #     move each vertex based on gradient * delta when all gradients calculated
+    #     """ 
+    #     use_set = set(np.where(allmeshelementsHF >= -10.0)[0]) #changed for 3sphere test
+    #     gradient = np.zeros_like(tri_mesh.vertices)
+
+    #     useFaces = tri_mesh.faces[list(use_set)]
+    #     flattenedVtx = useFaces.flatten() 
+    #     uniqueVtx = np.unique(flattenedVtx)
+    #     obj_beforeMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
+    #     for vertex in np.nditer(uniqueVtx):
+    #         for j in range(3): 
+    #             tri_mesh.vertices[vertex, j] += delta
+    #             obj_afterMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
+    #             tri_mesh.vertices[vertex, j] -= delta
+    #             gradient[vertex, j] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
+    #     #basically - move each vertex and update it
+    #     tri_mesh.vertices[uniqueVtx, 0] -= (delta * gradient[uniqueVtx, 0])
+    #     tri_mesh.vertices[uniqueVtx, 1] -= (delta * gradient[uniqueVtx, 1])
+    #     tri_mesh.vertices[uniqueVtx, 2] -= (delta * gradient[uniqueVtx, 2])
+
+    #     return tri_mesh
+
+
+### let's try loop-free approach... ###
+
     def gradientDescentHF(self, tri_mesh, objectiveFunction, allmeshelementsHF, facesToKeep, facesToMove, coefficientsList, delta, filedir, count):
         """
         gradient descent implementation for heat flux minimization
@@ -47,23 +80,86 @@ class OptModel_MeshHF:
         use_set = set(np.where(allmeshelementsHF >= -10.0)[0]) #changed for 3sphere test
         gradient = np.zeros_like(tri_mesh.vertices)
 
-        useFaces = tri_mesh.faces[list(use_set)]
+        all_faces = tri_mesh.faces
+
+        # useFaces = tri_mesh.faces[list(use_set)]
+        useFaces = all_faces[list(use_set)]
         flattenedVtx = useFaces.flatten() 
         uniqueVtx = np.unique(flattenedVtx)
-        for vertex in np.nditer(uniqueVtx):
-            obj_beforeMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
-            for j in range(3): 
-                tri_mesh.vertices[vertex, j] += delta
-                obj_afterMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
-                tri_mesh.vertices[vertex, j] -= delta
-                gradient[vertex, j] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
+
+        # obj_beforeMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
+        # for vertex in np.nditer(uniqueVtx):
+        #     for j in range(3): 
+        #         tri_mesh.vertices[vertex, j] += delta
+        #         obj_afterMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
+        #         tri_mesh.vertices[vertex, j] -= delta
+        #         gradient[vertex, j] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
+
+        # vtxToUse = tri_mesh.vertices[uniqueVtx]
+        # numVtx = len(vtxToUse)
+        # currentVerticesGrid = np.array([np.tile(vtxToUse, (numVtx, 1)) for _ in range(3)])
+
+        numVtx = len(tri_mesh.vertices)
+        # currentVerticesGrid = np.array([np.tile(tri_mesh.vertices, (numVtx, 1)) for _ in range(3)])
+        currentVerticesGrid = np.array([np.tile(tri_mesh.vertices[np.newaxis, :], (numVtx, 1, 1)) for _ in range(3)])
+        # print(f"shape of currentVerticesGrid: {currentVerticesGrid.shape}")
+        # print(f"shape of 0th element of currentVerticesGrid: {currentVerticesGrid[0].shape}")
+        # print(f"0th element of 0th element of currentVerticesGrid: {currentVerticesGrid[0][0]}")
+
+        #todo change objective function to take in array of vertices, and array of faces, instead of trimesh object? 
+        # currentObjectiveFcnValues = np.array(
+        #     [objectiveFunction(currentVerticesGrid[i], coefficientsList, facesToMove)[0] for i in range(len(currentVerticesGrid))] 
+        # ).reshape(numVtx, 3)
+        # currentObjectiveFcnValues = np.array(
+        #     [objectiveFunction(trimesh.Trimesh(vertices=currentVerticesGrid[i], faces=all_faces), coefficientsList, facesToMove)[0] for i in range(len(currentVerticesGrid))] 
+        # )
+        # funcValues = np.array([func(new_array[i]) for i in range(len(new_array))]).reshape(len(meshVtx), 3)
+        
+        currentObjectiveFcnValues = np.array(
+            [objectiveFunction(trimesh.Trimesh(vertices=currentVerticesGrid[i], faces=all_faces), coefficientsList, facesToMove)[0] for i in range(len(currentVerticesGrid))]
+        ).reshape(numVtx, 3)
+        
+        print(currentObjectiveFcnValues.shape)
+        #.reshape(numVtx, 3)
+
+        newVerticesGrid = currentVerticesGrid.copy()
+        # indices = np.arange(numVtx)
+        # newVerticesGrid[0, indices, :, 0] -= delta
+        # newVerticesGrid[1, indices, :, 1] += delta 
+        # newVerticesGrid[2, indices, :, 2] -= delta 
+        newVerticesGrid[0, :, 0] -= delta
+        newVerticesGrid[1, :, 1] += delta 
+        newVerticesGrid[2, :, 2] -= delta 
+
+        # newObjectiveFcnValues = np.array(
+        #     [objectiveFunction(newVerticesGrid[i], coefficientsList, facesToMove)[0] for i in range(len(newVerticesGrid))] 
+        # )
+        newObjectiveFcnValues = np.array(
+            [objectiveFunction(trimesh.Trimesh(vertices=newVerticesGrid[i], faces=all_faces), coefficientsList, facesToMove)[0] for i in range(len(newVerticesGrid))] 
+        ).reshape(numVtx, 3)
+
+        print(newObjectiveFcnValues.shape)
+        input()
+        #.reshape(numVtx, 3)
+
+        gradient = (newObjectiveFcnValues - currentObjectiveFcnValues) / (2 * delta)    
+
         #basically - move each vertex and update it
         tri_mesh.vertices[uniqueVtx, 0] -= (delta * gradient[uniqueVtx, 0])
         tri_mesh.vertices[uniqueVtx, 1] -= (delta * gradient[uniqueVtx, 1])
         tri_mesh.vertices[uniqueVtx, 2] -= (delta * gradient[uniqueVtx, 2])
 
         return tri_mesh
+    
+    
+# # create an array that is a list of three elements, each of which is meshVtx tiled N times
+# new_array = np.array([np.tile(meshVtx, (N, 1)) for _ in range(3)])
 
+        # for j in range(3): 
+        #     tri_mesh.vertices[:, j] += delta
+        #     obj_afterMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
+        #     tri_mesh.vertices[:, j] -= delta
+        #     gradient[:, j] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
 
     # def meshHFOpt(self, hfObjectiveFcn, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
     def meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
@@ -117,12 +213,17 @@ class OptModel_MeshHF:
         #faces to NOT move
         facesToKeep = indicesToNotMove
 
-        while abs(prev_objVal - curr_objVal) > threshold and count < 500:
+        while abs(prev_objVal - curr_objVal) > threshold and count < 100:
 
             hf_all_mesh = calcHFAllMesh(trimeshSolid)
 
+            # prev_objVal = objFcn before moving
+
             #calc the gradient
             trimeshSolid = self.gradientDescentHF(trimeshSolid, hfObjectiveFcn, hf_all_mesh, facesToKeep, facesToMove, coefficientsList, delta, f"test{id}", count)
+
+            # calculate gradient here
+            # new_objVal = objFcn after moving
 
             print(f"{count}: gradient descent time: {time.time() - t0}")
             
