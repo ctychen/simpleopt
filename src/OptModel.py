@@ -17,6 +17,7 @@ import plotly.express as px
 
 import pandas as pd
 import multiprocessing
+from multiprocessing import Pool
 
 import vtk
 from vtk import vtkPolyData, vtkPoints, vtkCellArray, vtkDoubleArray, vtkPolyDataWriter, vtkTriangle
@@ -24,6 +25,11 @@ from vtk import vtkPolyData, vtkPoints, vtkCellArray, vtkDoubleArray, vtkPolyDat
 from vtk.util.numpy_support import numpy_to_vtk
 from scipy.optimize import curve_fit
 from vtk.util import numpy_support
+
+    
+def objective_for_vertex_dim(objectiveFunction, newVerticesGrid, vtx, dim, all_faces, coefficientsList, facesToMove):
+    #replaces newObjectiveFcnValues calculation in hopes of parallelizing this
+    return objectiveFunction(trimesh.Trimesh(vertices=newVerticesGrid[dim][vtx], faces=all_faces), coefficientsList, facesToMove)[0]
 
 class OptModel_MeshHF: 
     """
@@ -80,63 +86,32 @@ class OptModel_MeshHF:
         useFaces = all_faces[list(use_set)]
         flattenedVtx = useFaces.flatten() 
         uniqueVtx = np.unique(flattenedVtx)
-        # uniqueVtx = set(uniqueVtx)
-
-        # t0 = time.time()    
-
         numVtx = len(tri_mesh.vertices)
+
         currentVerticesGrid = np.array([np.tile(tri_mesh.vertices[np.newaxis, :], (numVtx, 1, 1)) for _ in range(3)])
-
-        # print(f"time to make grid: {time.time() - t0}")
-
-        t0 = time.time() 
-
         currentObjFcnVal = objectiveFunction(trimesh.Trimesh(vertices=currentVerticesGrid[0][0], faces=all_faces), coefficientsList, facesToMove)[0]
         # currentObjFcnVal = objectiveFunction(currentVerticesGrid[0][0], all_faces, coefficientsList, facesToMove)[0]
         currentObjectiveFcnValues = np.full((numVtx, 3), currentObjFcnVal)
 
-        # currentObjectiveFcnValues = np.array(
-        #     [objectiveFunction(trimesh.Trimesh(vertices=currentVerticesGrid[dim][vtx], faces=all_faces), coefficientsList, facesToMove)[0] for vtx in range(numVtx) for dim in range(len(currentVerticesGrid))]
-        # ).reshape(numVtx, 3)   
-
-        # currentObjectiveFcnValues = np.array(
-        #     [objectiveFunction(currentVerticesGrid[dim][vtx], all_faces, coefficientsList, facesToMove)[0] for vtx in range(numVtx) for dim in range(len(currentVerticesGrid))]
-        # ).reshape(numVtx, 3) 
-
-        print(f"time to calculate CURRENT objfcn: {time.time() - t0}")
-
-        # t0 = time.time()
-        # newTrimesh = trimesh.Trimesh(vertices=currentVerticesGrid[0][0], faces=all_faces)
-        # print(f"time to create a new trimesh given vertices and faces: {time.time() - t0}")
-
-        # t0 = time.time()    
-
         newVerticesGrid = currentVerticesGrid.copy()
-
         range_indices = np.arange(currentVerticesGrid.shape[1])
         newVerticesGrid[0, range_indices, range_indices, 0] += delta
         newVerticesGrid[1, range_indices, range_indices, 1] += delta
         newVerticesGrid[2, range_indices, range_indices, 2] += delta
 
-        # print(f"time to make new grid and update vertices: {time.time() - t0}")
-
-        # input()
-
-        t0 = time.time()    
-
-        newObjectiveFcnValues = np.array(
-            [objectiveFunction(trimesh.Trimesh(vertices=newVerticesGrid[dim][vtx], faces=all_faces), coefficientsList, facesToMove)[0] for vtx in range(numVtx) for dim in range(len(newVerticesGrid))]
-        ).reshape(numVtx, 3)
-
         # newObjectiveFcnValues = np.array(
-        #     [objectiveFunction(newVerticesGrid[dim][vtx], all_faces, coefficientsList, facesToMove)[0] for vtx in range(numVtx) for dim in range(len(newVerticesGrid))]
+        #     [objectiveFunction(trimesh.Trimesh(vertices=newVerticesGrid[dim][vtx], faces=all_faces), coefficientsList, facesToMove)[0] for vtx in range(numVtx) for dim in range(len(newVerticesGrid))]
         # ).reshape(numVtx, 3)
+        
+        t0 = time.time()
+        numProcesses = self.Ncores
+        with Pool(numProcesses) as p:
+            newObjectiveFcnValues = np.array(p.starmap(
+                objective_for_vertex_dim, 
+                [(objectiveFunction, newVerticesGrid, vtx, dim, all_faces, coefficientsList, facesToMove) for vtx in range(numVtx) for dim in range(len(newVerticesGrid))]
+            )).reshape(numVtx, 3)
 
         print(f"time to calculate NEW objfcn: {time.time() - t0}")
-
-        input()
-
-        # t0 = time.time() 
 
         gradient = (newObjectiveFcnValues - currentObjectiveFcnValues) / (2 * delta) 
 
@@ -145,9 +120,86 @@ class OptModel_MeshHF:
         tri_mesh.vertices[uniqueVtx, 1] -= (delta * gradient[uniqueVtx, 1])
         tri_mesh.vertices[uniqueVtx, 2] -= (delta * gradient[uniqueVtx, 2])
 
-        # print(f"time to calc gradient and move vertices: {time.time() - t0}")
-
         return tri_mesh
+
+    # def gradientDescentHF(self, tri_mesh, objectiveFunction, allmeshelementsHF, facesToKeep, facesToMove, coefficientsList, delta, filedir, count):
+
+    #     use_set = set(np.where(allmeshelementsHF >= -10.0)[0]) #changed for 3sphere test
+    #     gradient = np.zeros_like(tri_mesh.vertices)
+
+    #     all_faces = tri_mesh.faces
+
+    #     useFaces = all_faces[list(use_set)]
+    #     flattenedVtx = useFaces.flatten() 
+    #     uniqueVtx = np.unique(flattenedVtx)
+    #     # uniqueVtx = set(uniqueVtx)
+
+    #     # t0 = time.time()    
+
+    #     numVtx = len(tri_mesh.vertices)
+    #     currentVerticesGrid = np.array([np.tile(tri_mesh.vertices[np.newaxis, :], (numVtx, 1, 1)) for _ in range(3)])
+
+    #     # print(f"time to make grid: {time.time() - t0}")
+
+    #     t0 = time.time() 
+    #     currentObjFcnVal = objectiveFunction(trimesh.Trimesh(vertices=currentVerticesGrid[0][0], faces=all_faces), coefficientsList, facesToMove)[0]
+    #     print(f"time to calculate CURRENT objfcn: {time.time() - t0}")
+
+    #     t0 = time.time()
+    #     newTrimesh = trimesh.Trimesh(vertices=currentVerticesGrid[0][0], faces=all_faces)
+    #     print(f"time to create a new trimesh given vertices and faces: {time.time() - t0}")
+
+    #     input()
+    #     # currentObjFcnVal = objectiveFunction(currentVerticesGrid[0][0], all_faces, coefficientsList, facesToMove)[0]
+    #     currentObjectiveFcnValues = np.full((numVtx, 3), currentObjFcnVal)
+
+    #     # currentObjectiveFcnValues = np.array(
+    #     #     [objectiveFunction(trimesh.Trimesh(vertices=currentVerticesGrid[dim][vtx], faces=all_faces), coefficientsList, facesToMove)[0] for vtx in range(numVtx) for dim in range(len(currentVerticesGrid))]
+    #     # ).reshape(numVtx, 3)   
+
+    #     # currentObjectiveFcnValues = np.array(
+    #     #     [objectiveFunction(currentVerticesGrid[dim][vtx], all_faces, coefficientsList, facesToMove)[0] for vtx in range(numVtx) for dim in range(len(currentVerticesGrid))]
+    #     # ).reshape(numVtx, 3) 
+
+    #     # t0 = time.time()    
+
+    #     newVerticesGrid = currentVerticesGrid.copy()
+
+    #     range_indices = np.arange(currentVerticesGrid.shape[1])
+    #     newVerticesGrid[0, range_indices, range_indices, 0] += delta
+    #     newVerticesGrid[1, range_indices, range_indices, 1] += delta
+    #     newVerticesGrid[2, range_indices, range_indices, 2] += delta
+
+    #     # print(f"time to make new grid and update vertices: {time.time() - t0}")
+
+    #     # input()
+
+    #     t0 = time.time()    
+
+    #     newObjectiveFcnValues = np.array(
+    #         [objectiveFunction(trimesh.Trimesh(vertices=newVerticesGrid[dim][vtx], faces=all_faces), coefficientsList, facesToMove)[0] for vtx in range(numVtx) for dim in range(len(newVerticesGrid))]
+    #     ).reshape(numVtx, 3)
+
+    #     # newObjectiveFcnValues = np.array(
+    #     #     [objectiveFunction(newVerticesGrid[dim][vtx], all_faces, coefficientsList, facesToMove)[0] for vtx in range(numVtx) for dim in range(len(newVerticesGrid))]
+    #     # ).reshape(numVtx, 3)
+
+    #     print(f"time to calculate NEW objfcn: {time.time() - t0}")
+
+    #     input()
+
+    #     # t0 = time.time() 
+
+    #     gradient = (newObjectiveFcnValues - currentObjectiveFcnValues) / (2 * delta) 
+
+    #     #basically - move each vertex and update it
+    #     tri_mesh.vertices[uniqueVtx, 0] -= (delta * gradient[uniqueVtx, 0])
+    #     tri_mesh.vertices[uniqueVtx, 1] -= (delta * gradient[uniqueVtx, 1])
+    #     tri_mesh.vertices[uniqueVtx, 2] -= (delta * gradient[uniqueVtx, 2])
+
+    #     # print(f"time to calc gradient and move vertices: {time.time() - t0}")
+
+    #     return tri_mesh
 
     # def meshHFOpt(self, hfObjectiveFcn, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
     def meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
@@ -214,7 +266,7 @@ class OptModel_MeshHF:
             # print(f"{count}: gradient descent time: {time.time() - t0}")
             print(f"{count}: gradient descent time: {time.time() - t1}")
 
-            # input()
+            input()
             
             #recalculate the hf profile on the surface - don't need this for spheretests
             # updateHFProfile(trimeshSolid) 

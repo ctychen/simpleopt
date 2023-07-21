@@ -127,23 +127,10 @@ class RunSetup_MeshHF:
         print(f"Number of trimesh solid faces: {numFaces}")
 
         def calculateNormalsDiff(trimeshSolid):
-        # def calculateNormalsDiff(vertices, faces):
-            # t_0 = time.time()
-
             # normals = trimeshSolid.face_normals
-
-            # print(f"time to get mesh normals: {time.time() - t_0}")
-            # vertices = trimeshSolid.vertices
-            # faces = trimeshSolid.faces
-            # t_0 = time.time()
-            # vertex_defects = trimeshSolid.vertex_defects
             vertex_defects = trimesh.curvature.vertex_defects(trimeshSolid)
             sumVertexDefects = np.sum(np.abs(vertex_defects))
-            # print(f"Vertex defects trimesh: {vertex_defects}")
-            # t_tm = time.time() - t_0
-            # print(f"Time for trimesh calc: {t_tm}")
             maxVertexDefect = np.max(np.abs(vertex_defects))  
-
             # normals_0 = normals[adjacency[:, 0]]
             # normals_1 = normals[adjacency[:, 1]]
             # dot_product = np.einsum('ij,ij->i', normals_0, normals_1)
@@ -151,14 +138,42 @@ class RunSetup_MeshHF:
             # allAnglesBetweenNormals = np.arccos(clipped_dot_product)
             # print(f"all angles: {allAnglesBetweenNormals}")
             # print(f"sum of angles between normals: {np.sum(allAnglesBetweenNormals)}")
-
-            # input()
             # maxAngleBetweenNormals = np.max(allAnglesBetweenNormals)
             maxAngleBetweenNormals = 0
-
-            # print(f"time to get angles between normals (not currently used): {time.time() - t_0}")
-
             return sumVertexDefects, maxVertexDefect, maxAngleBetweenNormals
+
+        # def calculateNormalsDiff(trimeshSolid):
+        # # def calculateNormalsDiff(vertices, faces):
+        #     # t_0 = time.time()
+
+        #     # normals = trimeshSolid.face_normals
+
+        #     # print(f"time to get mesh normals: {time.time() - t_0}")
+        #     # vertices = trimeshSolid.vertices
+        #     # faces = trimeshSolid.faces
+        #     t_0 = time.time()
+        #     vertex_defects = trimesh.curvature.vertex_defects(trimeshSolid)
+        #     t_tm = time.time() - t_0
+        #     print(f"Time for trimesh vertex defects calc: {t_tm}")
+
+        #     sumVertexDefects = np.sum(np.abs(vertex_defects))
+        #     maxVertexDefect = np.max(np.abs(vertex_defects))  
+
+        #     # normals_0 = normals[adjacency[:, 0]]
+        #     # normals_1 = normals[adjacency[:, 1]]
+        #     # dot_product = np.einsum('ij,ij->i', normals_0, normals_1)
+        #     # clipped_dot_product = np.clip(dot_product, -1.0, 1.0)
+        #     # allAnglesBetweenNormals = np.arccos(clipped_dot_product)
+        #     # print(f"all angles: {allAnglesBetweenNormals}")
+        #     # print(f"sum of angles between normals: {np.sum(allAnglesBetweenNormals)}")
+
+        #     # input()
+        #     # maxAngleBetweenNormals = np.max(allAnglesBetweenNormals)
+        #     maxAngleBetweenNormals = 0
+
+        #     # print(f"time to get angles between normals (not currently used): {time.time() - t_0}")
+
+        #     return sumVertexDefects, maxVertexDefect, maxAngleBetweenNormals
 
         # def calculateNormalsDiff(meshVertices, meshFaces):
         #     # meshVertices = np.asarray(meshVertices)
