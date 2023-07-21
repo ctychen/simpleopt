@@ -48,7 +48,7 @@ class MeshSolid(CADClass.CAD):
     
     ### Mesh Properties ###
     
-    def calculateFaceNormals(vertices, faces):
+    def calculateFaceNormals(self, vertices, faces):
         """
         calculate normal vectors for each face in a trimesh.
 
@@ -65,21 +65,31 @@ class MeshSolid(CADClass.CAD):
             Normal vector for each face.
         """
 
+        # #get vectors of the two edges for each face
+        # vec1 = vertices[faces[:, 1]] - vertices[faces[:, 0]]
+        # vec2 = vertices[faces[:, 2]] - vertices[faces[:, 0]]
+        
+        # #calculate normal vectors using cross product
+        # faceNormals = np.cross(vec1, vec2)
+        
+        # # Normalize each normal vector
+        # norms = np.linalg.norm(faceNormals, axis=1)
+        # faceNormals = faceNormals / norms[:, np.newaxis]
+
         #get vectors of the two edges for each face
-        vec1 = vertices[faces[:, 1]] - vertices[faces[:, 0]]
-        vec2 = vertices[faces[:, 2]] - vertices[faces[:, 0]]
+        vecs = vertices[faces[:, 1:]] - vertices[faces[:, 0, np.newaxis]]
         
         #calculate normal vectors using cross product
-        faceNormals = np.cross(vec1, vec2)
+        faceNormals = np.cross(vecs[:, 0], vecs[:, 1])
         
         # Normalize each normal vector
-        norms = np.linalg.norm(faceNormals, axis=1)
-        faceNormals = faceNormals / norms[:, np.newaxis]
+        norms = np.linalg.norm(faceNormals, axis=1, keepdims=True)
+        faceNormals /= norms
         
         return faceNormals
 
 
-    def calculateVertexDefects(vertices, faces):
+    def calculateVertexDefects(self, vertices, faces):
         """
         Compute the vertex defects for each vertex in a mesh - vertex defects 2*pi - sum of angles around each vertex
 
@@ -96,28 +106,28 @@ class MeshSolid(CADClass.CAD):
             Vertex defect for each vertex.
         """
 
-        vertex_defects = 2 * np.pi * np.ones(vertices.shape[0])
+        # vertex_defects = 2 * np.pi * np.ones(vertices.shape[0])
 
-        for face in faces:
-            #vectors to previous and next vertices
-            prev_vectors = vertices[face] - vertices[face[[2, 0, 1]]]
-            next_vectors = vertices[face[[1, 2, 0]]] - vertices[face]
+        # for face in faces:
+        #     #vectors to previous and next vertices
+        #     prev_vectors = vertices[face] - vertices[face[[2, 0, 1]]]
+        #     next_vectors = vertices[face[[1, 2, 0]]] - vertices[face]
 
-            #normalize vectors
-            prev_vectors /= np.linalg.norm(prev_vectors, axis=-1, keepdims=True)
-            next_vectors /= np.linalg.norm(next_vectors, axis=-1, keepdims=True)
+        #     #normalize vectors
+        #     prev_vectors /= np.linalg.norm(prev_vectors, axis=-1, keepdims=True)
+        #     next_vectors /= np.linalg.norm(next_vectors, axis=-1, keepdims=True)
 
-            #angle at each vertex is the angle between the two vectors
-            cosines = np.sum(prev_vectors * next_vectors, axis=-1)
-            angles = np.arccos(np.clip(cosines, -1, 1))
+        #     #angle at each vertex is the angle between the two vectors
+        #     cosines = np.sum(prev_vectors * next_vectors, axis=-1)
+        #     angles = np.arccos(np.clip(cosines, -1, 1))
 
-            #subtract these angles from the vertices' defects
-            np.subtract.at(vertex_defects, face, angles)
+        #     #subtract these angles from the vertices' defects
+        #     np.subtract.at(vertex_defects, face, angles)
 
-        return vertex_defects
+        return #vertex_defects
     
 
-    def calculateFaceCenters(vertices, faces):
+    def calculateFaceCenters(self, vertices, faces):
         """
         Compute the center of each face.
 
@@ -137,7 +147,7 @@ class MeshSolid(CADClass.CAD):
         return face_centers
     
 
-    def calculateFaceAreas(vertices, faces):
+    def calculateFaceAreas(self, vertices, faces):
         """
         Compute the area of each face.
 

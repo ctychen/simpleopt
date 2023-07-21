@@ -80,21 +80,36 @@ class OptModel_MeshHF:
         useFaces = all_faces[list(use_set)]
         flattenedVtx = useFaces.flatten() 
         uniqueVtx = np.unique(flattenedVtx)
+        # uniqueVtx = set(uniqueVtx)
+
+        t0 = time.time()    
 
         numVtx = len(tri_mesh.vertices)
         currentVerticesGrid = np.array([np.tile(tri_mesh.vertices[np.newaxis, :], (numVtx, 1, 1)) for _ in range(3)])
 
-        currentObjectiveFcnValues = np.array(
-            [objectiveFunction(trimesh.Trimesh(vertices=currentVerticesGrid[dim][vtx], faces=all_faces), coefficientsList, facesToMove)[0] for vtx in range(numVtx) for dim in range(len(currentVerticesGrid))]
-        ).reshape(numVtx, 3)
+        print(f"time to make grid: {time.time() - t0}")
 
-        # newVerticesGrid = currentVerticesGrid.copy()
+        t0 = time.time() 
 
-        # print(f"before moving: {newVerticesGrid[0][0][0]}")
+        # currentObjFcnVal = objectiveFunction(trimesh.Trimesh(vertices=currentVerticesGrid[0][0], faces=all_faces), coefficientsList, facesToMove)[0]
+        currentObjFcnVal = objectiveFunction(currentVerticesGrid[0][0], all_faces, coefficientsList, facesToMove)[0]
+        currentObjectiveFcnValues = np.full((numVtx, 3), currentObjFcnVal)
 
-        # newVerticesGrid[0, :, :, 0] += delta
-        # newVerticesGrid[1, :, :, 1] += delta 
-        # newVerticesGrid[2, :, :, 2] += delta 
+        # currentObjectiveFcnValues = np.array(
+        #     [objectiveFunction(trimesh.Trimesh(vertices=currentVerticesGrid[dim][vtx], faces=all_faces), coefficientsList, facesToMove)[0] for vtx in range(numVtx) for dim in range(len(currentVerticesGrid))]
+        # ).reshape(numVtx, 3)   
+
+        # currentObjectiveFcnValues = np.array(
+        #     [objectiveFunction(currentVerticesGrid[dim][vtx], all_faces, coefficientsList, facesToMove)[0] for vtx in range(numVtx) for dim in range(len(currentVerticesGrid))]
+        # ).reshape(numVtx, 3) 
+
+        print(f"time to calculate CURRENT objfcn: {time.time() - t0}")
+
+        # t0 = time.time()
+        # newTrimesh = trimesh.Trimesh(vertices=currentVerticesGrid[0][0], faces=all_faces)
+        # print(f"time to create a new trimesh given vertices and faces: {time.time() - t0}")
+
+        t0 = time.time()    
 
         newVerticesGrid = currentVerticesGrid.copy()
 
@@ -103,42 +118,32 @@ class OptModel_MeshHF:
         newVerticesGrid[1, range_indices, range_indices, 1] += delta
         newVerticesGrid[2, range_indices, range_indices, 2] += delta
 
-        # newVerticesGrid[0, :, :, 0] += delta
-        # newVerticesGrid[1, :, :, 1] += delta
-        # newVerticesGrid[2, :, :, 2] += delta
+        print(f"time to make new grid and update vertices: {time.time() - t0}")
 
-        #newVerticesGrid[dim, i, :, dim] += delta for i in range(numVtx) for dim in range(3)
+        t0 = time.time()    
 
-        # print(f"after moving: {newVerticesGrid[0][0][0]}") 
+        # newObjectiveFcnValues = np.array(
+        #     [objectiveFunction(trimesh.Trimesh(vertices=newVerticesGrid[dim][vtx], faces=all_faces), coefficientsList, facesToMove)[0] for vtx in range(numVtx) for dim in range(len(newVerticesGrid))]
+        # ).reshape(numVtx, 3)
 
         newObjectiveFcnValues = np.array(
-            [objectiveFunction(trimesh.Trimesh(vertices=newVerticesGrid[dim][vtx], faces=all_faces), coefficientsList, facesToMove)[0] for vtx in range(numVtx) for dim in range(len(newVerticesGrid))]
+            [objectiveFunction(newVerticesGrid[dim][vtx], all_faces, coefficientsList, facesToMove)[0] for vtx in range(numVtx) for dim in range(len(newVerticesGrid))]
         ).reshape(numVtx, 3)
 
-        # print(f"Previous objective function values: {currentObjectiveFcnValues}")
-        # print(f"Current objective function values: {newObjectiveFcnValues}")
+        print(f"time to calculate NEW objfcn: {time.time() - t0}")
+
+        t0 = time.time() 
 
         gradient = (newObjectiveFcnValues - currentObjectiveFcnValues) / (2 * delta) 
-        # print(f"gradient: {gradient}")   
-        # print(f"Shape of gradient: {gradient.shape}")
-        # print(f"Shape of vertices: {tri_mesh.vertices.shape}")
 
         #basically - move each vertex and update it
         tri_mesh.vertices[uniqueVtx, 0] -= (delta * gradient[uniqueVtx, 0])
         tri_mesh.vertices[uniqueVtx, 1] -= (delta * gradient[uniqueVtx, 1])
         tri_mesh.vertices[uniqueVtx, 2] -= (delta * gradient[uniqueVtx, 2])
 
-        return tri_mesh
-    
-    
-# # create an array that is a list of three elements, each of which is meshVtx tiled N times
-# new_array = np.array([np.tile(meshVtx, (N, 1)) for _ in range(3)])
+        print(f"time to calc gradient and move vertices: {time.time() - t0}")
 
-        # for j in range(3): 
-        #     tri_mesh.vertices[:, j] += delta
-        #     obj_afterMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
-        #     tri_mesh.vertices[:, j] -= delta
-        #     gradient[:, j] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
+        return tri_mesh
 
     # def meshHFOpt(self, hfObjectiveFcn, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
     def meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
@@ -173,7 +178,8 @@ class OptModel_MeshHF:
         facesToMove = allIndices - indicesToNotMove #faces to move
 
         print(f"Objective function with coefficients: {coefficientsList}")
-        objFcn = hfObjectiveFcn(trimeshSolid, coefficientsList, facesToMove)
+        # objFcn = hfObjectiveFcn(trimeshSolid, coefficientsList, facesToMove)
+        objFcn = hfObjectiveFcn(trimeshSolid.vertices, trimeshSolid.faces, coefficientsList, facesToMove)
         # all_objective_function_values = [hfObjectiveFcn(trimeshSolid, coefficientsList, facesToMove)]
         all_objective_function_values = [objFcn[0]]
         all_sum_normals_diff = [objFcn[1]]
@@ -187,7 +193,7 @@ class OptModel_MeshHF:
         prev_objVal = 2000
         curr_objVal = 0
 
-        t0 = time.time()
+        # t0 = time.time()
 
         #faces to NOT move
         facesToKeep = indicesToNotMove
@@ -196,21 +202,23 @@ class OptModel_MeshHF:
 
             hf_all_mesh = calcHFAllMesh(trimeshSolid)
 
-            # prev_objVal = objFcn before moving
+            t1 = time.time()
 
             #calc the gradient
             trimeshSolid = self.gradientDescentHF(trimeshSolid, hfObjectiveFcn, hf_all_mesh, facesToKeep, facesToMove, coefficientsList, delta, f"test{id}", count)
 
-            # calculate gradient here
-            # new_objVal = objFcn after moving
+            # print(f"{count}: gradient descent time: {time.time() - t0}")
+            print(f"{count}: gradient descent time: {time.time() - t1}")
 
-            print(f"{count}: gradient descent time: {time.time() - t0}")
+            # input()
             
             #recalculate the hf profile on the surface - don't need this for spheretests
             # updateHFProfile(trimeshSolid) 
 
             # new_objVal = hfObjectiveFcn(trimeshSolid, coefficientsList, facesToMove)
-            new_objVal_all = hfObjectiveFcn(trimeshSolid, coefficientsList, facesToMove)
+            # t2 = time.time()
+            # new_objVal_all = hfObjectiveFcn(trimeshSolid, coefficientsList, facesToMove)
+            new_objVal_all = hfObjectiveFcn(trimeshSolid.vertices, trimeshSolid.faces, coefficientsList, facesToMove)
             new_objVal = new_objVal_all[0]
             new_sum_normals_diff = new_objVal_all[1]
             new_max_normals_diff = new_objVal_all[2]
@@ -220,6 +228,10 @@ class OptModel_MeshHF:
 
             prev_objVal = curr_objVal
             curr_objVal = new_objVal
+
+            # print(f"{count}: time to update all calcs/plots/everything else: {time.time() - t2}")
+
+            input()
 
             # new_max_hf = calcMaxHF(hf_all_mesh, facesToMove)
             # max_hf_each_run.append(new_max_hf)
@@ -231,29 +243,7 @@ class OptModel_MeshHF:
             # print(f"New objective function value: {new_objVal}")
 
             if count and count % 10 == 0: #count % 5 == 0: 
-
-                # x_count = np.linspace(0, len(max_hf_each_run), len(max_hf_each_run))
-                # fig = px.scatter(x = x_count, y = max_hf_each_run)
-                # fig.update_xaxes(title_text='Iterations')
-                # fig.update_yaxes(title_text=f'{calcMaxHF.__name__}')
-                # fig.show()            
-                # output_file = f"{id}/max_hf_run_{count}.html"
-                # pio.write_html(fig, output_file)
-
-                # x_count = np.linspace(0, len(all_objective_function_values), len(all_objective_function_values))
-                # fig = px.scatter(x = x_count, y = all_objective_function_values)
-                # fig.update_xaxes(title_text='Iterations')
-                # fig.update_yaxes(title_text='Objective function - sum HF over elements')
-                # fig.show()            
-                # output_file = f"{id}/objective_run_{count}.html"
-                # pio.write_html(fig, output_file)
-
-                # #make VTK to display HF on surface
                 self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"{id}", count)
-
-            # if count % 10 == 0: 
-                # self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"{id}", count)
-                # self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"test{id}")
 
             count += 1
         

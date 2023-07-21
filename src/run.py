@@ -125,53 +125,77 @@ class RunSetup_MeshHF:
         print(f"Number of trimesh solid vertices: {numVertices}")
         print(f"Number of trimesh solid faces: {numFaces}")
 
-        def calculateNormalsDiff(trimeshSolid):
-            normals = trimeshSolid.face_normals
+        def fast_vertex_defects(vertices, faces):
+            # get vectors to previous and next vertices
+            prev_vectors = vertices[faces] - vertices[faces[:, [2, 0, 1]]]
+            next_vectors = vertices[faces[:, [1, 2, 0]]] - vertices[faces]
+            
+            # normalize vectors
+            prev_vectors /= np.linalg.norm(prev_vectors, axis=-1, keepdims=True)
+            next_vectors /= np.linalg.norm(next_vectors, axis=-1, keepdims=True)
 
-            vertex_defects = trimeshSolid.vertex_defects
-            sumVertexDefects = np.sum(np.abs(vertex_defects))
+            # angle at each vertex is the angle between the two vectors
+            cosines = np.einsum('ijk,ijk->ij', prev_vectors, next_vectors)
+            angles = np.arccos(np.clip(cosines, -1, 1))
 
-            maxVertexDefect = np.max(np.abs(vertex_defects))    
+            # get vertex defects by subtracting angles from 2*pi
+            vertex_defects = 2 * np.pi - np.bincount(faces.flatten(), weights=angles.flatten(), minlength=vertices.shape[0])
 
-            normals_0 = normals[adjacency[:, 0]]
-            normals_1 = normals[adjacency[:, 1]]
-            dot_product = np.einsum('ij,ij->i', normals_0, normals_1)
-            clipped_dot_product = np.clip(dot_product, -1.0, 1.0)
-            allAnglesBetweenNormals = np.arccos(clipped_dot_product)
-            maxAngleBetweenNormals = np.max(allAnglesBetweenNormals)
-
-            return sumVertexDefects, maxVertexDefect, maxAngleBetweenNormals
-            #return sumVertexDefects, maxVertexDefect, maxAngleBetweenNormals 
-        
-            #return normalsDiffMagnitude, maxAngleBetweenNormals
+            return vertex_defects
 
         # def calculateNormalsDiff(trimeshSolid):
-        #     """
-        #     calculate differences between normal vectors of adjacent faces - ideally this should also be minimized?  
-        #     also find max diff btwn adjacent normals
-        #     """
-        #     #"(n, 2) list of face indices. Each pair of faces in the list shares an edge, making them adjacent"
-        #     # adjacency = trimeshSolid.face_adjacency 
+        def calculateNormalsDiff(vertices, faces):
+            # t_0 = time.time()
+
+            # normals = trimeshSolid.face_normals
+
+            # print(f"time to get mesh normals: {time.time() - t_0}")
+            # vertices = trimeshSolid.vertices
+            # faces = trimeshSolid.faces
+            # t_0 = time.time()
+
+            # vertex_defects = trimeshSolid.vertex_defects
+            #vertex_defects = trimesh.curvature.vertex_defects(trimeshSolid)
+            vertex_defects = fast_vertex_defects(vertices, faces)
+            # print(f"time to get vertex defects and sum: {time.time() - t_0}")
+            sumVertexDefects = np.sum(np.abs(vertex_defects))
+            maxVertexDefect = np.max(np.abs(vertex_defects))  
+
+            # t_0 = time.time()
+
+            # normals_0 = normals[adjacency[:, 0]]
+            # normals_1 = normals[adjacency[:, 1]]
+            # dot_product = np.einsum('ij,ij->i', normals_0, normals_1)
+            # clipped_dot_product = np.clip(dot_product, -1.0, 1.0)
+            # allAnglesBetweenNormals = np.arccos(clipped_dot_product)
+            # maxAngleBetweenNormals = np.max(allAnglesBetweenNormals)
+            maxAngleBetweenNormals = 0
+
+            # print(f"time to get angles between normals (not currently used): {time.time() - t_0}")
+
+            return sumVertexDefects, maxVertexDefect, maxAngleBetweenNormals
+
+        # def calculateNormalsDiff(meshVertices, meshFaces):
+        #     # meshVertices = np.asarray(meshVertices)
+        #     # meshFaces = np.asarray(meshFaces)   
 
         #     # normals = trimeshSolid.face_normals
-        #     # normalsDiff = normals[adjacency[:, 0]] - normals[adjacency[:, 1]]
-        #     # normalsDiffMagnitude = np.linalg.norm(normalsDiff, axis=1)
+        #     normals = self.box.calculateFaceNormals(meshVertices, meshFaces)
 
-        #     vertex_defects = trimeshSolid.vertex_defects
+        #     # vertex_defects = trimeshSolid.vertex_defects
+        #     vertex_defects = self.box.calculateVertexDefects(meshVertices, meshFaces)
         #     sumVertexDefects = np.sum(np.abs(vertex_defects))
+
         #     maxVertexDefect = np.max(np.abs(vertex_defects))    
 
-        #     # normals_0 = normals[adjacency[:, 0]]
-        #     # normals_1 = normals[adjacency[:, 1]]
-        #     # dot_product = np.einsum('ij,ij->i', normals_0, normals_1)
-        #     # clipped_dot_product = np.clip(dot_product, -1.0, 1.0)
-        #     # allAnglesBetweenNormals = np.arccos(clipped_dot_product)
-        #     # maxAngleBetweenNormals = np.max(allAnglesBetweenNormals)
-        #     maxAngleBetweenNormals = 0
+        #     normals_0 = normals[adjacency[:, 0]]
+        #     normals_1 = normals[adjacency[:, 1]]
+        #     dot_product = np.einsum('ij,ij->i', normals_0, normals_1)
+        #     clipped_dot_product = np.clip(dot_product, -1.0, 1.0)
+        #     allAnglesBetweenNormals = np.arccos(clipped_dot_product)
+        #     maxAngleBetweenNormals = np.max(allAnglesBetweenNormals)
 
-        #     return sumVertexDefects, maxVertexDefect, maxAngleBetweenNormals 
-        #     #return normalsDiffMagnitude, maxAngleBetweenNormals
-            
+        #     return sumVertexDefects, maxVertexDefect, maxAngleBetweenNormals
 
         def facesToKeep(trimeshSolid):
             #this should be for faces to NOT use (so they shouldn't move)
@@ -183,7 +207,8 @@ class RunSetup_MeshHF:
         sumHF_initial = self.fwd.calculateHFMeshSum(q_mesh_initial)
         # normalsDiff_initial, normalRefDotProducts_initial = calculateNormalsDiff(trimeshSolid)
         # normalsDiff_initial, maxNormalsDiff_initial = calculateNormalsDiff(trimeshSolid)
-        sumVertexDefects_initial, maxVertexDefect_initial, maxAngleBetweenNormals_initial = calculateNormalsDiff(trimeshSolid)   
+        # sumVertexDefects_initial, maxVertexDefect_initial, maxAngleBetweenNormals_initial = calculateNormalsDiff(trimeshSolid)   
+        sumVertexDefects_initial, maxVertexDefect_initial, maxAngleBetweenNormals_initial = calculateNormalsDiff(trimeshSolid.vertices, trimeshSolid.faces)  
         # normalsPenalty_initial = np.sum(normalsDiff_initial)
         energy_initial = self.fwd.calculateIntegratedEnergy(q_mesh_initial, trimeshSolid)
 
@@ -191,14 +216,13 @@ class RunSetup_MeshHF:
 
         print(f"Initial max HF: {maxHF_initial}")
         print(f"Initial sum HF: {sumHF_initial}")
-        # print(f"Initial normals penalty: {normalsPenalty_initial}")
-        # print(f"Initial max angle between normals: {maxNormalsDiff_initial}")
         print(f"Initial sum vertex defects: {sumVertexDefects_initial}")
         print(f"Initial max vertex defect: {maxVertexDefect_initial}")
         print(f"Initial max angle between normals: {maxAngleBetweenNormals_initial}")
         print(f"Initial energy: {energy_initial}")
 
-        def objectiveFunction(trimeshSolid, coefficientsList, unconstrainedFaces):
+        # def objectiveFunction(trimeshSolid, coefficientsList, unconstrainedFaces):
+        def objectiveFunction(vertices, faces, coefficientsList, unconstrainedFaces):
 
             t0 = time.time()
 
@@ -209,7 +233,7 @@ class RunSetup_MeshHF:
 
             c4 = coefficientsList[4] #heat flux diff term
 
-            q_mesh_all = self.fwd.calculateAllHF(trimeshSolid)
+            # q_mesh_all = self.fwd.calculateAllHF(trimeshSolid)
 
             # print(f"Time elapsed for q_mesh_all: {time.time() - t0}")
 
@@ -224,7 +248,8 @@ class RunSetup_MeshHF:
             # normalsPenalty = (c2) * (normalsDiffSum / numFaces)
 
             # sumVertexDefects, maxAngleBetweenNormals = calculateNormalsDiff(trimeshSolid) 
-            sumVertexDefects, maxVertexDefects, maxAngleBetweenNormals = calculateNormalsDiff(trimeshSolid)  
+            # sumVertexDefects, maxVertexDefects, maxAngleBetweenNormals = calculateNormalsDiff(trimeshSolid)  
+            sumVertexDefects, maxVertexDefects, maxAngleBetweenNormals = calculateNormalsDiff(vertices, faces)  
             normalsPenalty = c2 * sumVertexDefects
             maxNormalsTerm = c3 * maxAngleBetweenNormals
             maxVertexDefectsTerm = c4 * maxVertexDefects    
@@ -232,6 +257,44 @@ class RunSetup_MeshHF:
             # print(f"Sum of vertex defects: {sumVertexDefects}")
 
             return [maxHFTerm + sumHFTerm + normalsPenalty + maxNormalsTerm + maxVertexDefectsTerm, normalsPenalty, maxNormalsTerm]    
+
+        # def objectiveFunction(meshVertices, meshFaces, coefficientsList, unconstrainedFaces):
+
+            # meshVertices = np.asarray(meshVertices)
+            # meshFaces = np.asarray(meshFaces)   
+
+            # c0 = coefficientsList[0] #max heat flux term
+            # c1 = coefficientsList[1] #sum heat flux, unweighted, term
+            # c2 = coefficientsList[2] #normals diff term
+            # c3 = coefficientsList[3] #max normals term now 
+
+            # c4 = coefficientsList[4] #heat flux diff term
+
+            # # q_mesh_all = self.fwd.calculateAllHF(trimeshSolid)
+
+            # # q_mesh_all = self.fwd.calculateAllHF(meshVertices, meshFaces)
+
+            # # print(f"Time elapsed for q_mesh_all: {time.time() - t0}")
+
+            # unconstrainedFaces = [] #only keep this for cases with hf only on top face? 
+
+            # maxHFTerm = 0 #c0 * self.fwd.filteredCalculateMaxHF(q_mesh_all, unconstrainedFaces)    #try not dividing by initial value
+            # sumHFTerm = 0 #c1 * (self.fwd.calculateHFMeshSum(q_mesh_all) / numFaces) 
+
+            # # normalsDiff, maxNormalsDiff = calculateNormalsDiff(trimeshSolid)
+            # # normalsDiffSum = np.sum(normalsDiff)
+            # # normalsPenalty = c2 * ((normalsDiffSum / normalsPenalty_initial) / numFaces)
+            # # normalsPenalty = (c2) * (normalsDiffSum / numFaces)
+
+            # # sumVertexDefects, maxAngleBetweenNormals = calculateNormalsDiff(trimeshSolid) 
+            # sumVertexDefects, maxVertexDefects, maxAngleBetweenNormals = calculateNormalsDiff(meshVertices, meshFaces) #calculateNormalsDiff(trimeshSolid)  
+            # normalsPenalty = c2 * sumVertexDefects
+            # maxNormalsTerm = c3 * maxAngleBetweenNormals
+            # maxVertexDefectsTerm = c4 * maxVertexDefects    
+
+            # # print(f"Sum of vertex defects: {sumVertexDefects}")
+
+            # return [maxHFTerm + sumHFTerm + normalsPenalty + maxNormalsTerm + maxVertexDefectsTerm, normalsPenalty, maxNormalsTerm]    
             
 
         def sweep_coefficients_and_record_output(coefficients_list, idx_to_vary, sweep_values):
