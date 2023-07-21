@@ -148,15 +148,6 @@ class OptModel_MeshHF:
 
         print(f"after moving: {newVerticesGrid[0][0][0]}") 
 
-        input()
-
-        # newObjectiveFcnValues = np.array(
-        #     [objectiveFunction(newVerticesGrid[i], coefficientsList, facesToMove)[0] for i in range(len(newVerticesGrid))] 
-        # )
-        # newObjectiveFcnValues = np.array(
-        #     [objectiveFunction(trimesh.Trimesh(vertices=newVerticesGrid[i], faces=all_faces), coefficientsList, facesToMove)[0] for i in range(len(newVerticesGrid))] 
-        # ).reshape(numVtx, 3)
-
         newObjectiveFcnValues = np.array(
             [objectiveFunction(trimesh.Trimesh(vertices=newVerticesGrid[dim][vtx], faces=all_faces), coefficientsList, facesToMove)[0] for vtx in range(numVtx) for dim in range(len(newVerticesGrid))]
         ).reshape(numVtx, 3)
@@ -168,6 +159,8 @@ class OptModel_MeshHF:
 
         gradient = (newObjectiveFcnValues - currentObjectiveFcnValues) / (2 * delta) 
         print(f"gradient: {gradient}")   
+        print(f"Shape of gradient: {gradient.shape}")
+        print(f"Shape of vertices: {tri_mesh.vertices.shape}")
 
         #basically - move each vertex and update it
         tri_mesh.vertices[uniqueVtx, 0] -= (delta * gradient[uniqueVtx, 0])
