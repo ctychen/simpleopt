@@ -82,12 +82,12 @@ class OptModel_MeshHF:
         uniqueVtx = np.unique(flattenedVtx)
         # uniqueVtx = set(uniqueVtx)
 
-        t0 = time.time()    
+        # t0 = time.time()    
 
         numVtx = len(tri_mesh.vertices)
         currentVerticesGrid = np.array([np.tile(tri_mesh.vertices[np.newaxis, :], (numVtx, 1, 1)) for _ in range(3)])
 
-        print(f"time to make grid: {time.time() - t0}")
+        # print(f"time to make grid: {time.time() - t0}")
 
         t0 = time.time() 
 
@@ -109,7 +109,7 @@ class OptModel_MeshHF:
         # newTrimesh = trimesh.Trimesh(vertices=currentVerticesGrid[0][0], faces=all_faces)
         # print(f"time to create a new trimesh given vertices and faces: {time.time() - t0}")
 
-        t0 = time.time()    
+        # t0 = time.time()    
 
         newVerticesGrid = currentVerticesGrid.copy()
 
@@ -118,7 +118,7 @@ class OptModel_MeshHF:
         newVerticesGrid[1, range_indices, range_indices, 1] += delta
         newVerticesGrid[2, range_indices, range_indices, 2] += delta
 
-        print(f"time to make new grid and update vertices: {time.time() - t0}")
+        # print(f"time to make new grid and update vertices: {time.time() - t0}")
 
         # input()
 
@@ -134,7 +134,9 @@ class OptModel_MeshHF:
 
         print(f"time to calculate NEW objfcn: {time.time() - t0}")
 
-        t0 = time.time() 
+        input()
+
+        # t0 = time.time() 
 
         gradient = (newObjectiveFcnValues - currentObjectiveFcnValues) / (2 * delta) 
 
@@ -143,7 +145,7 @@ class OptModel_MeshHF:
         tri_mesh.vertices[uniqueVtx, 1] -= (delta * gradient[uniqueVtx, 1])
         tri_mesh.vertices[uniqueVtx, 2] -= (delta * gradient[uniqueVtx, 2])
 
-        print(f"time to calc gradient and move vertices: {time.time() - t0}")
+        # print(f"time to calc gradient and move vertices: {time.time() - t0}")
 
         return tri_mesh
 

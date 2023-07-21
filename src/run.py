@@ -4,6 +4,7 @@ import numpy as np
 import os
 
 import pandas as pd
+import scipy
 
 import plotly.graph_objects as go
 import plotly.io as pio
@@ -125,24 +126,6 @@ class RunSetup_MeshHF:
         print(f"Number of trimesh solid vertices: {numVertices}")
         print(f"Number of trimesh solid faces: {numFaces}")
 
-        def fast_vertex_defects(vertices, faces):
-            # get vectors to previous and next vertices
-            prev_vectors = vertices[faces] - vertices[faces[:, [2, 0, 1]]]
-            next_vectors = vertices[faces[:, [1, 2, 0]]] - vertices[faces]
-            
-            # normalize vectors
-            prev_vectors /= np.linalg.norm(prev_vectors, axis=-1, keepdims=True)
-            next_vectors /= np.linalg.norm(next_vectors, axis=-1, keepdims=True)
-
-            # angle at each vertex is the angle between the two vectors
-            cosines = np.einsum('ijk,ijk->ij', prev_vectors, next_vectors)
-            angles = np.arccos(np.clip(cosines, -1, 1))
-
-            # get vertex defects by subtracting angles from 2*pi
-            vertex_defects = 2 * np.pi - np.bincount(faces.flatten(), weights=angles.flatten(), minlength=vertices.shape[0])
-
-            return vertex_defects
-
         def calculateNormalsDiff(trimeshSolid):
         # def calculateNormalsDiff(vertices, faces):
             # t_0 = time.time()
@@ -153,23 +136,23 @@ class RunSetup_MeshHF:
             # vertices = trimeshSolid.vertices
             # faces = trimeshSolid.faces
             # t_0 = time.time()
-
-            vertex_defects = trimeshSolid.vertex_defects
-            #vertex_defects = trimesh.curvature.vertex_defects(trimeshSolid)
-            # vertices = trimeshSolid.vertices
-            # faces = trimeshSolid.faces
-            # vertex_defects = fast_vertex_defects(vertices, faces)
-            # print(f"time to get vertex defects and sum: {time.time() - t_0}")
+            # vertex_defects = trimeshSolid.vertex_defects
+            vertex_defects = trimesh.curvature.vertex_defects(trimeshSolid)
             sumVertexDefects = np.sum(np.abs(vertex_defects))
+            # print(f"Vertex defects trimesh: {vertex_defects}")
+            # t_tm = time.time() - t_0
+            # print(f"Time for trimesh calc: {t_tm}")
             maxVertexDefect = np.max(np.abs(vertex_defects))  
-
-            # t_0 = time.time()
 
             # normals_0 = normals[adjacency[:, 0]]
             # normals_1 = normals[adjacency[:, 1]]
             # dot_product = np.einsum('ij,ij->i', normals_0, normals_1)
             # clipped_dot_product = np.clip(dot_product, -1.0, 1.0)
             # allAnglesBetweenNormals = np.arccos(clipped_dot_product)
+            # print(f"all angles: {allAnglesBetweenNormals}")
+            # print(f"sum of angles between normals: {np.sum(allAnglesBetweenNormals)}")
+
+            # input()
             # maxAngleBetweenNormals = np.max(allAnglesBetweenNormals)
             maxAngleBetweenNormals = 0
 
