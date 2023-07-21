@@ -91,8 +91,8 @@ class OptModel_MeshHF:
 
         t0 = time.time() 
 
-        # currentObjFcnVal = objectiveFunction(trimesh.Trimesh(vertices=currentVerticesGrid[0][0], faces=all_faces), coefficientsList, facesToMove)[0]
-        currentObjFcnVal = objectiveFunction(currentVerticesGrid[0][0], all_faces, coefficientsList, facesToMove)[0]
+        currentObjFcnVal = objectiveFunction(trimesh.Trimesh(vertices=currentVerticesGrid[0][0], faces=all_faces), coefficientsList, facesToMove)[0]
+        # currentObjFcnVal = objectiveFunction(currentVerticesGrid[0][0], all_faces, coefficientsList, facesToMove)[0]
         currentObjectiveFcnValues = np.full((numVtx, 3), currentObjFcnVal)
 
         # currentObjectiveFcnValues = np.array(
@@ -120,15 +120,17 @@ class OptModel_MeshHF:
 
         print(f"time to make new grid and update vertices: {time.time() - t0}")
 
+        # input()
+
         t0 = time.time()    
 
-        # newObjectiveFcnValues = np.array(
-        #     [objectiveFunction(trimesh.Trimesh(vertices=newVerticesGrid[dim][vtx], faces=all_faces), coefficientsList, facesToMove)[0] for vtx in range(numVtx) for dim in range(len(newVerticesGrid))]
-        # ).reshape(numVtx, 3)
-
         newObjectiveFcnValues = np.array(
-            [objectiveFunction(newVerticesGrid[dim][vtx], all_faces, coefficientsList, facesToMove)[0] for vtx in range(numVtx) for dim in range(len(newVerticesGrid))]
+            [objectiveFunction(trimesh.Trimesh(vertices=newVerticesGrid[dim][vtx], faces=all_faces), coefficientsList, facesToMove)[0] for vtx in range(numVtx) for dim in range(len(newVerticesGrid))]
         ).reshape(numVtx, 3)
+
+        # newObjectiveFcnValues = np.array(
+        #     [objectiveFunction(newVerticesGrid[dim][vtx], all_faces, coefficientsList, facesToMove)[0] for vtx in range(numVtx) for dim in range(len(newVerticesGrid))]
+        # ).reshape(numVtx, 3)
 
         print(f"time to calculate NEW objfcn: {time.time() - t0}")
 
@@ -178,8 +180,8 @@ class OptModel_MeshHF:
         facesToMove = allIndices - indicesToNotMove #faces to move
 
         print(f"Objective function with coefficients: {coefficientsList}")
-        # objFcn = hfObjectiveFcn(trimeshSolid, coefficientsList, facesToMove)
-        objFcn = hfObjectiveFcn(trimeshSolid.vertices, trimeshSolid.faces, coefficientsList, facesToMove)
+        objFcn = hfObjectiveFcn(trimeshSolid, coefficientsList, facesToMove)
+        # objFcn = hfObjectiveFcn(trimeshSolid.vertices, trimeshSolid.faces, coefficientsList, facesToMove)
         # all_objective_function_values = [hfObjectiveFcn(trimeshSolid, coefficientsList, facesToMove)]
         all_objective_function_values = [objFcn[0]]
         all_sum_normals_diff = [objFcn[1]]
@@ -217,8 +219,8 @@ class OptModel_MeshHF:
 
             # new_objVal = hfObjectiveFcn(trimeshSolid, coefficientsList, facesToMove)
             # t2 = time.time()
-            # new_objVal_all = hfObjectiveFcn(trimeshSolid, coefficientsList, facesToMove)
-            new_objVal_all = hfObjectiveFcn(trimeshSolid.vertices, trimeshSolid.faces, coefficientsList, facesToMove)
+            new_objVal_all = hfObjectiveFcn(trimeshSolid, coefficientsList, facesToMove)
+            # new_objVal_all = hfObjectiveFcn(trimeshSolid.vertices, trimeshSolid.faces, coefficientsList, facesToMove)
             new_objVal = new_objVal_all[0]
             new_sum_normals_diff = new_objVal_all[1]
             new_max_normals_diff = new_objVal_all[2]
@@ -231,7 +233,7 @@ class OptModel_MeshHF:
 
             # print(f"{count}: time to update all calcs/plots/everything else: {time.time() - t2}")
 
-            input()
+            # input()
 
             # new_max_hf = calcMaxHF(hf_all_mesh, facesToMove)
             # max_hf_each_run.append(new_max_hf)
