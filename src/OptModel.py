@@ -26,10 +26,40 @@ from vtk.util.numpy_support import numpy_to_vtk
 from scipy.optimize import curve_fit
 from vtk.util import numpy_support
 
-    
+
+###OBJECTIVE FUNCTIONS AND CONSTRAINTS###
+
 def objective_for_vertex_dim(objectiveFunction, newVerticesGrid, vtx, dim, all_faces, coefficientsList, facesToMove):
-    #replaces newObjectiveFcnValues calculation in hopes of parallelizing this
     return objectiveFunction(trimesh.Trimesh(vertices=newVerticesGrid[dim][vtx], faces=all_faces), coefficientsList, facesToMove)[0]
+
+# TODO - eventually when we need to call forward model functions - would need this 
+# but maybe better solution is to not have a FwdModel class/object and just have a bunch of functions in a file that we can call
+# def objective_for_vertex_dim(objectiveFunction, newVerticesGrid, vtx, dim, all_faces, coefficientsList, facesToMove, fwd):
+#     return objectiveFunction(trimesh.Trimesh(vertices=newVerticesGrid[dim][vtx], faces=all_faces), coefficientsList, facesToMove, fwd)
+
+def calculateNormalsDiff(trimeshSolid):
+    vertex_defects = trimesh.curvature.vertex_defects(trimeshSolid)
+    sumVertexDefects = np.sum(np.abs(vertex_defects))
+    maxVertexDefect = np.max(np.abs(vertex_defects))  
+    maxAngleBetweenNormals = 0 #TODO - will need to bring in these terms from impelmentation in RunModel
+    return sumVertexDefects, maxVertexDefect, maxAngleBetweenNormals
+
+# def objectiveFunction(trimeshSolid, coefficientsList, unconstrainedFaces, fwdModel):
+#TODO - eventually need to figure out how to organize s.t. we can add fwdModel as an input 
+#also TODO - need to bring this back into run.py - RunModel class needs to be able to call this fcn
+def objectiveFunction(trimeshSolid, coefficientsList, unconstrainedFaces):
+    c0, c1, c2, c3, c4 = coefficientsList
+    # maxHFTerm = 0 #c0 * self.fwd.filteredCalculateMaxHF(q_mesh_all, unconstrainedFaces)    #try not dividing by initial value
+    # sumHFTerm = 0 #c1 * (self.fwd.calculateHFMeshSum(q_mesh_all) / numFaces) 
+    sumVertexDefects, maxVertexDefects, maxAngleBetweenNormals = calculateNormalsDiff(trimeshSolid)  
+    normalsPenalty = c2 * sumVertexDefects
+    maxNormalsTerm = c3 * maxAngleBetweenNormals
+    maxVertexDefectsTerm = c4 * maxVertexDefects    
+    #return [maxHFTerm + sumHFTerm + normalsPenalty + maxNormalsTerm + maxVertexDefectsTerm, normalsPenalty, maxNormalsTerm, maxVertexDefectsTerm]
+    return [normalsPenalty + maxNormalsTerm + maxVertexDefectsTerm, normalsPenalty, maxNormalsTerm]   
+
+
+### GRADIENT DESCENT AND OPTIMIZATION###
 
 class OptModel_MeshHF: 
     """
@@ -102,18 +132,26 @@ class OptModel_MeshHF:
         # newObjectiveFcnValues = np.array(
         #     [objectiveFunction(trimesh.Trimesh(vertices=newVerticesGrid[dim][vtx], faces=all_faces), coefficientsList, facesToMove)[0] for vtx in range(numVtx) for dim in range(len(newVerticesGrid))]
         # ).reshape(numVtx, 3)
-        
-        t0 = time.time()
-        numProcesses = self.Ncores
-        with Pool(numProcesses) as p:
-            newObjectiveFcnValues = np.array(p.starmap(
-                objective_for_vertex_dim, 
-                [(objectiveFunction, newVerticesGrid, vtx, dim, all_faces, coefficientsList, facesToMove) for vtx in range(numVtx) for dim in range(len(newVerticesGrid))]
-            )).reshape(numVtx, 3)
 
-        print(f"time to calculate NEW objfcn: {time.time() - t0}")
+        newObjectiveFcnValues = np.array(
+            [objective_for_vertex_dim(objectiveFunction, newVerticesGrid, vtx, dim, all_faces, coefficientsList, facesToMove) for vtx in range(numVtx) for dim in range(len(newVerticesGrid))]
+        ).reshape(numVtx, 3)
+
+        #objective_for_vertex_dim(objectiveFunction, newVerticesGrid, vtx, dim, all_faces, coefficientsList, facesToMove):
+        
+        # t0 = time.time()
+        # numProcesses = self.Ncores
+        # with Pool(numProcesses) as p:
+        #     newObjectiveFcnValues = np.array(p.starmap(
+        #         objective_for_vertex_dim, 
+        #         [(objectiveFunction, newVerticesGrid, vtx, dim, all_faces, coefficientsList, facesToMove) for vtx in range(numVtx) for dim in range(len(newVerticesGrid))]
+        #     )).reshape(numVtx, 3)
+
+        # print(f"time to calculate NEW objfcn: {time.time() - t0}")
 
         gradient = (newObjectiveFcnValues - currentObjectiveFcnValues) / (2 * delta) 
+
+        print(f"gradient: {gradient}")
 
         #basically - move each vertex and update it
         tri_mesh.vertices[uniqueVtx, 0] -= (delta * gradient[uniqueVtx, 0])
