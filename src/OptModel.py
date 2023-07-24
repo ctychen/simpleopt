@@ -72,6 +72,35 @@ def calculateIntegralMeanCurvature(vertices, faces, face_adjacency, face_adjacen
     integralMeanCurvature = (angles * edges_length).sum() * 0.5
     return integralMeanCurvature
 
+def calcUnitVectors(vectors):
+    norm = np.sqrt(np.dot(vectors, vectors))
+    unitVectors = vectors / norm
+    return unitVectors
+
+def calculateVertexDefects(vertices, faces, face_adjacency):
+    #calculate mesh face angles - so angles of triangles
+    triangles = np.asanyarray(vertices.view(np.ndarray)[faces], dtype=np.float64)
+    # get a unit vector for each edge of the triangle
+    u = calcUnitVectors(triangles[:, 1] - triangles[:, 0])
+    v = calcUnitVectors(triangles[:, 2] - triangles[:, 0])
+    w = calcUnitVectors(triangles[:, 2] - triangles[:, 1])
+
+    # run the cosine and per-row dot product
+    angles = np.zeros((len(triangles), 3), dtype=np.float64)
+    # clip to make sure we don't float error past 1.0
+    angles[:, 0] = np.arccos(np.clip(calculateDotProducts(u, v), -1, 1))
+    angles[:, 1] = np.arccos(np.clip(calculateDotProducts(-u, w), -1, 1))
+    # the third angle is just the remaining
+    angles[:, 2] = np.pi - angles[:, 0] - angles[:, 1]
+
+    # a triangle with any zero angles is degenerate
+    # so set all of the angles to zero in that case
+    angles[(angles < 1e-8).any(axis=1), :] = 0.0
+
+    angle_sum = np.array(angles.sum(axis=1)).flatten()
+
+    return (2*np.pi) - angle_sum
+
 # def objectiveFunction(trimeshSolid, coefficientsList, unconstrainedFaces, fwdModel):
 #TODO - eventually need to figure out how to organize s.t. we can add fwdModel as an input 
 #also TODO - need to bring this back into run.py - RunModel class needs to be able to call this fcn
