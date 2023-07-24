@@ -133,25 +133,25 @@ class OptModel_MeshHF:
         #     [objectiveFunction(trimesh.Trimesh(vertices=newVerticesGrid[dim][vtx], faces=all_faces), coefficientsList, facesToMove)[0] for vtx in range(numVtx) for dim in range(len(newVerticesGrid))]
         # ).reshape(numVtx, 3)
 
-        newObjectiveFcnValues = np.array(
-            [objective_for_vertex_dim(objectiveFunction, newVerticesGrid, vtx, dim, all_faces, coefficientsList, facesToMove) for vtx in range(numVtx) for dim in range(len(newVerticesGrid))]
-        ).reshape(numVtx, 3)
+        # newObjectiveFcnValues = np.array(
+        #     [objective_for_vertex_dim(objectiveFunction, newVerticesGrid, vtx, dim, all_faces, coefficientsList, facesToMove) for vtx in range(numVtx) for dim in range(len(newVerticesGrid))]
+        # ).reshape(numVtx, 3)
 
         #objective_for_vertex_dim(objectiveFunction, newVerticesGrid, vtx, dim, all_faces, coefficientsList, facesToMove):
         
         # t0 = time.time()
-        # numProcesses = self.Ncores
-        # with Pool(numProcesses) as p:
-        #     newObjectiveFcnValues = np.array(p.starmap(
-        #         objective_for_vertex_dim, 
-        #         [(objectiveFunction, newVerticesGrid, vtx, dim, all_faces, coefficientsList, facesToMove) for vtx in range(numVtx) for dim in range(len(newVerticesGrid))]
-        #     )).reshape(numVtx, 3)
+        numProcesses = self.Ncores #this includes 2 cores subtracted for overhead
+        with Pool(numProcesses) as p:
+            newObjectiveFcnValues = np.array(p.starmap(
+                objective_for_vertex_dim, 
+                [(objectiveFunction, newVerticesGrid, vtx, dim, all_faces, coefficientsList, facesToMove) for vtx in range(numVtx) for dim in range(len(newVerticesGrid))]
+            )).reshape(numVtx, 3)
 
         # print(f"time to calculate NEW objfcn: {time.time() - t0}")
 
         gradient = (newObjectiveFcnValues - currentObjectiveFcnValues) / (2 * delta) 
 
-        print(f"gradient: {gradient}")
+        # print(f"gradient: {gradient}")
 
         #basically - move each vertex and update it
         tri_mesh.vertices[uniqueVtx, 0] -= (delta * gradient[uniqueVtx, 0])
@@ -304,7 +304,7 @@ class OptModel_MeshHF:
             # print(f"{count}: gradient descent time: {time.time() - t0}")
             print(f"{count}: gradient descent time: {time.time() - t1}")
 
-            input()
+            # input()
             
             #recalculate the hf profile on the surface - don't need this for spheretests
             # updateHFProfile(trimeshSolid) 
