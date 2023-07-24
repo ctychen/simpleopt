@@ -56,10 +56,8 @@ def calculateHFMeshSum(q_mesh_all):
     """
     Calculate sum of heat flux from all mesh elements
     """
-
     q_mesh_vals = np.where(q_mesh_all > 0, q_mesh_all, 0)
     q_mesh_sum = np.sum(np.abs(q_mesh_vals))
-
     return q_mesh_sum
 
 def calculateIntegratedEnergy(q_mesh_all, trimeshSolid):
@@ -100,6 +98,33 @@ def calculateHFDistribution(q_dir, q_mag, trimeshSolid):
 
     return hfMean, hfVariance, hfStd, q_mesh_all
 
+def eich_profile(s_bar, q0, lambda_q, S, q_BG):
+    """
+    Fits an Eich profile to heat flux data, using upstream-mapped
+    distance to remove the explicit flux-expansion factor
+
+    See Eich Nuclear Fusion 2013. Using s_bar as the OMP-mapped distance
+    means that you should set 'f_x' = 1
+
+    You can pass the parameters to the profile either all as dimensional
+    Quantity objects, or all as dimensionless raw arrays/floats
+
+    s_bar: OMP-mapped radial distance [mm]
+    q0: peak heat flux [MW/m^2]
+    lambda_q: heat flux decay width [mm]
+    S: spreading factor [mm]
+    q_BG: background heat-flux [MW/m^2]
+    """
+
+    from scipy.special import erfc
+
+    return (
+        q0/ 2.0
+        * np.exp((S / (2.0 * lambda_q)) ** 2 - s_bar / lambda_q)
+        * erfc(S / (2.0 * lambda_q) - s_bar / S)
+        + q_BG
+    )
+
 
 class ForwardModel_MeshHF: 
 
@@ -111,35 +136,7 @@ class ForwardModel_MeshHF:
         self.makeHFProfile(self.solidObj.trimeshSolid)
         # self.makeHFProfile(self.solidObj.trimeshSolid, self.q_dir)
         return
-    
-    def eich_profile(self, s_bar, q0, lambda_q, S, q_BG):
-        """
-        Fits an Eich profile to heat flux data, using upstream-mapped
-        distance to remove the explicit flux-expansion factor
-
-        See Eich Nuclear Fusion 2013. Using s_bar as the OMP-mapped distance
-        means that you should set 'f_x' = 1
-
-        You can pass the parameters to the profile either all as dimensional
-        Quantity objects, or all as dimensionless raw arrays/floats
-
-        s_bar: OMP-mapped radial distance [mm]
-        q0: peak heat flux [MW/m^2]
-        lambda_q: heat flux decay width [mm]
-        S: spreading factor [mm]
-        q_BG: background heat-flux [MW/m^2]
-        """
-
-        from scipy.special import erfc
-
-        return (
-            q0/ 2.0
-            * np.exp((S / (2.0 * lambda_q)) ** 2 - s_bar / lambda_q)
-            * erfc(S / (2.0 * lambda_q) - s_bar / S)
-            + q_BG
-        )
-    
-    
+        
     def makeHFProfile(self, trimeshSolid): #, directionVectors):
         """
         make profile with direction and magnitude of HF at each face center
@@ -204,6 +201,9 @@ class ForwardModel_MeshHF:
 
         # self.q_mag_all_centers = q_mag_all_centers
         return q_mag_all_centers
+    
+
+    
     
     
     # #overall: can't have HF on backface - and doesn't make sense to have negative HF. 

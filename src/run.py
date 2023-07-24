@@ -64,7 +64,6 @@ class RunSetup_MeshHF:
         # qMagIn = [10.0, 10.0] #[W/m^2]
 #
         self.box = Solid.MeshSolid(stlPath, stpPath)
-        #self.box = Solid.MeshSolid(stlPath, stpPath) #normally, use this one!
 
         self.fwd = ForwardModel.ForwardModel_MeshHF(self.box, qMagIn, qDirIn, hfMode='uniform') 
         # self.fwd = ForwardModel.ForwardModel_MeshHF(self.box, qMagIn, qDirIn, hfMode='uniform_multiple') 
@@ -86,13 +85,8 @@ class RunSetup_MeshHF:
         directoryName = f"{runName}" #running this within docker container means can't save to external without bindmount aaa
 
         os.makedirs(directoryName)
-        # os.makedirs(f"{directoryName}/images")
 
         print(f"Made directory: {directoryName}")
-
-        #where we are saving generated vtk's
-        # directoryName = f"{directoryName}/vtks"
-        # os.makedirs(directoryName)
 
         return directoryName
 
@@ -196,15 +190,15 @@ class RunSetup_MeshHF:
             return []
 
         
-        q_mesh_initial = self.fwd.calculateAllHF(trimeshSolid)
-        maxHF_initial = self.fwd.filteredCalculateMaxHF(q_mesh_initial, unconstrainedFaces = [])
-        sumHF_initial = self.fwd.calculateHFMeshSum(q_mesh_initial)
+        q_mesh_initial = ForwardModel.calculateAllHF(self.fwd.hfMode, self.fwd.q_dir, self.fwd.q_mag, trimeshSolid) #self.fwd.calculateAllHF(trimeshSolid)
+        maxHF_initial = ForwardModel.filteredCalculateMaxHF(q_mesh_initial, unconstrainedFaces=[]) #self.fwd.filteredCalculateMaxHF(q_mesh_initial, unconstrainedFaces = [])
+        sumHF_initial = ForwardModel.calculateAllHF(q_mesh_initial) #self.fwd.calculateHFMeshSum(q_mesh_initial)
         # normalsDiff_initial, normalRefDotProducts_initial = calculateNormalsDiff(trimeshSolid)
         # normalsDiff_initial, maxNormalsDiff_initial = calculateNormalsDiff(trimeshSolid)
         sumVertexDefects_initial, maxVertexDefect_initial, maxAngleBetweenNormals_initial = OptModel.calculateNormalsDiff(trimeshSolid)   
         # sumVertexDefects_initial, maxVertexDefect_initial, maxAngleBetweenNormals_initial = calculateNormalsDiff(trimeshSolid.vertices, trimeshSolid.faces)  
         # normalsPenalty_initial = np.sum(normalsDiff_initial)
-        energy_initial = self.fwd.calculateIntegratedEnergy(q_mesh_initial, trimeshSolid)
+        energy_initial = ForwardModel.calculateIntegratedEnergy(q_mesh_initial, trimeshSolid)  #self.fwd.calculateIntegratedEnergy(q_mesh_initial, trimeshSolid)
 
         numFaces = len(trimeshSolid.faces)  #for normalizing terms in objective function
 
@@ -276,45 +270,6 @@ class RunSetup_MeshHF:
 
         #     return [maxHFTerm + sumHFTerm + normalsPenalty + maxNormalsTerm + maxVertexDefectsTerm, normalsPenalty, maxNormalsTerm]    
 
-        # def objectiveFunction(meshVertices, meshFaces, coefficientsList, unconstrainedFaces):
-
-            # meshVertices = np.asarray(meshVertices)
-            # meshFaces = np.asarray(meshFaces)   
-
-            # c0 = coefficientsList[0] #max heat flux term
-            # c1 = coefficientsList[1] #sum heat flux, unweighted, term
-            # c2 = coefficientsList[2] #normals diff term
-            # c3 = coefficientsList[3] #max normals term now 
-
-            # c4 = coefficientsList[4] #heat flux diff term
-
-            # # q_mesh_all = self.fwd.calculateAllHF(trimeshSolid)
-
-            # # q_mesh_all = self.fwd.calculateAllHF(meshVertices, meshFaces)
-
-            # # print(f"Time elapsed for q_mesh_all: {time.time() - t0}")
-
-            # unconstrainedFaces = [] #only keep this for cases with hf only on top face? 
-
-            # maxHFTerm = 0 #c0 * self.fwd.filteredCalculateMaxHF(q_mesh_all, unconstrainedFaces)    #try not dividing by initial value
-            # sumHFTerm = 0 #c1 * (self.fwd.calculateHFMeshSum(q_mesh_all) / numFaces) 
-
-            # # normalsDiff, maxNormalsDiff = calculateNormalsDiff(trimeshSolid)
-            # # normalsDiffSum = np.sum(normalsDiff)
-            # # normalsPenalty = c2 * ((normalsDiffSum / normalsPenalty_initial) / numFaces)
-            # # normalsPenalty = (c2) * (normalsDiffSum / numFaces)
-
-            # # sumVertexDefects, maxAngleBetweenNormals = calculateNormalsDiff(trimeshSolid) 
-            # sumVertexDefects, maxVertexDefects, maxAngleBetweenNormals = calculateNormalsDiff(meshVertices, meshFaces) #calculateNormalsDiff(trimeshSolid)  
-            # normalsPenalty = c2 * sumVertexDefects
-            # maxNormalsTerm = c3 * maxAngleBetweenNormals
-            # maxVertexDefectsTerm = c4 * maxVertexDefects    
-
-            # # print(f"Sum of vertex defects: {sumVertexDefects}")
-
-            # return [maxHFTerm + sumHFTerm + normalsPenalty + maxNormalsTerm + maxVertexDefectsTerm, normalsPenalty, maxNormalsTerm]    
-            
-
         def sweep_coefficients_and_record_output(coefficients_list, idx_to_vary, sweep_values):
             """
             run through possible values of one coefficient while keeping the rest fixed
@@ -337,9 +292,9 @@ class RunSetup_MeshHF:
                     OptModel.objectiveFunction,  
                     facesToKeep,
                     self.fwd.makeHFProfile,
-                    self.fwd.calculateAllHF,
-                    self.fwd.filteredCalculateMaxHF, #self.fwd.calculateMaxHF,
-                    self.fwd.calculateIntegratedEnergy,
+                    ForwardModel.calculateAllHF, #self.fwd.calculateAllHF,
+                    ForwardModel.filteredCalculateMaxHF, #self.fwd.filteredCalculateMaxHF, #self.fwd.calculateMaxHF,
+                    ForwardModel.calculateIntegratedEnergy, #self.fwd.calculateIntegratedEnergy,
                     my_trimeshSolid, 
                     coefficients_list,
                     threshold=0.00000001, 
@@ -405,12 +360,12 @@ class RunSetup_MeshHF:
                     directoryName = self.makeDirectories(f"randomspheretest2_{id}/test_", coefficients_list)
                     
                     self.opt.meshHFOpt(
-                        objectiveFunction,  
+                        OptModel.objectiveFunction,  
                         facesToKeep,
                         self.fwd.makeHFProfile,
-                        self.fwd.calculateAllHF,
-                        self.fwd.filteredCalculateMaxHF, #self.fwd.calculateMaxHF,
-                        self.fwd.calculateIntegratedEnergy,
+                        ForwardModel.calculateAllHF,
+                        ForwardModel.filteredCalculateMaxHF, #self.fwd.calculateMaxHF,
+                        ForwardModel.calculateIntegratedEnergy,
                         my_trimeshSolid, 
                         coefficients_list,
                         threshold=0.00000001, 
