@@ -142,7 +142,7 @@ def calculateFaceAreas(vertices, faces):
 
 class MeshSolid(CADClass.CAD):
 
-    def __init__(self, stlfile="", stpfile="", meshres=1.0):
+    def __init__(self, stlfile="", stpfile="", meshres=2.0):
         super(CADClass.CAD, self).__init__()
         self.STLfile = stlfile
         self.STPfile = stpfile

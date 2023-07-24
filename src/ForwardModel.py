@@ -24,7 +24,7 @@ def calculateAllHF(hfMode, q_dir, q_mag, trimeshSolid):
     q_mesh_all = []
 
     if hfMode == 'uniform':
-        q_mesh_all = calculateAllHF_AllVals(trimeshSolid)
+        q_mesh_all = calculateAllHF_AllVals(q_dir, q_mag, trimeshSolid)
 
     #TODO fix this later but exponnorm profile is not a priority
     # elif hfMode == 'exponnorm':
@@ -203,7 +203,7 @@ class ForwardModel_MeshHF:
         return q_mag_all_centers
     
 
-    
+
     
     
     # #overall: can't have HF on backface - and doesn't make sense to have negative HF. 
