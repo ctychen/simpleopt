@@ -43,6 +43,7 @@ import CADClass
 import Solid
 import ForwardModel
 import OptModel
+import multiprocessing
 
 class RunSetup_MeshHF:
     def __init__(self):
@@ -69,6 +70,8 @@ class RunSetup_MeshHF:
         # self.fwd = ForwardModel.ForwardModel_MeshHF(self.box, qMagIn, qDirIn, hfMode='uniform_multiple') 
         # self.fwd = ForwardModel.ForwardModel_MeshHF(self.box, qMagIn, qDirIn, hfMode='exponnorm') 
         self.opt = OptModel.OptModel_MeshHF()
+
+        print(f"Number of cores: {multiprocessing.cpu_count()}")
 
         return
     
@@ -288,7 +291,7 @@ class RunSetup_MeshHF:
             for val in sweep_values:
                 my_trimeshSolid = trimeshSolid.copy()
                 coefficients_list[idx_to_vary] = val
-                directoryName = self.makeDirectories(f"vectorspheretest_newtests_{idx_to_vary}/highres/imctest_", coefficients_list)
+                directoryName = self.makeDirectories(f"vectorspheretest_newtests_{idx_to_vary}/highres/imctests/test_", coefficients_list)
                 #meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
                 self.opt.meshHFOpt(
                     OptModel.objectiveFunction,  
