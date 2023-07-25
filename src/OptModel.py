@@ -199,30 +199,13 @@ class OptModel_MeshHF:
         newVerticesGrid[1, range_indices, range_indices, 1] += delta
         newVerticesGrid[2, range_indices, range_indices, 2] += delta
 
-        # numProcesses = self.Ncores #this includes 2 cores subtracted for overhead
+        numProcesses = self.Ncores
 
-        numProcesses = self.Ncores // 3
-
-        results = []
-
-        def run_pool(dim):
-            with Pool(numProcesses) as p:
-                return p.starmap(
-                    objective_for_vertex_dim, 
-                    [(objectiveFunction, newVerticesGrid[dim], vtx, dim, all_faces, face_adjacency, face_adjacency_edges, initialParams, coefficientsList, facesToMove) for vtx in range(numVtx)]
-                )
-
-        # Create a ThreadPoolExecutor to run the pools concurrently
-        with ThreadPoolExecutor(max_workers=3) as executor:
-            results = executor.map(run_pool, range(3))
-
-        newObjectiveFcnValues = np.array(list(results)).reshape(3, numVtx)
-
-        # with Pool(numProcesses) as p:
-        #     newObjectiveFcnValues = np.array(p.starmap(
-        #         objective_for_vertex_dim, 
-        #         [(objectiveFunction, newVerticesGrid, vtx, dim, all_faces, face_adjacency, face_adjacency_edges, initialParams, coefficientsList, facesToMove) for vtx in range(numVtx) for dim in range(len(newVerticesGrid))]
-        #     )).reshape(numVtx, 3)
+        with Pool(numProcesses) as p:
+            newObjectiveFcnValues = np.array(p.starmap(
+                objective_for_vertex_dim, 
+                [(objectiveFunction, newVerticesGrid, vtx, dim, all_faces, face_adjacency, face_adjacency_edges, initialParams, coefficientsList, facesToMove) for vtx in range(numVtx) for dim in range(len(newVerticesGrid))]
+            )).reshape(numVtx, 3)
 
         #def objective_for_vertex_dim(objectiveFunction, newVerticesGrid, vtx, dim, all_faces, face_adjacency, coefficientsList, facesToMove):
         #objectiveFunction(vertices, faces, face_adjacency, face_adjacency_edges, coefficientsList, unconstrainedFaces):
