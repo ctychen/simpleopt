@@ -207,6 +207,23 @@ class OptModel_MeshHF:
                 [(objectiveFunction, newVerticesGrid, vtx, dim, all_faces, face_adjacency, face_adjacency_edges, initialParams, coefficientsList, facesToMove) for vtx in range(numVtx) for dim in range(len(newVerticesGrid))]
             )).reshape(numVtx, 3)
 
+        # try:
+        #     pool = multiprocessing.Pool(Ncores)
+        #     #Moller-Trumbore algorithm
+        #     if mode == 'MT':
+        #         print("Using Moller-Trumbore intersection algorithm")
+        #         log.info("Using Moller-Trumbore intersection algorithm")
+        #         mask = np.asarray(pool.map(tools.intersectTestParallelMT, np.arange(N)))
+        #     #Signed Volume algorithm
+        #     else:
+        #         print("Using signed volume intersection algorithm")
+        #         log.info("Using signed volume intersection algorithm")
+        #         mask = np.asarray(pool.map(tools.intersectTestParallel, np.arange(N)))
+        # finally:
+        #     pool.close()
+        #     pool.join()
+        #     del pool
+
         #def objective_for_vertex_dim(objectiveFunction, newVerticesGrid, vtx, dim, all_faces, face_adjacency, coefficientsList, facesToMove):
         #objectiveFunction(vertices, faces, face_adjacency, face_adjacency_edges, coefficientsList, unconstrainedFaces):
 
