@@ -107,23 +107,23 @@ from vtk.util import numpy_support
 #     return (2*np.pi) - angle_sum
 
 
-#face_adjacency, faces, and face_adjacency_edges are from trimesh but all will only need to be accessed once at beginning, and are all np arrays
-def objectiveFunction(vertices, faces, face_adjacency, face_adjacency_edges, initialParams, coefficientsList, unconstrainedFaces):
-    #for initialParams - this is volume of original mesh, etc. - for normalization, etc. 
-    c0, c1, c2, c3, c4 = coefficientsList
-    # maxHFTerm = 0 #c0 * self.fwd.filteredCalculateMaxHF(q_mesh_all, unconstrainedFaces)    #try not dividing by initial value
-    # sumHFTerm = 0 #c1 * (self.fwd.calculateHFMeshSum(q_mesh_all) / numFaces) 
-    # sumVertexDefects, maxVertexDefects, maxAngleBetweenNormals = calculateNormalsDiff(trimeshSolid)  
-    imcTerm = c2 * calculateIntegralMeanCurvature(vertices, faces, face_adjacency, face_adjacency_edges)
-    # imcTerm = c2 * (Solid.calculateSurfaceArea(vertices, faces) / initialParams[0])
-    # normalsPenalty = c2 * sumVertexDefects
-    vertexDefectsTerm = 0#c2 * calculateVertexDefects(vertices, faces, face_adjacency)
-    maxNormalsTerm = 0#c3 * maxAngleBetweenNormals   
-    #c4 was originally a thing but i've given up
-    # return [vertexDefectsTerm + maxNormalsTerm, vertexDefectsTerm, maxNormalsTerm]
-    #return [maxHFTerm + sumHFTerm + normalsPenalty + maxNormalsTerm + maxVertexDefectsTerm, normalsPenalty, maxNormalsTerm, maxVertexDefectsTerm]
-    # return [normalsPenalty + maxNormalsTerm + maxVertexDefectsTerm, normalsPenalty, maxNormalsTerm]   
-    return [imcTerm + maxNormalsTerm + vertexDefectsTerm, imcTerm, maxNormalsTerm] 
+# #face_adjacency, faces, and face_adjacency_edges are from trimesh but all will only need to be accessed once at beginning, and are all np arrays
+# def objectiveFunction(vertices, faces, face_adjacency, face_adjacency_edges, initialParams, coefficientsList, unconstrainedFaces):
+#     #for initialParams - this is volume of original mesh, etc. - for normalization, etc. 
+#     c0, c1, c2, c3, c4 = coefficientsList
+#     # maxHFTerm = 0 #c0 * self.fwd.filteredCalculateMaxHF(q_mesh_all, unconstrainedFaces)    #try not dividing by initial value
+#     # sumHFTerm = 0 #c1 * (self.fwd.calculateHFMeshSum(q_mesh_all) / numFaces) 
+#     # sumVertexDefects, maxVertexDefects, maxAngleBetweenNormals = calculateNormalsDiff(trimeshSolid)  
+#     imcTerm = c2 * calculateIntegralMeanCurvature(vertices, faces, face_adjacency, face_adjacency_edges)
+#     # imcTerm = c2 * (Solid.calculateSurfaceArea(vertices, faces) / initialParams[0])
+#     # normalsPenalty = c2 * sumVertexDefects
+#     vertexDefectsTerm = 0#c2 * calculateVertexDefects(vertices, faces, face_adjacency)
+#     maxNormalsTerm = 0#c3 * maxAngleBetweenNormals   
+#     #c4 was originally a thing but i've given up
+#     # return [vertexDefectsTerm + maxNormalsTerm, vertexDefectsTerm, maxNormalsTerm]
+#     #return [maxHFTerm + sumHFTerm + normalsPenalty + maxNormalsTerm + maxVertexDefectsTerm, normalsPenalty, maxNormalsTerm, maxVertexDefectsTerm]
+#     # return [normalsPenalty + maxNormalsTerm + maxVertexDefectsTerm, normalsPenalty, maxNormalsTerm]   
+#     return [imcTerm + maxNormalsTerm + vertexDefectsTerm, imcTerm, maxNormalsTerm] 
 
 
 ### GRADIENT DESCENT AND OPTIMIZATION###

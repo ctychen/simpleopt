@@ -20,6 +20,9 @@ class ObjectiveFunctionTools:
         self.all_faces = trimeshSolid.faces
         self.face_adjacency = trimeshSolid.face_adjacency
         self.face_adjacency_edges = trimeshSolid.face_adjacency_edges
+        vertices = trimeshSolid.vertices
+        self.currentVerticesGrid = np.array([np.tile(vertices[np.newaxis, :], (len(vertices), 1, 1)) for _ in range(3)])
+        self.newVerticesGrid = np.array([np.tile(vertices[np.newaxis, :], (len(vertices), 1, 1)) for _ in range(3)])
         return
     
     def setParams(self, initialParams, coefficientsList):
@@ -31,6 +34,10 @@ class ObjectiveFunctionTools:
         self.facesToMove = facesToMove
         return 
     
+    def setNewVerticesGrid(self, newVerticesGrid):
+        self.newVerticesGrid = newVerticesGrid
+        return 
+    
     ###OBJECTIVE FUNCTIONS AND CONSTRAINTS###
 
     # def objective_for_vertex_dim(objectiveFunction, newVerticesGrid, vtx, dim, all_faces, face_adjacency, face_adjacency_edges, initialParams, coefficientsList, facesToMove):
@@ -39,8 +46,6 @@ class ObjectiveFunctionTools:
     
     # def objective_function_for_vertex_dim(self, vtx, dim):
         #return self.objectiveFunction(self.newVerticesGrid[dim][vtx], self.all_faces, self.face_adjacency, self.face_adjacency_edges, self.initialParams, self.coefficientsList, self.facesToMove)[0]
-
-    
 
     def calculateNormalsDiff(self, trimeshSolid):
         vertex_defects = trimesh.curvature.vertex_defects(trimeshSolid)
@@ -104,6 +109,47 @@ class ObjectiveFunctionTools:
         angle_sum = np.array(angles.sum(axis=1)).flatten()
 
         return (2*np.pi) - angle_sum
+    
+
+    def vtxFacesObjectiveFunctionCalc(self, verticesList):
+        c0, c1, c2, c3, c4 = self.coefficientsList
+        imcTerm = c2 * self.calculateIntegralMeanCurvature(verticesList, self.all_faces, self.face_adjacency, self.face_adjacency_edges)
+        vertexDefectsTerm = 0#c2 * calculateVertexDefects(vertices, faces, face_adjacency)
+        maxNormalsTerm = 0#c3 * maxAngleBetweenNormals   
+        return imcTerm + maxNormalsTerm + vertexDefectsTerm #[imcTerm + maxNormalsTerm + vertexDefectsTerm, imcTerm, maxNormalsTerm]
+
+    def objectiveFunction(self, vtx, dim): 
+        c0, c1, c2, c3, c4 = self.coefficientsList
+        imcTerm = c2 * self.calculateIntegralMeanCurvature(self.newVerticesGrid[dim][vtx], self.all_faces, self.face_adjacency, self.face_adjacency_edges)
+        vertexDefectsTerm = 0#c2 * calculateVertexDefects(vertices, faces, face_adjacency)
+        maxNormalsTerm = 0#c3 * maxAngleBetweenNormals   
+        return imcTerm + maxNormalsTerm + vertexDefectsTerm #[imcTerm + maxNormalsTerm + vertexDefectsTerm, imcTerm, maxNormalsTerm]
+    
+
+    # def objective_for_vertex_dim(objectiveFunction, newVerticesGrid, vtx, dim, all_faces, face_adjacency, face_adjacency_edges, initialParams, coefficientsList, facesToMove):
+    #     #face_adjacency, face_adjacency_edges, initialParams
+    #     return objectiveFunction(newVerticesGrid[dim][vtx], all_faces, face_adjacency, face_adjacency_edges, initialParams, coefficientsList, facesToMove)[0]
+    
+    # def objective_function_for_vertex_dim(self, vtx, dim):
+        #return self.objectiveFunction(self.newVerticesGrid[dim][vtx], self.all_faces, self.face_adjacency, self.face_adjacency_edges, self.initialParams, self.coefficientsList, self.facesToMove)[0]
+
+    #face_adjacency, faces, and face_adjacency_edges are from trimesh but all will only need to be accessed once at beginning, and are all np arrays
+    # def objectiveFunction(vertices, faces, face_adjacency, face_adjacency_edges, initialParams, coefficientsList, unconstrainedFaces):
+    #     #for initialParams - this is volume of original mesh, etc. - for normalization, etc. 
+    #     c0, c1, c2, c3, c4 = coefficientsList
+    #     # maxHFTerm = 0 #c0 * self.fwd.filteredCalculateMaxHF(q_mesh_all, unconstrainedFaces)    #try not dividing by initial value
+    #     # sumHFTerm = 0 #c1 * (self.fwd.calculateHFMeshSum(q_mesh_all) / numFaces) 
+    #     # sumVertexDefects, maxVertexDefects, maxAngleBetweenNormals = calculateNormalsDiff(trimeshSolid)  
+    #     imcTerm = c2 * self.calculateIntegralMeanCurvature(vertices, faces, face_adjacency, face_adjacency_edges)
+    #     # imcTerm = c2 * (Solid.calculateSurfaceArea(vertices, faces) / initialParams[0])
+    #     # normalsPenalty = c2 * sumVertexDefects
+    #     vertexDefectsTerm = 0#c2 * calculateVertexDefects(vertices, faces, face_adjacency)
+    #     maxNormalsTerm = 0#c3 * maxAngleBetweenNormals   
+    #     #c4 was originally a thing but i've given up
+    #     # return [vertexDefectsTerm + maxNormalsTerm, vertexDefectsTerm, maxNormalsTerm]
+    #     #return [maxHFTerm + sumHFTerm + normalsPenalty + maxNormalsTerm + maxVertexDefectsTerm, normalsPenalty, maxNormalsTerm, maxVertexDefectsTerm]
+    #     # return [normalsPenalty + maxNormalsTerm + maxVertexDefectsTerm, normalsPenalty, maxNormalsTerm]   
+    #     return [imcTerm + maxNormalsTerm + vertexDefectsTerm, imcTerm, maxNormalsTerm]
     
 
     
