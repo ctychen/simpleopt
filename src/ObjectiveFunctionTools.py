@@ -37,9 +37,57 @@ class ObjectiveFunctionTools:
         self.facesToMove = facesToMove
         return 
     
+    # def setNewVerticesGrid(self, newVerticesGrid, delta):
+    #     self.newVerticesGrid = newVerticesGrid
+    #     range_indices = np.arange(self.currentVerticesGrid.shape[1])
+    #     self.newVerticesGrid[0, range_indices, range_indices, 0] += delta
+    #     self.newVerticesGrid[1, range_indices, range_indices, 1] += delta
+    #     self.newVerticesGrid[2, range_indices, range_indices, 2] += delta
+    #     return 
+
     def setNewVerticesGrid(self, newVerticesGrid):
         self.newVerticesGrid = newVerticesGrid
         return 
+    
+    def calculateFaceNormals(self, vertices, faces):
+        """
+        calculate normal vectors for each face in a trimesh.
+
+        Parameters
+        ----------
+        vertices : (n, 3) array
+            Vertex coordinate in the space.
+        faces : (m, 3) array
+            Indices of vertices that make up each face.
+        
+        Returns
+        -------
+        face_normals : (m, 3) array
+            Normal vector for each face.
+        """
+
+        # #get vectors of the two edges for each face
+        # vec1 = vertices[faces[:, 1]] - vertices[faces[:, 0]]
+        # vec2 = vertices[faces[:, 2]] - vertices[faces[:, 0]]
+        
+        # #calculate normal vectors using cross product
+        # faceNormals = np.cross(vec1, vec2)
+        
+        # # Normalize each normal vector
+        # norms = np.linalg.norm(faceNormals, axis=1)
+        # faceNormals = faceNormals / norms[:, np.newaxis]
+
+        #get vectors of the two edges for each face
+        vecs = vertices[faces[:, 1:]] - vertices[faces[:, 0, np.newaxis]]
+        
+        #calculate normal vectors using cross product
+        faceNormals = np.cross(vecs[:, 0], vecs[:, 1])
+        
+        # Normalize each normal vector
+        norms = np.linalg.norm(faceNormals, axis=1, keepdims=True)
+        faceNormals /= norms
+        
+        return faceNormals
     
     ###OBJECTIVE FUNCTIONS AND CONSTRAINTS###
 
@@ -77,7 +125,8 @@ class ObjectiveFunctionTools:
         Compute the integral mean curvature of a mesh. Not normalized. This was the original function used
         """
         #calc face normals
-        face_normals = Solid.calculateFaceNormals(vertices, faces)
+        #face_normals = Solid.calculateFaceNormals(vertices, faces)
+        face_normals = self.calculateFaceNormals(vertices, faces)
         #calc angles between adjacent faces
         pairs = face_normals[face_adjacency]
         angles = self.calculateAngles(pairs)
@@ -92,7 +141,8 @@ class ObjectiveFunctionTools:
         Compute the integral mean curvature of a mesh. Normalized: sum(curvatures / sum of curvatures)
         """
         #calc face normals
-        face_normals = Solid.calculateFaceNormals(vertices, faces)
+        #face_normals = Solid.calculateFaceNormals(vertices, faces)
+        face_normals = self.calculateFaceNormals(self, vertices, faces)
         #calc angles between adjacent faces
         pairs = face_normals[face_adjacency]
         angles = self.calculateAngles(pairs)
@@ -104,6 +154,26 @@ class ObjectiveFunctionTools:
         imc = np.sum(allValues)
         integralMeanCurvature = imc / initialIMC
         #integralMeanCurvature_all = (angles * edges_length).sum() * 0.5
+        return integralMeanCurvature   
+    
+    def calculateIntegralMeanCurvatureParallel(self, vtx, dim):
+        """
+        Compute the integral mean curvature of a mesh. Normalized: sum(curvatures / sum of curvatures)
+        """
+        #calc face normals
+        vertices = self.newVerticesGrid[dim][vtx]
+        #face_normals = Solid.calculateFaceNormals(vertices, self.all_faces)
+        face_normals = self.calculateFaceNormals(vertices, self.all_faces)
+        #calc angles between adjacent faces
+        pairs = face_normals[self.face_adjacency]
+        angles = self.calculateAngles(pairs)
+        #calc integral mean curvature
+        edges_length = np.linalg.norm(np.subtract(
+            *vertices[self.face_adjacency_edges.T]), axis=1)
+        
+        allValues = (angles * edges_length) * 0.5
+        imc = np.sum(allValues)
+        integralMeanCurvature = imc / self.initialIMC
         return integralMeanCurvature   
 
     def calcUnitVectors(self, vectors):
@@ -145,7 +215,8 @@ class ObjectiveFunctionTools:
 
     def objectiveFunction(self, vtx, dim): 
         c0, c1, c2, c3, c4 = self.coefficientsList
-        imcTerm = c2 * self.calculateIntegralMeanCurvature(self.newVerticesGrid[dim][vtx], self.all_faces, self.face_adjacency, self.face_adjacency_edges, self.initialIMC)
+        # imcTerm = c2 * self.calculateIntegralMeanCurvature(self.newVerticesGrid[dim][vtx], self.all_faces, self.face_adjacency, self.face_adjacency_edges, self.initialIMC)
+        imcTerm = c2 * self.calculateIntegralMeanCurvatureParallel(vtx, dim)
         vertexDefectsTerm = 0#c2 * calculateVertexDefects(vertices, faces, face_adjacency)
         maxNormalsTerm = 0#c3 * maxAngleBetweenNormals   
         return imcTerm + maxNormalsTerm + vertexDefectsTerm #[imcTerm + maxNormalsTerm + vertexDefectsTerm, imcTerm, maxNormalsTerm]

@@ -81,20 +81,18 @@ class OptModel_MeshHF:
         numVtx = len(tri_mesh.vertices)
 
         currentVerticesGrid = np.array([np.tile(tri_mesh.vertices[np.newaxis, :], (numVtx, 1, 1)) for _ in range(3)])
-        #currentObjFcnVal = objectiveFunction(trimesh.Trimesh(vertices=currentVerticesGrid[0][0], faces=all_faces), coefficientsList, facesToMove)[0]
-        # currentObjFcnVal = objectiveFunction(currentVerticesGrid[0][0], all_faces, coefficientsList, facesToMove)[0]
-        #objectiveFunction(vertices, faces, face_adjacency, face_adjacency_edges, coefficientsList, unconstrainedFaces):
-
-        #currentObjFcnVal = objectiveFunction(currentVerticesGrid[0][0], all_faces, face_adjacency, face_adjacency_edges, initialParams, coefficientsList, facesToMove)[0]
+        numDim = len(currentVerticesGrid)
 
         currentObjFcnVal = objfcnTools.vtxFacesObjectiveFunctionCalc(currentVerticesGrid[0][0])
         currentObjectiveFcnValues = np.full((numVtx, 3), currentObjFcnVal)
 
         newVerticesGrid = currentVerticesGrid.copy()
+        delta = delta * (254.0 / numVtx)
         range_indices = np.arange(currentVerticesGrid.shape[1])
         newVerticesGrid[0, range_indices, range_indices, 0] += delta
         newVerticesGrid[1, range_indices, range_indices, 1] += delta
         newVerticesGrid[2, range_indices, range_indices, 2] += delta
+        # objfcnTools.setNewVerticesGrid(newVerticesGrid, delta)
         objfcnTools.setNewVerticesGrid(newVerticesGrid)
 
         numProcesses = self.Ncores
@@ -109,7 +107,7 @@ class OptModel_MeshHF:
             pool = multiprocessing.Pool(numProcesses)
             newObjectiveFcnValues = np.array(pool.starmap(
                 objfcnTools.objectiveFunction, 
-                [(vtx, dim) for vtx in range(numVtx) for dim in range(len(newVerticesGrid))]
+                [(vtx, dim) for vtx in range(numVtx) for dim in range(numDim)]
             )).reshape(numVtx, 3)
         finally:
             pool.close()
@@ -141,7 +139,7 @@ class OptModel_MeshHF:
         gradient = (newObjectiveFcnValues - currentObjectiveFcnValues) / (2 * delta) 
 
         # print(f"gradient: {gradient}")
-        delta = delta * (254.0 / numVtx)
+        # delta = delta * (254.0 / numVtx)
         # delta = delta * (numVtx / 254.0) 
 
         #basically - move each vertex and update it

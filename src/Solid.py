@@ -17,47 +17,6 @@ tools = toolsClass.tools()
 
 ### Mesh Properties ###
 
-def calculateFaceNormals(vertices, faces):
-    """
-    calculate normal vectors for each face in a trimesh.
-
-    Parameters
-    ----------
-    vertices : (n, 3) array
-        Vertex coordinate in the space.
-    faces : (m, 3) array
-        Indices of vertices that make up each face.
-    
-    Returns
-    -------
-    face_normals : (m, 3) array
-        Normal vector for each face.
-    """
-
-    # #get vectors of the two edges for each face
-    # vec1 = vertices[faces[:, 1]] - vertices[faces[:, 0]]
-    # vec2 = vertices[faces[:, 2]] - vertices[faces[:, 0]]
-    
-    # #calculate normal vectors using cross product
-    # faceNormals = np.cross(vec1, vec2)
-    
-    # # Normalize each normal vector
-    # norms = np.linalg.norm(faceNormals, axis=1)
-    # faceNormals = faceNormals / norms[:, np.newaxis]
-
-    #get vectors of the two edges for each face
-    vecs = vertices[faces[:, 1:]] - vertices[faces[:, 0, np.newaxis]]
-    
-    #calculate normal vectors using cross product
-    faceNormals = np.cross(vecs[:, 0], vecs[:, 1])
-    
-    # Normalize each normal vector
-    norms = np.linalg.norm(faceNormals, axis=1, keepdims=True)
-    faceNormals /= norms
-    
-    return faceNormals
-
-
 def calculateVertexDefects(vertices, faces):
     """
     Compute the vertex defects for each vertex in a mesh - vertex defects 2*pi - sum of angles around each vertex
@@ -145,7 +104,7 @@ def calculateSurfaceArea(vertices, faces):
 
 class MeshSolid(CADClass.CAD):
 
-    def __init__(self, stlfile="", stpfile="", meshres=2.0):
+    def __init__(self, stlfile="", stpfile="", meshres=1.5):
         super(CADClass.CAD, self).__init__()
         self.STLfile = stlfile
         self.STPfile = stpfile
