@@ -193,6 +193,8 @@ class OptModel_MeshHF:
         objfcnTools.setMeshAndGrids(trimeshSolid)
         objfcnTools.setParams(initialParams, coefficientsList)
 
+        print(f"Initial integral mean curvature: {objfcnTools.initialIMC}")
+
         #objFcn = hfObjectiveFcn(vertices, faces, face_adjacency, face_adjacency_edges, initialParams, coefficientsList, facesToMove)
         # all_objective_function_values = [objFcn[0]]
         # all_sum_normals_diff = [objFcn[1]]
