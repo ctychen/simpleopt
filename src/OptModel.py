@@ -9,6 +9,7 @@ import copy
 
 import Solid
 import ForwardModel
+import ObjectiveFunctionTools
 import trimesh
 
 import plotly.graph_objects as go
@@ -27,85 +28,6 @@ from vtk import vtkPolyData, vtkPoints, vtkCellArray, vtkDoubleArray, vtkPolyDat
 from vtk.util.numpy_support import numpy_to_vtk
 from scipy.optimize import curve_fit
 from vtk.util import numpy_support
-
-
-# ###OBJECTIVE FUNCTIONS AND CONSTRAINTS###
-
-# # def objective_for_vertex_dim(objectiveFunction, newVerticesGrid, vtx, dim, all_faces, coefficientsList, facesToMove):
-# #     return objectiveFunction(trimesh.Trimesh(vertices=newVerticesGrid[dim][vtx], faces=all_faces), coefficientsList, facesToMove)[0]
-
-# def objective_for_vertex_dim(objectiveFunction, newVerticesGrid, vtx, dim, all_faces, face_adjacency, face_adjacency_edges, initialParams, coefficientsList, facesToMove):
-#     #face_adjacency, face_adjacency_edges, initialParams
-#     return objectiveFunction(newVerticesGrid[dim][vtx], all_faces, face_adjacency, face_adjacency_edges, initialParams, coefficientsList, facesToMove)[0]
-
-# # TODO - eventually when we need to call forward model functions - would need this 
-# # but maybe better solution is to not have a FwdModel class/object and just have a bunch of functions in a file that we can call
-# # def objective_for_vertex_dim(objectiveFunction, newVerticesGrid, vtx, dim, all_faces, coefficientsList, facesToMove, fwd):
-# #     return objectiveFunction(trimesh.Trimesh(vertices=newVerticesGrid[dim][vtx], faces=all_faces), coefficientsList, facesToMove, fwd)
-
-# def calculateNormalsDiff(trimeshSolid):
-#     vertex_defects = trimesh.curvature.vertex_defects(trimeshSolid)
-#     sumVertexDefects = np.sum(np.abs(vertex_defects))
-#     maxVertexDefect = np.max(np.abs(vertex_defects))  
-#     maxAngleBetweenNormals = 0 #TODO - will need to bring in these terms from impelmentation in RunModel
-#     return sumVertexDefects, maxVertexDefect, maxAngleBetweenNormals
-
-# def calculateAngles(pairs):
-#     pairs = np.asanyarray(pairs, dtype=np.float64)
-#     # do the dot product between vectors
-#     dots = np.dot(pairs[:, 0] * pairs[:, 1], [1.0] * pairs[:, 0].shape[1])
-#     # clip for floating point error
-#     dots = np.clip(dots, -1.0, 1.0)
-#     # do cos and remove arbitrary sign
-#     angles = np.abs(np.arccos(dots))
-#     return angles
-
-# def calculateDotProducts(vecA, vecB):
-#     #from trimesh - util.py
-#     vecA = np.asanyarray(vecA)
-#     return np.dot(vecA * vecB, [1.0] * vecA.shape[1])
-
-# def calculateIntegralMeanCurvature(vertices, faces, face_adjacency, face_adjacency_edges):
-#     #calc face normals
-#     face_normals = Solid.calculateFaceNormals(vertices, faces)
-#     #calc angles between adjacent faces
-#     pairs = face_normals[face_adjacency]
-#     angles = calculateAngles(pairs)
-#     #calc integral mean curvature
-#     edges_length = np.linalg.norm(np.subtract(
-#         *vertices[face_adjacency_edges.T]), axis=1)
-#     integralMeanCurvature = (angles * edges_length).sum() * 0.5
-#     return integralMeanCurvature
-
-# def calcUnitVectors(vectors):
-#     norm = np.sqrt(np.dot(vectors, vectors))
-#     unitVectors = vectors / norm
-#     return unitVectors
-
-# def calculateVertexDefects(vertices, faces, face_adjacency):
-#     #calculate mesh face angles - so angles of triangles
-#     triangles = np.asanyarray(vertices.view(np.ndarray)[faces], dtype=np.float64)
-#     # get a unit vector for each edge of the triangle
-#     u = calcUnitVectors(triangles[:, 1] - triangles[:, 0])
-#     v = calcUnitVectors(triangles[:, 2] - triangles[:, 0])
-#     w = calcUnitVectors(triangles[:, 2] - triangles[:, 1])
-
-#     # run the cosine and per-row dot product
-#     angles = np.zeros((len(triangles), 3), dtype=np.float64)
-#     # clip to make sure we don't float error past 1.0
-#     angles[:, 0] = np.arccos(np.clip(calculateDotProducts(u, v), -1, 1))
-#     angles[:, 1] = np.arccos(np.clip(calculateDotProducts(-u, w), -1, 1))
-#     # the third angle is just the remaining
-#     angles[:, 2] = np.pi - angles[:, 0] - angles[:, 1]
-
-#     # a triangle with any zero angles is degenerate
-#     # so set all of the angles to zero in that case
-#     angles[(angles < 1e-8).any(axis=1), :] = 0.0
-
-#     angle_sum = np.array(angles.sum(axis=1)).flatten()
-
-#     return (2*np.pi) - angle_sum
-
 
 # #face_adjacency, faces, and face_adjacency_edges are from trimesh but all will only need to be accessed once at beginning, and are all np arrays
 # def objectiveFunction(vertices, faces, face_adjacency, face_adjacency_edges, initialParams, coefficientsList, unconstrainedFaces):
@@ -128,6 +50,8 @@ from vtk.util import numpy_support
 
 ### GRADIENT DESCENT AND OPTIMIZATION###
 
+objfcnTools = ObjectiveFunctionTools.ObjectiveFunctionTools()
+
 class OptModel_MeshHF: 
     """
     Mesh element manipulation to optimize heat flux - model for optimization
@@ -142,36 +66,6 @@ class OptModel_MeshHF:
         if self.Ncores <= 0:
             self.Ncores = 1
         return
-    
-
-    # def gradientDescentHF(self, tri_mesh, objectiveFunction, allmeshelementsHF, facesToKeep, facesToMove, coefficientsList, delta, filedir, count):
-    # #     """
-    # #     gradient descent implementation for heat flux minimization
-    # #     takes in trimesh object and sorts elements by HF to deal with worst elements first
-    # #     calc gradient for each element by moving vertices a small amount and finding change in objective function
-    # #     move each vertex based on gradient * delta when all gradients calculated
-    # #     """ 
-    #     use_set = set(np.where(allmeshelementsHF >= -10.0)[0]) #changed for 3sphere test
-    #     gradient = np.zeros_like(tri_mesh.vertices)
-    #     useFaces = tri_mesh.faces[list(use_set)]
-    #     flattenedVtx = useFaces.flatten() 
-    #     uniqueVtx = np.unique(flattenedVtx)
-    #     obj_beforeMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
-    #     for vertex in np.nditer(uniqueVtx):
-    #         for j in range(3): 
-    #             tri_mesh.vertices[vertex, j] += delta
-    #             obj_afterMoving = objectiveFunction(tri_mesh, coefficientsList, facesToMove)[0]
-    #             tri_mesh.vertices[vertex, j] -= delta
-    #             gradient[vertex, j] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
-    #     #basically - move each vertex and update it
-    #     tri_mesh.vertices[uniqueVtx, 0] -= (delta * gradient[uniqueVtx, 0])
-    #     tri_mesh.vertices[uniqueVtx, 1] -= (delta * gradient[uniqueVtx, 1])
-    #     tri_mesh.vertices[uniqueVtx, 2] -= (delta * gradient[uniqueVtx, 2])
-
-    #     return tri_mesh
-
-
-### let's try loop-free approach... ###
 
     def gradientDescentHF(self, tri_mesh, objectiveFunction, allmeshelementsHF, face_adjacency, face_adjacency_edges, initialParams, facesToKeep, facesToMove, coefficientsList, delta, filedir, count):
 
@@ -181,6 +75,7 @@ class OptModel_MeshHF:
         all_faces = tri_mesh.faces
 
         useFaces = all_faces[list(use_set)]
+        objfcnTools.setFacesToMove(facesToMove)
         flattenedVtx = useFaces.flatten() 
         uniqueVtx = np.unique(flattenedVtx)
         numVtx = len(tri_mesh.vertices)
@@ -190,7 +85,9 @@ class OptModel_MeshHF:
         # currentObjFcnVal = objectiveFunction(currentVerticesGrid[0][0], all_faces, coefficientsList, facesToMove)[0]
         #objectiveFunction(vertices, faces, face_adjacency, face_adjacency_edges, coefficientsList, unconstrainedFaces):
 
-        currentObjFcnVal = objectiveFunction(currentVerticesGrid[0][0], all_faces, face_adjacency, face_adjacency_edges, initialParams, coefficientsList, facesToMove)[0]
+        #currentObjFcnVal = objectiveFunction(currentVerticesGrid[0][0], all_faces, face_adjacency, face_adjacency_edges, initialParams, coefficientsList, facesToMove)[0]
+
+        currentObjFcnVal = objfcnTools.vtxFacesObjectiveFunctionCalc(currentVerticesGrid[0][0])
         currentObjectiveFcnValues = np.full((numVtx, 3), currentObjFcnVal)
 
         newVerticesGrid = currentVerticesGrid.copy()
@@ -198,16 +95,26 @@ class OptModel_MeshHF:
         newVerticesGrid[0, range_indices, range_indices, 0] += delta
         newVerticesGrid[1, range_indices, range_indices, 1] += delta
         newVerticesGrid[2, range_indices, range_indices, 2] += delta
+        objfcnTools.setNewVerticesGrid(newVerticesGrid)
 
         numProcesses = self.Ncores
-        # someObject.newVerticesGrid = newVerticesGrid
 
+        # with Pool(numProcesses) as p:
+        #     newObjectiveFcnValues = np.array(p.starmap(
+        #         objective_for_vertex_dim, 
+        #         [(objectiveFunction, newVerticesGrid, vtx, dim, all_faces, face_adjacency, face_adjacency_edges, initialParams, coefficientsList, facesToMove) for vtx in range(numVtx) for dim in range(len(newVerticesGrid))]
+        #     )).reshape(numVtx, 3)
 
-        with Pool(numProcesses) as p:
-            newObjectiveFcnValues = np.array(p.starmap(
-                objective_for_vertex_dim, 
-                [(objectiveFunction, newVerticesGrid, vtx, dim, all_faces, face_adjacency, face_adjacency_edges, initialParams, coefficientsList, facesToMove) for vtx in range(numVtx) for dim in range(len(newVerticesGrid))]
+        try: 
+            pool = multiprocessing.Pool(numProcesses)
+            newObjectiveFcnValues = np.array(pool.starmap(
+                objfcnTools.objectiveFunction, 
+                [(vtx, dim) for vtx in range(numVtx) for dim in range(len(newVerticesGrid))]
             )).reshape(numVtx, 3)
+        finally:
+            pool.close()
+            pool.join()
+            del pool
 
         # try:
         #     pool = multiprocessing.Pool(Ncores)
@@ -270,7 +177,6 @@ class OptModel_MeshHF:
         mesh_center_xvals = mesh_centers[:, 0]
         mesh_center_zvals = mesh_centers[:, 2]
 
-
         # indicesToNotMove = set(constraint(mesh_center_xvals, mesh_center_yvals, mesh_center_zvals))
         indicesToNotMove = set(constraint(trimeshSolid))
         allIndices = set(range(len(mesh_center_xvals)))  # assuming all arrays are the same length
@@ -283,14 +189,18 @@ class OptModel_MeshHF:
         face_adjacency_edges = trimeshSolid.face_adjacency_edges
         initialVolume = trimeshSolid.volume
         print(f"Initial volume: {initialVolume}")
-        initialParams = [initialVolume] #[initialVolume, vertices, faces, face_adjacency, face_adjacency_edges]
-        # objFcn = hfObjectiveFcn(trimeshSolid, coefficientsList, facesToMove)
-        objFcn = hfObjectiveFcn(vertices, faces, face_adjacency, face_adjacency_edges, initialParams, coefficientsList, facesToMove)
-        # objFcn = hfObjectiveFcn(trimeshSolid.vertices, trimeshSolid.faces, coefficientsList, facesToMove)
-        # all_objective_function_values = [hfObjectiveFcn(trimeshSolid, coefficientsList, facesToMove)]
-        all_objective_function_values = [objFcn[0]]
-        all_sum_normals_diff = [objFcn[1]]
-        all_max_normals_diff = [objFcn[2]]
+        initialParams = [initialVolume] 
+
+        objfcnTools.setParams(initialParams, coefficientsList)
+
+        #objFcn = hfObjectiveFcn(vertices, faces, face_adjacency, face_adjacency_edges, initialParams, coefficientsList, facesToMove)
+        # all_objective_function_values = [objFcn[0]]
+        # all_sum_normals_diff = [objFcn[1]]
+        # all_max_normals_diff = [objFcn[2]]
+
+        objFcnVal = objfcnTools.vtxFacesObjectiveFunctionCalc(vertices)
+        all_objective_function_values = [objFcnVal]
+
         hf_all_mesh = calcHFAllMesh(fwdModel.hfMode, fwdModel.q_dir, fwdModel.q_mag, trimeshSolid) #calcHFAllMesh(trimeshSolid)
         max_hf_each_run = [calcMaxHF(hf_all_mesh, facesToMove)]
 
@@ -316,43 +226,18 @@ class OptModel_MeshHF:
             #calc the gradient
             trimeshSolid = self.gradientDescentHF(trimeshSolid, hfObjectiveFcn, hf_all_mesh, face_adjacency, face_adjacency_edges, initialParams, facesToKeep, facesToMove, coefficientsList, delta, f"test{id}", count)
 
-            # print(f"{count}: gradient descent time: {time.time() - t0}")
             print(f"{count}: gradient descent time: {time.time() - t1}")
 
             vertices = trimeshSolid.vertices
 
-            # input()
-            
             #recalculate the hf profile on the surface - don't need this for spheretests
             # updateHFProfile(trimeshSolid) 
 
-            # new_objVal = hfObjectiveFcn(trimeshSolid, coefficientsList, facesToMove)
-            # t2 = time.time()
-            # new_objVal_all = hfObjectiveFcn(trimeshSolid, coefficientsList, facesToMove)
-            new_objVal_all = hfObjectiveFcn(vertices, faces, face_adjacency, face_adjacency_edges, initialParams, coefficientsList, facesToMove)
-            # new_objVal_all = hfObjectiveFcn(trimeshSolid.vertices, trimeshSolid.faces, coefficientsList, facesToMove)
-            new_objVal = new_objVal_all[0]
-            new_sum_normals_diff = new_objVal_all[1]
-            new_max_normals_diff = new_objVal_all[2]
+            new_objVal = objfcnTools.vtxFacesObjectiveFunctionCalc(vertices)
             all_objective_function_values.append(new_objVal)
-            all_sum_normals_diff.append(new_sum_normals_diff)
-            all_max_normals_diff.append(new_max_normals_diff)
 
             prev_objVal = curr_objVal
             curr_objVal = new_objVal
-
-            # print(f"{count}: time to update all calcs/plots/everything else: {time.time() - t2}")
-
-            # input()
-
-            # new_max_hf = calcMaxHF(hf_all_mesh, facesToMove)
-            # max_hf_each_run.append(new_max_hf)
-
-            ##this is for plotting surface fit onto mesh
-            # if count % 5 == 0:
-            #     self.makePolyFitSurface(trimeshSolid.vertices[constrainedVIdx], f"{id}", count)
-
-            # print(f"New objective function value: {new_objVal}")
 
             if count and count % 10 == 0: #count % 5 == 0: 
                 #self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"{id}", count)
@@ -363,8 +248,8 @@ class OptModel_MeshHF:
         # self.plotRun(all_objective_function_values, max_hf_each_run, f"{id}")
         # self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"{id}", count)
         self.plotHFVTK(calcHFAllMesh(fwdModel.hfMode, fwdModel.q_dir, fwdModel.q_mag, trimeshSolid), trimeshSolid, f"{id}", count)
-        self.plotMaxNormalsDiff(all_max_normals_diff, f"{id}")
-        self.plotNormalsDiff(all_sum_normals_diff, f"{id}")
+        # self.plotMaxNormalsDiff(all_max_normals_diff, f"{id}")
+        # self.plotNormalsDiff(all_sum_normals_diff, f"{id}")
         self.plotObjectiveFunction(all_objective_function_values, f"{id}")
         # self.plotMaxHF(max_hf_each_run, f"{id}")  
           
