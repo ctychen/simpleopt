@@ -43,6 +43,8 @@ import CADClass
 import Solid
 import ForwardModel
 import OptModel
+import ObjectiveFunctionTools
+
 import multiprocessing
 
 class RunSetup_MeshHF:
@@ -123,86 +125,17 @@ class RunSetup_MeshHF:
         print(f"Number of trimesh solid vertices: {numVertices}")
         print(f"Number of trimesh solid faces: {numFaces}")
 
-        ### THIS IS THE ONE TO USE 
-        # def calculateNormalsDiff(trimeshSolid):
-        #     # normals = trimeshSolid.face_normals
-        #     vertex_defects = trimesh.curvature.vertex_defects(trimeshSolid)
-        #     sumVertexDefects = np.sum(np.abs(vertex_defects))
-        #     maxVertexDefect = np.max(np.abs(vertex_defects))  
-        #     maxAngleBetweenNormals = 0
-        #     return sumVertexDefects, maxVertexDefect, maxAngleBetweenNormals
-
-
-        # def calculateNormalsDiff(trimeshSolid):
-        # # def calculateNormalsDiff(vertices, faces):
-        #     # t_0 = time.time()
-
-        #     # normals = trimeshSolid.face_normals
-
-        #     # print(f"time to get mesh normals: {time.time() - t_0}")
-        #     # vertices = trimeshSolid.vertices
-        #     # faces = trimeshSolid.faces
-        #     t_0 = time.time()
-        #     vertex_defects = trimesh.curvature.vertex_defects(trimeshSolid)
-        #     t_tm = time.time() - t_0
-        #     print(f"Time for trimesh vertex defects calc: {t_tm}")
-
-        #     sumVertexDefects = np.sum(np.abs(vertex_defects))
-        #     maxVertexDefect = np.max(np.abs(vertex_defects))  
-
-        #     # normals_0 = normals[adjacency[:, 0]]
-        #     # normals_1 = normals[adjacency[:, 1]]
-        #     # dot_product = np.einsum('ij,ij->i', normals_0, normals_1)
-        #     # clipped_dot_product = np.clip(dot_product, -1.0, 1.0)
-        #     # allAnglesBetweenNormals = np.arccos(clipped_dot_product)
-        #     # print(f"all angles: {allAnglesBetweenNormals}")
-        #     # print(f"sum of angles between normals: {np.sum(allAnglesBetweenNormals)}")
-
-        #     # input()
-        #     # maxAngleBetweenNormals = np.max(allAnglesBetweenNormals)
-        #     maxAngleBetweenNormals = 0
-
-        #     # print(f"time to get angles between normals (not currently used): {time.time() - t_0}")
-
-        #     return sumVertexDefects, maxVertexDefect, maxAngleBetweenNormals
-
-        # def calculateNormalsDiff(meshVertices, meshFaces):
-        #     # meshVertices = np.asarray(meshVertices)
-        #     # meshFaces = np.asarray(meshFaces)   
-
-        #     # normals = trimeshSolid.face_normals
-        #     normals = self.box.calculateFaceNormals(meshVertices, meshFaces)
-
-        #     # vertex_defects = trimeshSolid.vertex_defects
-        #     vertex_defects = self.box.calculateVertexDefects(meshVertices, meshFaces)
-        #     sumVertexDefects = np.sum(np.abs(vertex_defects))
-
-        #     maxVertexDefect = np.max(np.abs(vertex_defects))    
-
-        #     normals_0 = normals[adjacency[:, 0]]
-        #     normals_1 = normals[adjacency[:, 1]]
-        #     dot_product = np.einsum('ij,ij->i', normals_0, normals_1)
-        #     clipped_dot_product = np.clip(dot_product, -1.0, 1.0)
-        #     allAnglesBetweenNormals = np.arccos(clipped_dot_product)
-        #     maxAngleBetweenNormals = np.max(allAnglesBetweenNormals)
-
-        #     return sumVertexDefects, maxVertexDefect, maxAngleBetweenNormals
-
         def facesToKeep(trimeshSolid):
             #this should be for faces to NOT use (so they shouldn't move)
             return []
 
-        # print(f"Trimesh sphere, integral mean curvature: {trimeshSolid.integral_mean_curvature}")
-        # input()
-        
         q_mesh_initial = ForwardModel.calculateAllHF(self.fwd.hfMode, self.fwd.q_dir, self.fwd.q_mag, trimeshSolid) #self.fwd.calculateAllHF(trimeshSolid)
         maxHF_initial = ForwardModel.filteredCalculateMaxHF(q_mesh_initial, unconstrainedFaces=[]) #self.fwd.filteredCalculateMaxHF(q_mesh_initial, unconstrainedFaces = [])
-        sumHF_initial = ForwardModel.calculateHFMeshSum(q_mesh_initial) #self.fwd.calculateHFMeshSum(q_mesh_initial)
-        # normalsDiff_initial, normalRefDotProducts_initial = calculateNormalsDiff(trimeshSolid)
-        # normalsDiff_initial, maxNormalsDiff_initial = calculateNormalsDiff(trimeshSolid)
-        sumVertexDefects_initial, maxVertexDefect_initial, maxAngleBetweenNormals_initial = OptModel.calculateNormalsDiff(trimeshSolid)   
+        sumHF_initial = ForwardModel.calculateHFMeshSum(q_mesh_initial) 
+        sumVertexDefects_initial, maxVertexDefect_initial, maxAngleBetweenNormals_initial = OptModel.objfcnTools.calculateNormalsDiff(trimeshSolid) #OptModel.calculateNormalsDiff(trimeshSolid)   
         # sumVertexDefects_initial, maxVertexDefect_initial, maxAngleBetweenNormals_initial = calculateNormalsDiff(trimeshSolid.vertices, trimeshSolid.faces)  
         # normalsPenalty_initial = np.sum(normalsDiff_initial)
+        imc_initial = OptModel.objfcnTools.calculateIntegralMeanCurvature(trimeshSolid.vertices, trimeshSolid.faces, trimeshSolid.face_adjacency, trimeshSolid.face_adjacency_edges)
         energy_initial = ForwardModel.calculateIntegratedEnergy(q_mesh_initial, trimeshSolid)  #self.fwd.calculateIntegratedEnergy(q_mesh_initial, trimeshSolid)
 
         numFaces = len(trimeshSolid.faces)  #for normalizing terms in objective function
@@ -211,7 +144,8 @@ class RunSetup_MeshHF:
         print(f"Initial sum HF: {sumHF_initial}")
         print(f"Initial sum vertex defects: {sumVertexDefects_initial}")
         print(f"Initial max vertex defect: {maxVertexDefect_initial}")
-        print(f"Initial max angle between normals: {maxAngleBetweenNormals_initial}")
+        # print(f"Initial max angle between normals: {maxAngleBetweenNormals_initial}")
+        print(f"Initial integral mean curvature: {imc_initial}")
         print(f"Initial energy: {energy_initial}")
 
         ### THIS IS THE ONE TO USE
@@ -291,10 +225,9 @@ class RunSetup_MeshHF:
             for val in sweep_values:
                 my_trimeshSolid = trimeshSolid.copy()
                 coefficients_list[idx_to_vary] = val
-                directoryName = self.makeDirectories(f"vectorspheretest_newtests_{idx_to_vary}/highres/imctests/test_", coefficients_list)
+                directoryName = self.makeDirectories(f"vectorspheretest_newtests_{idx_to_vary}/2mm/imctests/test_", coefficients_list)
                 #meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
                 self.opt.meshHFOpt(
-                    OptModel.objectiveFunction,  
                     facesToKeep,
                     self.fwd.makeHFProfile,
                     ForwardModel.calculateAllHF, #self.fwd.calculateAllHF,
@@ -366,7 +299,6 @@ class RunSetup_MeshHF:
                     directoryName = self.makeDirectories(f"randomspheretest2_{id}/test_", coefficients_list)
                     
                     self.opt.meshHFOpt(
-                        OptModel.objectiveFunction,  
                         facesToKeep,
                         self.fwd.makeHFProfile,
                         ForwardModel.calculateAllHF,
@@ -389,47 +321,6 @@ class RunSetup_MeshHF:
             self.makeSweepCSV(c0_runvals, c1_runvals, c2_runvals, c3_runvals, c4_runvals, maxhf_vals, f"randomspheretest2_{id}/{id}")
             return 
 
-        ## For bulk variable sweep testing
-        # sweep_values_c0 = [0, 50, 100, 150]
-        # sweep_values_c1 = [0, 50, 100, 150]
-        # sweep_values_c2 = [0, 50, 100, 150]
-        # sweep_values_c3 = [0, 50, 100, 150]
-        # big_sweep_coefficients_and_record_output(sweep_values_c0, sweep_values_c1, sweep_values_c2, sweep_values_c3, id=0)
-
-        # sweep_values_c0 = [100, 200, 300, 400]
-        # sweep_values_c1 = [100, 200, 300, 400]
-        # sweep_values_c2 = [100, 200, 300, 400]
-        # sweep_values_c3 = [100, 200, 300, 400]
-        # big_sweep_coefficients_and_record_output(sweep_values_c0, sweep_values_c1, sweep_values_c2, sweep_values_c3, id=1)
-
-        # sweep_values_c0 = [200, 350, 500]
-        # sweep_values_c1 = [350, 400, 450]
-        # sweep_values_c2 = [500, 1000, 1500]
-        # sweep_values_c3 = [500, 2000, 4000]
-        # big_sweep_coefficients_and_record_output(sweep_values_c0, sweep_values_c1, sweep_values_c2, sweep_values_c3, id=3)
-
-
-        ## For variable sweep testing
-        # coefficients_list = [0, 0, 1500, 0, 0]
-        # coefficients_list = [0, 0, 29698.489, 0, 0]
-        # coefficients_list = [0, 0, 29698.48962 * 84.8528, 0, 0]
-        # coefficients_list = [0, 0, 29698.48962, 0, 0] #original was * normalsPenalty_initial
-        # c2val = [50, 100, 500, 1000] #(5000 * 504)/84.85281374238572
-        # coefficients_list = [0, 0, c2val, 0, 0]
-
-        # sweep_c3 = [200]
-        #overall : c2 = c2 * sumVertexDefects, c3 = c3 * maxAngleBetweenNormals, c4 = c4 * maxVertexDefects   
-        # coefficients_list = [0, 0, 0, 0, 0]
-        # # sweep_c2 = [50, 500, 5000]
-        # sweep_c2 = [46, 48, 52]
-        # sweep_coefficients_and_record_output(coefficients_list, 2, sweep_c2)
-        # coefficients_list = [0, 0, 50, 0, 0]
-        # sweep_c3 = [10, 20, 30, 40]
-        # sweep_coefficients_and_record_output(coefficients_list, 3, sweep_c3)
-
-        # coefficients_list = [0, 0, 50, 0, 0]
-        # sweep_c4 = [60, 70, 80, 90]
-        # sweep_coefficients_and_record_output(coefficients_list, 4, sweep_c4)  
 
         coefficients_list = [0, 0, 50, 0, 0] #[0, 0, 0, 20, 10]
         #sweep_c2 = [50]
@@ -452,14 +343,6 @@ class RunSetup_MeshHF:
         # sweep_c2 = [random.uniform(800, 10000) for _ in range(3)]
         # sweep_coefficients_and_record_output(coefficients_list, 2, sweep_c2)
 
-        # import random
-        # sweep_values_c0 = [0]
-        # sweep_values_c1 = [0]
-        # # sweep_values_c2 = [random.uniform(700, 7000) for _ in range(2)]
-        # sweep_values_c2 = [random.uniform(10000, 34000) for _ in range(2)]
-        # sweep_values_c3 = [random.uniform(100, 800) for _ in range(2)]
-        # big_sweep_coefficients_and_record_output(sweep_values_c0, sweep_values_c1, sweep_values_c2, sweep_values_c3, id=0)
-
         return 
 
 
@@ -473,10 +356,6 @@ if __name__ == '__main__':
     Run cube mesh operation test
     """
     setup.runOptimization()
-
-    # p = Process(target = setup.runOptimization, args=())
-    # p.start()
-    # p.join()
 
     print(f"Time elapsed: {time.time() - t0}")
 

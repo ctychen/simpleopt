@@ -67,7 +67,7 @@ class OptModel_MeshHF:
             self.Ncores = 1
         return
 
-    def gradientDescentHF(self, tri_mesh, objectiveFunction, allmeshelementsHF, face_adjacency, face_adjacency_edges, initialParams, facesToKeep, facesToMove, coefficientsList, delta, filedir, count):
+    def gradientDescentHF(self, tri_mesh, allmeshelementsHF, face_adjacency, face_adjacency_edges, initialParams, facesToKeep, facesToMove, coefficientsList, delta, filedir, count):
 
         use_set = set(np.where(allmeshelementsHF >= -10.0)[0]) #changed for 3sphere test
         gradient = np.zeros_like(tri_mesh.vertices)
@@ -152,7 +152,7 @@ class OptModel_MeshHF:
         return tri_mesh
 
     # def meshHFOpt(self, hfObjectiveFcn, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
-    def meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, fwdModel, id):
+    def meshHFOpt(self, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, fwdModel, id):
     # def meshHFOpt(self, hfFunction, hfObjectiveFcn, meshObj, threshold, step, id):
         """
         runs optimization process until objective fcn value reaches stopping condition @ minimum
@@ -164,7 +164,6 @@ class OptModel_MeshHF:
         can also set constraint to be whatever conditions should be true for the faces we can manipulate. 
         basically, if the constraint is true, we can move the face, otherwise we won't do anything to it
         """
-        #TODO: add constraints somehow - take in list of criteria? eg. don't move face if x=0 or y=0 or x=10 or y=10?
 
         #assuming input is already a trimesh, ie. processing the solid was done already
         trimeshSolid = meshObj
@@ -184,13 +183,14 @@ class OptModel_MeshHF:
 
         print(f"Objective function with coefficients: {coefficientsList}")
         vertices = trimeshSolid.vertices
-        faces = trimeshSolid.faces
+        # faces = trimeshSolid.faces
         face_adjacency = trimeshSolid.face_adjacency
         face_adjacency_edges = trimeshSolid.face_adjacency_edges
         initialVolume = trimeshSolid.volume
         print(f"Initial volume: {initialVolume}")
         initialParams = [initialVolume] 
 
+        objfcnTools.setMeshAndGrids(trimeshSolid)
         objfcnTools.setParams(initialParams, coefficientsList)
 
         #objFcn = hfObjectiveFcn(vertices, faces, face_adjacency, face_adjacency_edges, initialParams, coefficientsList, facesToMove)
@@ -202,7 +202,7 @@ class OptModel_MeshHF:
         all_objective_function_values = [objFcnVal]
 
         hf_all_mesh = calcHFAllMesh(fwdModel.hfMode, fwdModel.q_dir, fwdModel.q_mag, trimeshSolid) #calcHFAllMesh(trimeshSolid)
-        max_hf_each_run = [calcMaxHF(hf_all_mesh, facesToMove)]
+        # max_hf_each_run = [calcMaxHF(hf_all_mesh, facesToMove)]
 
         # make VTK to display HF on surface
         #self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"{id}", count=4242)
@@ -224,7 +224,7 @@ class OptModel_MeshHF:
             t1 = time.time()
 
             #calc the gradient
-            trimeshSolid = self.gradientDescentHF(trimeshSolid, hfObjectiveFcn, hf_all_mesh, face_adjacency, face_adjacency_edges, initialParams, facesToKeep, facesToMove, coefficientsList, delta, f"test{id}", count)
+            trimeshSolid = self.gradientDescentHF(trimeshSolid, hf_all_mesh, face_adjacency, face_adjacency_edges, initialParams, facesToKeep, facesToMove, coefficientsList, delta, f"test{id}", count)
 
             print(f"{count}: gradient descent time: {time.time() - t1}")
 

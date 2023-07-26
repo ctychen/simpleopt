@@ -11,19 +11,21 @@ from concurrent.futures import ThreadPoolExecutor
 
 class ObjectiveFunctionTools: 
 
-    def __init__(self, trimeshSolid, chmod=0o774):
+    def __init__(self, chmod=0o774):
         #speed benchmarking tools
         self.testN = 0
         self.testTime = 0
         self.chmod = chmod
-        
+        return
+    
+    def setMeshAndGrids(self, trimeshSolid):
         self.all_faces = trimeshSolid.faces
         self.face_adjacency = trimeshSolid.face_adjacency
         self.face_adjacency_edges = trimeshSolid.face_adjacency_edges
         vertices = trimeshSolid.vertices
         self.currentVerticesGrid = np.array([np.tile(vertices[np.newaxis, :], (len(vertices), 1, 1)) for _ in range(3)])
         self.newVerticesGrid = np.array([np.tile(vertices[np.newaxis, :], (len(vertices), 1, 1)) for _ in range(3)])
-        return
+        return 
     
     def setParams(self, initialParams, coefficientsList):
         self.initialParams = initialParams
