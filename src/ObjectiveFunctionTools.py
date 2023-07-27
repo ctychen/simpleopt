@@ -26,6 +26,7 @@ class ObjectiveFunctionTools:
         self.currentVerticesGrid = np.array([np.tile(vertices[np.newaxis, :], (len(vertices), 1, 1)) for _ in range(3)])
         self.newVerticesGrid = np.array([np.tile(vertices[np.newaxis, :], (len(vertices), 1, 1)) for _ in range(3)])
         self.initialIMC = self.calculateNonNormalizedIntegralMeanCurvature(vertices, self.all_faces, self.face_adjacency, self.face_adjacency_edges)
+        print(f"Shape of currentVerticesGrid: {self.currentVerticesGrid.shape}, shape of newVerticesGrid: {self.newVerticesGrid.shape}")
         return 
     
     def setParams(self, initialParams, coefficientsList):
@@ -142,7 +143,7 @@ class ObjectiveFunctionTools:
         """
         #calc face normals
         #face_normals = Solid.calculateFaceNormals(vertices, faces)
-        face_normals = self.calculateFaceNormals(self, vertices, faces)
+        face_normals = self.calculateFaceNormals(vertices, faces)
         #calc angles between adjacent faces
         pairs = face_normals[face_adjacency]
         angles = self.calculateAngles(pairs)
@@ -161,19 +162,22 @@ class ObjectiveFunctionTools:
         Compute the integral mean curvature of a mesh. Normalized: sum(curvatures / sum of curvatures)
         """
         #calc face normals
+        print(f"starting IMC calculation")
         vertices = self.newVerticesGrid[dim][vtx]
-        #face_normals = Solid.calculateFaceNormals(vertices, self.all_faces)
+        print(f"got vertices")
         face_normals = self.calculateFaceNormals(vertices, self.all_faces)
+        print(f"got normals")
         #calc angles between adjacent faces
         pairs = face_normals[self.face_adjacency]
+        print(f"filtered normals")
         angles = self.calculateAngles(pairs)
+        print(f"calculated angles")
         #calc integral mean curvature
         edges_length = np.linalg.norm(np.subtract(
             *vertices[self.face_adjacency_edges.T]), axis=1)
-        
-        allValues = (angles * edges_length) * 0.5
-        imc = np.sum(allValues)
-        integralMeanCurvature = imc / self.initialIMC
+        print(f"calculated length of edges")
+        integralMeanCurvature = np.sum((angles * edges_length) * 0.5) / self.initialIMC
+        print(f"calculated IMC")
         return integralMeanCurvature   
 
     def calcUnitVectors(self, vectors):
