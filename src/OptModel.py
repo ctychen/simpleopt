@@ -61,10 +61,12 @@ class OptModel_MeshHF:
         """
         TODO: figure out what properties we actually need for optmodel, and what can just be fcn inputs
         """
-        self.Ncores = multiprocessing.cpu_count()
+        self.Ncores = 2 #multiprocessing.cpu_count() - 1
         #in case we run on single core machine
         if self.Ncores <= 0:
             self.Ncores = 1
+
+        print(f"number cores being used: {self.Ncores}")
         return
 
     #gradientDescentHF(self, tri_mesh, allmeshelementsHF, face_adjacency, face_adjacency_edges, initialParams, facesToKeep, facesToMove, coefficientsList, delta, filedir, count):
@@ -91,7 +93,7 @@ class OptModel_MeshHF:
         # print(f"calculated current objective function")
 
         newVerticesGrid = currentVerticesGrid.copy()
-        delta = delta * (254.0 / numVtx)
+        #delta = delta * (254.0 / numVtx)
         range_indices = np.arange(currentVerticesGrid.shape[1])
         newVerticesGrid[0, range_indices, range_indices, 0] += delta
         newVerticesGrid[1, range_indices, range_indices, 1] += delta
@@ -100,7 +102,7 @@ class OptModel_MeshHF:
         objfcnTools.setNewVerticesGrid(newVerticesGrid)
         # print(f"made new vertices grid")
 
-        numProcesses = self.Ncores - 1
+        numProcesses = self.Ncores
 
         try: 
             pool = multiprocessing.Pool(numProcesses)
