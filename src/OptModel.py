@@ -67,10 +67,12 @@ class OptModel_MeshHF:
             self.Ncores = 1
         return
 
-    def gradientDescentHF(self, tri_mesh, allmeshelementsHF, face_adjacency, face_adjacency_edges, initialParams, facesToKeep, facesToMove, coefficientsList, delta, filedir, count):
+    #gradientDescentHF(self, tri_mesh, allmeshelementsHF, face_adjacency, face_adjacency_edges, initialParams, facesToKeep, facesToMove, coefficientsList, delta, filedir, count):
+    def gradientDescentHF(self, tri_mesh, allmeshelementsHF, facesToMove, delta):
 
         use_set = set(np.where(allmeshelementsHF >= -10.0)[0]) #changed for 3sphere test
-        gradient = np.zeros_like(tri_mesh.vertices)
+        vertices = tri_mesh.vertices
+        gradient = np.zeros_like(vertices)
 
         all_faces = tri_mesh.faces
 
@@ -78,15 +80,15 @@ class OptModel_MeshHF:
         objfcnTools.setFacesToMove(facesToMove)
         flattenedVtx = useFaces.flatten() 
         uniqueVtx = np.unique(flattenedVtx)
-        numVtx = len(tri_mesh.vertices)
+        numVtx = len(vertices)
 
-        currentVerticesGrid = np.array([np.tile(tri_mesh.vertices[np.newaxis, :], (numVtx, 1, 1)) for _ in range(3)])
+        currentVerticesGrid = np.array([np.tile(vertices[np.newaxis, :], (numVtx, 1, 1)) for _ in range(3)])
         numDim = len(currentVerticesGrid)
 
-        print(f"made current vertices grid")
+        # print(f"made current vertices grid")
         currentObjFcnVal = objfcnTools.vtxFacesObjectiveFunctionCalc(currentVerticesGrid[0][0])
         currentObjectiveFcnValues = np.full((numVtx, 3), currentObjFcnVal)
-        print(f"calculated current objective function")
+        # print(f"calculated current objective function")
 
         newVerticesGrid = currentVerticesGrid.copy()
         delta = delta * (254.0 / numVtx)
@@ -96,15 +98,9 @@ class OptModel_MeshHF:
         newVerticesGrid[2, range_indices, range_indices, 2] += delta
         # objfcnTools.setNewVerticesGrid(newVerticesGrid, delta)
         objfcnTools.setNewVerticesGrid(newVerticesGrid)
-        print(f"made new vertices grid")
+        # print(f"made new vertices grid")
 
         numProcesses = self.Ncores - 1
-
-        # with Pool(numProcesses) as p:
-        #     newObjectiveFcnValues = np.array(p.starmap(
-        #         objective_for_vertex_dim, 
-        #         [(objectiveFunction, newVerticesGrid, vtx, dim, all_faces, face_adjacency, face_adjacency_edges, initialParams, coefficientsList, facesToMove) for vtx in range(numVtx) for dim in range(len(newVerticesGrid))]
-        #     )).reshape(numVtx, 3)
 
         try: 
             pool = multiprocessing.Pool(numProcesses)
@@ -117,44 +113,20 @@ class OptModel_MeshHF:
             pool.join()
             del pool
 
-        print(f"calculated new objective function")
-
-        # try:
-        #     pool = multiprocessing.Pool(Ncores)
-        #     #Moller-Trumbore algorithm
-        #     if mode == 'MT':
-        #         print("Using Moller-Trumbore intersection algorithm")
-        #         log.info("Using Moller-Trumbore intersection algorithm")
-        #         mask = np.asarray(pool.map(tools.intersectTestParallelMT, np.arange(N)))
-        #     #Signed Volume algorithm
-        #     else:
-        #         print("Using signed volume intersection algorithm")
-        #         log.info("Using signed volume intersection algorithm")
-        #         mask = np.asarray(pool.map(tools.intersectTestParallel, np.arange(N)))
-        # finally:
-        #     pool.close()
-        #     pool.join()
-        #     del pool
-
-        #def objective_for_vertex_dim(objectiveFunction, newVerticesGrid, vtx, dim, all_faces, face_adjacency, coefficientsList, facesToMove):
-        #objectiveFunction(vertices, faces, face_adjacency, face_adjacency_edges, coefficientsList, unconstrainedFaces):
+        # print(f"calculated new objective function")
 
         # print(f"time to calculate NEW objfcn: {time.time() - t0}")
 
         gradient = (newObjectiveFcnValues - currentObjectiveFcnValues) / (2 * delta) 
 
-        print(f"calculated new gradient")
-
-        # print(f"gradient: {gradient}")
-        # delta = delta * (254.0 / numVtx)
-        # delta = delta * (numVtx / 254.0) 
+        # print(f"calculated new gradient")
 
         #basically - move each vertex and update it
         tri_mesh.vertices[uniqueVtx, 0] -= (delta * gradient[uniqueVtx, 0])
         tri_mesh.vertices[uniqueVtx, 1] -= (delta * gradient[uniqueVtx, 1])
         tri_mesh.vertices[uniqueVtx, 2] -= (delta * gradient[uniqueVtx, 2])
 
-        print(f"moved vertices")
+        # print(f"moved vertices")
 
         return tri_mesh
 
@@ -233,7 +205,9 @@ class OptModel_MeshHF:
             t1 = time.time()
 
             #calc the gradient
-            trimeshSolid = self.gradientDescentHF(trimeshSolid, hf_all_mesh, face_adjacency, face_adjacency_edges, initialParams, facesToKeep, facesToMove, coefficientsList, delta, f"test{id}", count)
+            #gradientDescentHF(self, tri_mesh, allmeshelementsHF, face_adjacency, face_adjacency_edges, initialParams, facesToKeep, facesToMove, coefficientsList, delta, filedir, count):
+            # def gradientDescentHF(self, tri_mesh, allmeshelementsHF, facesToMove, delta):
+            trimeshSolid = self.gradientDescentHF(trimeshSolid, hf_all_mesh, facesToMove, delta)
 
             print(f"{count}: gradient descent time: {time.time() - t1}")
 

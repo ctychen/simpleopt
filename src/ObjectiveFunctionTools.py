@@ -35,14 +35,6 @@ class ObjectiveFunctionTools:
         return 
     
     def calculateFaceNormals(self, vertices, faces):
-        """
-        calculate normal vectors for each face in a trimesh.
-        
-        Returns
-        -------
-        face_normals : (m, 3) array
-            Normal vector for each face.
-        """
         #get vectors of the two edges for each face
         vecs = vertices[faces[:, 1:]] - vertices[faces[:, 0, np.newaxis]]
         
@@ -56,13 +48,6 @@ class ObjectiveFunctionTools:
         return faceNormals
     
     ###OBJECTIVE FUNCTIONS AND CONSTRAINTS###
-
-    # def objective_for_vertex_dim(objectiveFunction, newVerticesGrid, vtx, dim, all_faces, face_adjacency, face_adjacency_edges, initialParams, coefficientsList, facesToMove):
-    #     #face_adjacency, face_adjacency_edges, initialParams
-    #     return objectiveFunction(newVerticesGrid[dim][vtx], all_faces, face_adjacency, face_adjacency_edges, initialParams, coefficientsList, facesToMove)[0]
-    
-    # def objective_function_for_vertex_dim(self, vtx, dim):
-        #return self.objectiveFunction(self.newVerticesGrid[dim][vtx], self.all_faces, self.face_adjacency, self.face_adjacency_edges, self.initialParams, self.coefficientsList, self.facesToMove)[0]
 
     def calculateNormalsDiff(self, trimeshSolid):
         vertex_defects = trimesh.curvature.vertex_defects(trimeshSolid)
@@ -156,35 +141,6 @@ class ObjectiveFunctionTools:
         print(f"vtx {vtx} dim {dim}, calculated IMC")
         return integralMeanCurvature   
     
-
-# def calculateIntegralMeanCurvatureParallel(self, vtx, dim):
-#     """
-#     Compute the integral mean curvature of a mesh. Normalized: sum(curvatures / sum of curvatures)
-#     """
-#     vertices = self.newVerticesGrid[dim][vtx]
-#     face_normals = self.calculateFaceNormals(vertices, self.all_faces)
-    
-#     # Clean up variables as soon as they are not needed
-#     del vertices
-
-#     pairs = face_normals[self.face_adjacency]
-    
-#     del face_normals
-
-#     angles = self.calculateAngles(pairs)
-    
-#     del pairs
-
-#     # This line seems to be the heaviest, it might benefit from optimization or different handling
-#     edges_length = np.linalg.norm(np.subtract(
-#         *self.vertices[self.face_adjacency_edges.T]), axis=1)
-    
-#     integralMeanCurvature = np.sum((angles * edges_length) * 0.5) / self.initialIMC
-    
-#     del angles, edges_length
-
-#     return integralMeanCurvature
-
 
     def calcUnitVectors(self, vectors):
         norm = np.sqrt(np.dot(vectors, vectors))
