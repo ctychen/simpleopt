@@ -83,8 +83,10 @@ class OptModel_MeshHF:
         currentVerticesGrid = np.array([np.tile(tri_mesh.vertices[np.newaxis, :], (numVtx, 1, 1)) for _ in range(3)])
         numDim = len(currentVerticesGrid)
 
+        print(f"made current vertices grid")
         currentObjFcnVal = objfcnTools.vtxFacesObjectiveFunctionCalc(currentVerticesGrid[0][0])
         currentObjectiveFcnValues = np.full((numVtx, 3), currentObjFcnVal)
+        print(f"calculated current objective function")
 
         newVerticesGrid = currentVerticesGrid.copy()
         delta = delta * (254.0 / numVtx)
@@ -94,8 +96,9 @@ class OptModel_MeshHF:
         newVerticesGrid[2, range_indices, range_indices, 2] += delta
         # objfcnTools.setNewVerticesGrid(newVerticesGrid, delta)
         objfcnTools.setNewVerticesGrid(newVerticesGrid)
+        print(f"made new vertices grid")
 
-        numProcesses = self.Ncores
+        numProcesses = self.Ncores - 1
 
         # with Pool(numProcesses) as p:
         #     newObjectiveFcnValues = np.array(p.starmap(
@@ -113,6 +116,8 @@ class OptModel_MeshHF:
             pool.close()
             pool.join()
             del pool
+
+        print(f"calculated new objective function")
 
         # try:
         #     pool = multiprocessing.Pool(Ncores)
@@ -138,6 +143,8 @@ class OptModel_MeshHF:
 
         gradient = (newObjectiveFcnValues - currentObjectiveFcnValues) / (2 * delta) 
 
+        print(f"calculated new gradient")
+
         # print(f"gradient: {gradient}")
         # delta = delta * (254.0 / numVtx)
         # delta = delta * (numVtx / 254.0) 
@@ -146,6 +153,8 @@ class OptModel_MeshHF:
         tri_mesh.vertices[uniqueVtx, 0] -= (delta * gradient[uniqueVtx, 0])
         tri_mesh.vertices[uniqueVtx, 1] -= (delta * gradient[uniqueVtx, 1])
         tri_mesh.vertices[uniqueVtx, 2] -= (delta * gradient[uniqueVtx, 2])
+
+        print(f"moved vertices")
 
         return tri_mesh
 
