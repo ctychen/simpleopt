@@ -224,7 +224,7 @@ class OptModel_MeshHF:
             prev_objVal = curr_objVal
             curr_objVal = new_objVal
 
-            if count and count % 10 == 0: #count % 5 == 0: 
+            if count and count % 20 == 0: #count % 5 == 0: 
                 #self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"{id}", count)
                 self.plotHFVTK(calcHFAllMesh(fwdModel.hfMode, fwdModel.q_dir, fwdModel.q_mag, trimeshSolid), trimeshSolid, f"{id}", count)
 

@@ -121,7 +121,7 @@ class ObjectiveFunctionTools:
         pairs = face_normals[self.face_adjacency]
         angles = self.calculateAngles(pairs)
         #maybe this could be added if we want to penalize concave angles more? but not sure if this could do more harm than good
-        angle_weights = np.where(angles > np.pi, 0.5, 1.0)
+        angle_weights = np.where(angles > np.pi, 1.0, 0.5)
         weighted_angles = angles * angle_weights
         # edges_length = np.linalg.norm(np.subtract(
         #     *vertices[self.face_adjacency_edges.T]), axis=1)
