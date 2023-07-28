@@ -278,11 +278,8 @@ class ObjectiveFunctionTools:
 
     def vtxFacesObjectiveFunctionCalc(self, verticesList):
         c0, c1, c2, c3, c4 = self.coefficientsList
-        #imcTerm = c2 * self.calculateIntegralMeanCurvature(verticesList, self.all_faces, self.face_adjacency, self.face_adjacency_edges, self.initialIMC)
-        imcTerm = c2 * (np.sum(self.calculateVertexDefects(verticesList, self.all_faces, self.face_adjacency)) / self.initialVertexDefects)
-        # vertexDefectsTerm = c3 * np.max(self.calculateVertexDefects(verticesList, self.all_faces, self.face_adjacency)) #(np.sum(np.abs(self.calculateVertexDefects(verticesList, self.all_faces, self.face_adjacency))) / self.initialVertexDefects)
+        imcTerm = c2 * self.calculateIntegralMeanCurvature(verticesList, self.all_faces, self.face_adjacency, self.face_adjacency_edges, self.initialIMC)
         vertexDefectsTerm = c3 * (np.sum(np.abs(self.calculateVertexDefects(verticesList, self.all_faces, self.face_adjacency))) / self.initialVertexDefects)
-        #vertexDefectsTerm = 0#c2 * calculateVertexDefects(vertices, faces, face_adjacency)
         maxNormalsTerm = 0#c3 * maxAngleBetweenNormals   
         return imcTerm + maxNormalsTerm + vertexDefectsTerm #[imcTerm + maxNormalsTerm + vertexDefectsTerm, imcTerm, maxNormalsTerm]
 
@@ -295,12 +292,8 @@ class ObjectiveFunctionTools:
 
     def objectiveFunction(self, vtx, dim): 
         c0, c1, c2, c3, c4 = self.coefficientsList
-        # imcTerm = c2 * self.calculateIntegralMeanCurvatureParallel(vtx, dim)
-        #np.sum((angles * edges_length) * 0.5)
-        imcTerm = c2 * (np.sum(self.calculateVertexDefectsParallel(vtx, dim)) / self.initialVertexDefects)
-        # vertexDefectsTerm = c3 * np.max(self.calculateVertexDefectsParallel(vtx, dim)) 
+        imcTerm = c2 * self.calculateIntegralMeanCurvatureParallel(vtx, dim)
         vertexDefectsTerm = c3 * (np.sum(np.abs(self.calculateVertexDefectsParallel(vtx, dim))) / self.initialVertexDefects)
-        #vertexDefectsTerm = 0#c2 * calculateVertexDefects(vertices, faces, face_adjacency)
         maxNormalsTerm = 0#c3 * maxAngleBetweenNormals   
         return imcTerm + maxNormalsTerm + vertexDefectsTerm #[imcTerm + maxNormalsTerm + vertexDefectsTerm, imcTerm, maxNormalsTerm]
     
