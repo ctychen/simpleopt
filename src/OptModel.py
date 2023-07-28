@@ -115,6 +115,8 @@ class OptModel_MeshHF:
             pool.join()
             del pool
 
+        # print(f"new objective function values: {newObjectiveFcnValues}")
+
         # print(f"calculated new objective function")
 
         # print(f"time to calculate NEW objfcn: {time.time() - t0}")

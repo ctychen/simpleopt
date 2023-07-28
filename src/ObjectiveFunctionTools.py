@@ -1,5 +1,6 @@
 import numpy as np
 import trimesh
+from scipy.sparse import coo_matrix
 
 class ObjectiveFunctionTools: 
 
@@ -12,13 +13,20 @@ class ObjectiveFunctionTools:
     
     def setMeshAndGrids(self, trimeshSolid):
         self.all_faces = trimeshSolid.faces
+        self.faces_sparse = trimeshSolid.faces_sparse
         self.face_adjacency = trimeshSolid.face_adjacency
         self.face_adjacency_edges = trimeshSolid.face_adjacency_edges
         vertices = trimeshSolid.vertices
         self.currentVerticesGrid = np.array([np.tile(vertices[np.newaxis, :], (len(vertices), 1, 1)) for _ in range(3)])
         self.newVerticesGrid = np.array([np.tile(vertices[np.newaxis, :], (len(vertices), 1, 1)) for _ in range(3)])
         self.initialIMC = self.calculateNonNormalizedIntegralMeanCurvature(vertices, self.all_faces, self.face_adjacency, self.face_adjacency_edges)
+        self.initialVertexDefects = np.sum(self.calculateVertexDefects(vertices, self.all_faces, self.face_adjacency))
         # print(f"Shape of currentVerticesGrid: {self.currentVerticesGrid.shape}, shape of newVerticesGrid: {self.newVerticesGrid.shape}")
+        # print(f"initial mesh triangles: {trimeshSolid.triangles}")
+        # print(f"intial mesh triangle angle format: {trimeshSolid.triangles[100, 1]}")
+        # input()
+        # print(f"Vertex defects - trimesh: {trimeshSolid.vertex_defects}")
+        print(f"Initial vertex defects sum: {self.initialVertexDefects}")
         return 
     
     def setParams(self, initialParams, coefficientsList):
@@ -50,7 +58,8 @@ class ObjectiveFunctionTools:
     ###OBJECTIVE FUNCTIONS AND CONSTRAINTS###
 
     def calculateNormalsDiff(self, trimeshSolid):
-        vertex_defects = trimesh.curvature.vertex_defects(trimeshSolid)
+        # vertex_defects = trimesh.curvature.vertex_defects(trimeshSolid)
+        vertex_defects = self.calculateVertexDefects(trimeshSolid.vertices, trimeshSolid.faces, trimeshSolid.face_adjacency)
         # vertex_defects = self.calculateVertexDefects(trimeshSolid.vertices, trimeshSolid.faces, trimeshSolid.face_adjacency)
         sumVertexDefects = np.sum(np.abs(vertex_defects))
         maxVertexDefect = np.max(np.abs(vertex_defects))  
@@ -70,7 +79,9 @@ class ObjectiveFunctionTools:
     def calculateDotProducts(self, vecA, vecB):
         #from trimesh - util.py
         vecA = np.asanyarray(vecA)
-        return np.sum(vecA * vecB, axis=1)
+        # 3x faster than (a * b).sum(axis=1)
+        # avoiding np.ones saves 5-10% sometimes
+        return np.dot(vecA * vecB, [1.0] * vecA.shape[1])
         
     def calculateNonNormalizedIntegralMeanCurvature(self, vertices, faces, face_adjacency, face_adjacency_edges):
         """
@@ -132,9 +143,33 @@ class ObjectiveFunctionTools:
         return integralMeanCurvature   
     
 
-    def calcUnitVectors(self, vectors):
-        norm = np.sqrt(np.dot(vectors, vectors))
-        unitVectors = vectors / norm
+    def calcUnitVectors(self, vectors, threshold=None):
+        #from trimesh - utils - unitize
+        vectors = np.asanyarray(vectors)
+        # allow user to set zero threshold
+        if threshold is None:
+            threshold = np.finfo(np.float64).resolution * 100
+        if len(vectors.shape) == 2:
+            # for (m, d) arrays take the per-row unit vector
+            # using sqrt and avoiding exponents is slightly faster
+            # also dot with ones is faser than .sum(axis=1)
+            norm = np.sqrt(np.dot(vectors * vectors,
+                                [1.0] * vectors.shape[1]))
+            # non-zero norms
+            valid = norm > threshold
+            # in-place reciprocal of nonzero norms
+            norm[valid] **= -1
+            # multiply by reciprocal of norm
+            unitVectors = vectors * norm.reshape((-1, 1))
+
+        elif len(vectors.shape) == 1:
+            # treat 1D arrays as a single vector
+            norm = np.sqrt(np.dot(vectors, vectors))
+            valid = norm > threshold
+            if valid:
+                unitVectors = vectors / norm
+            else:
+                unitVectors = vectors.copy()
         return unitVectors
 
     def calculateVertexDefects(self, vertices, faces, face_adjacency):
@@ -157,7 +192,15 @@ class ObjectiveFunctionTools:
         # so set all of the angles to zero in that case
         angles[(angles < 1e-8).any(axis=1), :] = 0.0
 
-        angle_sum = np.array(angles.sum(axis=1)).flatten()
+        anglesMatrixSparse = coo_matrix((
+                angles.flatten(),
+                (self.faces_sparse.row, self.faces_sparse.col)),
+                self.faces_sparse.shape)
+
+        # angle_sum = np.array(angles.sum(axis=1)).flatten()
+        angle_sum = np.array(anglesMatrixSparse.sum(axis=1)).flatten()
+        # print(f"defects: {(2*np.pi) - angle_sum}")
+        # input()
 
         return (2*np.pi) - angle_sum
     
@@ -182,21 +225,79 @@ class ObjectiveFunctionTools:
         # so set all of the angles to zero in that case
         angles[(angles < 1e-8).any(axis=1), :] = 0.0
 
-        angle_sum = np.array(angles.sum(axis=1)).flatten()
+        anglesMatrixSparse = coo_matrix((
+                angles.flatten(),
+                (self.faces_sparse.row, self.faces_sparse.col)),
+                self.faces_sparse.shape)
 
+        # angle_sum = np.array(angles.sum(axis=1)).flatten()
+        angle_sum = np.array(anglesMatrixSparse.sum(axis=1)).flatten()
+        # print(f"defects: {(2*np.pi) - angle_sum}")
         return (2*np.pi) - angle_sum
+    
 
+# angle_sum = np.array(mesh.face_angles_sparse.sum(axis=1)).flatten()
+# defect = (2 * np.pi) - angle_sum
+# return defect
+
+#mesh.face_angles_sparse: flattened then sparsed mesh.face_angles
+#mesh.face_angles: triangles.angles(self.triangles)
+#triangles.angles: degenerate angles will be 0
+# # don't copy triangles
+# triangles = np.asanyarray(triangles, dtype=np.float64)
+
+# # get a unit vector for each edge of the triangle
+# u = unitize(triangles[:, 1] - triangles[:, 0])
+# v = unitize(triangles[:, 2] - triangles[:, 0])
+# w = unitize(triangles[:, 2] - triangles[:, 1])
+
+# # run the cosine and per-row dot product
+# result = np.zeros((len(triangles), 3), dtype=np.float64)
+# # clip to make sure we don't float error past 1.0
+# result[:, 0] = np.arccos(np.clip(diagonal_dot(u, v), -1, 1))
+# result[:, 1] = np.arccos(np.clip(diagonal_dot(-u, w), -1, 1))
+# # the third angle is just the remaining
+# result[:, 2] = np.pi - result[:, 0] - result[:, 1]
+
+# # a triangle with any zero angles is degenerate
+# # so set all of the angles to zero in that case
+# result[(result < tol.merge).any(axis=1), :] = 0.0
+
+#unitize: 
+#tol.merge: 
+#diagonal_dot: 
+
+
+
+    # def vtxFacesObjectiveFunctionCalc(self, verticesList):
+    #     c0, c1, c2, c3, c4 = self.coefficientsList
+    #     imcTerm = c2 * self.calculateIntegralMeanCurvature(verticesList, self.all_faces, self.face_adjacency, self.face_adjacency_edges, self.initialIMC)
+    #     vertexDefectsTerm = 0#c2 * calculateVertexDefects(vertices, faces, face_adjacency)
+    #     maxNormalsTerm = 0#c3 * maxAngleBetweenNormals   
+    #     return imcTerm + maxNormalsTerm + vertexDefectsTerm #[imcTerm + maxNormalsTerm + vertexDefectsTerm, imcTerm, maxNormalsTerm]
 
     def vtxFacesObjectiveFunctionCalc(self, verticesList):
         c0, c1, c2, c3, c4 = self.coefficientsList
-        imcTerm = c2 * self.calculateIntegralMeanCurvature(verticesList, self.all_faces, self.face_adjacency, self.face_adjacency_edges, self.initialIMC)
+        #imcTerm = c2 * self.calculateIntegralMeanCurvature(verticesList, self.all_faces, self.face_adjacency, self.face_adjacency_edges, self.initialIMC)
+        # imcTerm = c2 * (np.sum(self.calculateVertexDefects(verticesList, self.all_faces, self.face_adjacency)) / self.initialVertexDefects)
+        imcTerm = c2 * np.sum(np.abs(self.calculateVertexDefects(verticesList, self.all_faces, self.face_adjacency)))
         vertexDefectsTerm = 0#c2 * calculateVertexDefects(vertices, faces, face_adjacency)
         maxNormalsTerm = 0#c3 * maxAngleBetweenNormals   
         return imcTerm + maxNormalsTerm + vertexDefectsTerm #[imcTerm + maxNormalsTerm + vertexDefectsTerm, imcTerm, maxNormalsTerm]
 
+    # def objectiveFunction(self, vtx, dim): 
+    #     c0, c1, c2, c3, c4 = self.coefficientsList
+    #     imcTerm = c2 * self.calculateIntegralMeanCurvatureParallel(vtx, dim)
+    #     vertexDefectsTerm = 0#c2 * calculateVertexDefects(vertices, faces, face_adjacency)
+    #     maxNormalsTerm = 0#c3 * maxAngleBetweenNormals   
+    #     return imcTerm + maxNormalsTerm + vertexDefectsTerm #[imcTerm + maxNormalsTerm + vertexDefectsTerm, imcTerm, maxNormalsTerm]
+
     def objectiveFunction(self, vtx, dim): 
         c0, c1, c2, c3, c4 = self.coefficientsList
-        imcTerm = c2 * self.calculateIntegralMeanCurvatureParallel(vtx, dim)
+        # imcTerm = c2 * self.calculateIntegralMeanCurvatureParallel(vtx, dim)
+        #np.sum((angles * edges_length) * 0.5)
+        # imcTerm = c2 * (np.sum(self.calculateVertexDefectsParallel(vtx, dim)) / self.initialVertexDefects)
+        imcTerm = c2 * np.sum(np.abs(self.calculateVertexDefectsParallel(vtx, dim)))
         vertexDefectsTerm = 0#c2 * calculateVertexDefects(vertices, faces, face_adjacency)
         maxNormalsTerm = 0#c3 * maxAngleBetweenNormals   
         return imcTerm + maxNormalsTerm + vertexDefectsTerm #[imcTerm + maxNormalsTerm + vertexDefectsTerm, imcTerm, maxNormalsTerm]
