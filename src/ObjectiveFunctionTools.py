@@ -20,7 +20,7 @@ class ObjectiveFunctionTools:
         self.currentVerticesGrid = np.array([np.tile(vertices[np.newaxis, :], (len(vertices), 1, 1)) for _ in range(3)])
         self.newVerticesGrid = np.array([np.tile(vertices[np.newaxis, :], (len(vertices), 1, 1)) for _ in range(3)])
         self.initialIMC = self.calculateNonNormalizedIntegralMeanCurvature(vertices, self.all_faces, self.face_adjacency, self.face_adjacency_edges)
-        self.initialVertexDefects = np.sum(self.calculateVertexDefects(vertices, self.all_faces, self.face_adjacency))
+        self.initialVertexDefects = np.sum(np.abs(self.calculateVertexDefects(vertices, self.all_faces, self.face_adjacency)))
         # print(f"Shape of currentVerticesGrid: {self.currentVerticesGrid.shape}, shape of newVerticesGrid: {self.newVerticesGrid.shape}")
         # print(f"initial mesh triangles: {trimeshSolid.triangles}")
         # print(f"intial mesh triangle angle format: {trimeshSolid.triangles[100, 1]}")
@@ -279,9 +279,10 @@ class ObjectiveFunctionTools:
     def vtxFacesObjectiveFunctionCalc(self, verticesList):
         c0, c1, c2, c3, c4 = self.coefficientsList
         #imcTerm = c2 * self.calculateIntegralMeanCurvature(verticesList, self.all_faces, self.face_adjacency, self.face_adjacency_edges, self.initialIMC)
-        # imcTerm = c2 * (np.sum(self.calculateVertexDefects(verticesList, self.all_faces, self.face_adjacency)) / self.initialVertexDefects)
-        imcTerm = c2 * np.sum(np.abs(self.calculateVertexDefects(verticesList, self.all_faces, self.face_adjacency)))
-        vertexDefectsTerm = 0#c2 * calculateVertexDefects(vertices, faces, face_adjacency)
+        imcTerm = c2 * (np.sum(self.calculateVertexDefects(verticesList, self.all_faces, self.face_adjacency)) / self.initialVertexDefects)
+        # vertexDefectsTerm = c3 * np.max(self.calculateVertexDefects(verticesList, self.all_faces, self.face_adjacency)) #(np.sum(np.abs(self.calculateVertexDefects(verticesList, self.all_faces, self.face_adjacency))) / self.initialVertexDefects)
+        vertexDefectsTerm = c3 * (np.sum(np.abs(self.calculateVertexDefects(verticesList, self.all_faces, self.face_adjacency))) / self.initialVertexDefects)
+        #vertexDefectsTerm = 0#c2 * calculateVertexDefects(vertices, faces, face_adjacency)
         maxNormalsTerm = 0#c3 * maxAngleBetweenNormals   
         return imcTerm + maxNormalsTerm + vertexDefectsTerm #[imcTerm + maxNormalsTerm + vertexDefectsTerm, imcTerm, maxNormalsTerm]
 
@@ -296,9 +297,10 @@ class ObjectiveFunctionTools:
         c0, c1, c2, c3, c4 = self.coefficientsList
         # imcTerm = c2 * self.calculateIntegralMeanCurvatureParallel(vtx, dim)
         #np.sum((angles * edges_length) * 0.5)
-        # imcTerm = c2 * (np.sum(self.calculateVertexDefectsParallel(vtx, dim)) / self.initialVertexDefects)
-        imcTerm = c2 * np.sum(np.abs(self.calculateVertexDefectsParallel(vtx, dim)))
-        vertexDefectsTerm = 0#c2 * calculateVertexDefects(vertices, faces, face_adjacency)
+        imcTerm = c2 * (np.sum(self.calculateVertexDefectsParallel(vtx, dim)) / self.initialVertexDefects)
+        # vertexDefectsTerm = c3 * np.max(self.calculateVertexDefectsParallel(vtx, dim)) 
+        vertexDefectsTerm = c3 * (np.sum(np.abs(self.calculateVertexDefectsParallel(vtx, dim))) / self.initialVertexDefects)
+        #vertexDefectsTerm = 0#c2 * calculateVertexDefects(vertices, faces, face_adjacency)
         maxNormalsTerm = 0#c3 * maxAngleBetweenNormals   
         return imcTerm + maxNormalsTerm + vertexDefectsTerm #[imcTerm + maxNormalsTerm + vertexDefectsTerm, imcTerm, maxNormalsTerm]
     

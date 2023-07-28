@@ -224,7 +224,8 @@ class RunSetup_MeshHF:
             for val in sweep_values:
                 my_trimeshSolid = trimeshSolid.copy()
                 coefficients_list[idx_to_vary] = val
-                directoryName = self.makeDirectories(f"imcscans_2_0mm/vtxdefects/test_", coefficients_list)
+                # directoryName = self.makeDirectories(f"vertexscans1_0mm/imc_and_maxvtx/c2_c3_test_", coefficients_list)
+                directoryName = self.makeDirectories(f"vertexscans1_0mm/imc_and_vtxdefects/c2_c3_test_", coefficients_list)
                 #meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
                 self.opt.meshHFOpt(
                     facesToKeep,
@@ -321,13 +322,13 @@ class RunSetup_MeshHF:
             return 
 
 
-        coefficients_list = [0, 0, 50, 0, 0] #[0, 0, 0, 20, 10]
+        coefficients_list = [0, 0, 6.67 * 2 *  94.24777960769379, 50, 0] #[0, 0, 0, 20, 10]
         #sweep_c2 = [50]
         # import random
         # sweep_c2 = random.uniform(1000, 10000) #[6.67 * 2 *  94.24777960769379] #[25 * 94.24777960769379] #[13.34 * 94.24777960769379] #[14.0 * 94.24777960769379] #[12.0 * 94.24777960769379] #[10.0 * 94.24777960769379] #[15.0 * 94.24777960769379] #[1500] #[6.67 * 2] #13.3 works really well for integral calc #[10]
         # sweep_c2 = [50 * 254] 
         # sweep_c2 = [50 * 254]
-        sweep_c2 = [50]
+        sweep_c2 = [6.67 * 2 *  94.24777960769379]
         # sweep_c2 = [50 * (254.0 / 1244.0) * 2] #[50 * (254.0 / 1244.0)] #[50 * 2 * (1244.0 / 254.0)]
         sweep_coefficients_and_record_output(coefficients_list, 2, sweep_c2)    
 
