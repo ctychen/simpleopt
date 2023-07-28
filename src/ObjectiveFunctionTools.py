@@ -116,29 +116,19 @@ class ObjectiveFunctionTools:
         """
         Compute the integral mean curvature of a mesh. Normalized: sum(curvatures / sum of curvatures)
         """
-        #calc face normals
-        # print(f"vtx {vtx} dim {dim}, starting IMC calculation")
         vertices = self.newVerticesGrid[dim][vtx]
-        # print(f"vtx {vtx} dim {dim}, got vertices")
         face_normals = self.calculateFaceNormals(vertices, self.all_faces)
-        # print(f"vtx {vtx} dim {dim}, got normals")
-        #calc angles between adjacent faces
         pairs = face_normals[self.face_adjacency]
-        # print(f"vtx {vtx} dim {dim}, filtered normals")
         angles = self.calculateAngles(pairs)
-        # print(f"vtx {vtx} dim {dim}, calculated angles")
-        #calc integral mean curvature
+        #maybe this could be added if we want to penalize concave angles more? but not sure if this could do more harm than good
+        angle_weights = np.where(angles > np.pi, 0.5, 1.0)
+        weighted_angles = angles * angle_weights
+        # edges_length = np.linalg.norm(np.subtract(
+        #     *vertices[self.face_adjacency_edges.T]), axis=1)
+        # integralMeanCurvature = np.sum((angles * edges_length) * 0.5) / self.initialIMC
         edges_length = np.linalg.norm(np.subtract(
             *vertices[self.face_adjacency_edges.T]), axis=1)
-        #these should be deleted as soon as they are not needed
-        # del vertices
-        # del face_normals
-        # del pairs 
-        # print(f"vtx {vtx} dim {dim}, calculated length of edges")
-        integralMeanCurvature = np.sum((angles * edges_length) * 0.5) / self.initialIMC
-        # del angles
-        # del edges_length
-        # print(f"vtx {vtx} dim {dim}, calculated IMC")
+        integralMeanCurvature = np.sum((weighted_angles * edges_length) * 0.5) / self.initialIMC
         return integralMeanCurvature   
     
 
@@ -181,7 +171,6 @@ class ObjectiveFunctionTools:
 
     def objectiveFunction(self, vtx, dim): 
         c0, c1, c2, c3, c4 = self.coefficientsList
-        # imcTerm = c2 * self.calculateIntegralMeanCurvature(self.newVerticesGrid[dim][vtx], self.all_faces, self.face_adjacency, self.face_adjacency_edges, self.initialIMC)
         imcTerm = c2 * self.calculateIntegralMeanCurvatureParallel(vtx, dim)
         vertexDefectsTerm = 0#c2 * calculateVertexDefects(vertices, faces, face_adjacency)
         maxNormalsTerm = 0#c3 * maxAngleBetweenNormals   

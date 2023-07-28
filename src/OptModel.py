@@ -93,7 +93,7 @@ class OptModel_MeshHF:
         # print(f"calculated current objective function")
 
         newVerticesGrid = currentVerticesGrid.copy()
-        #delta = delta * (254.0 / numVtx)
+        delta = delta * (254.0 / numVtx)
         range_indices = np.arange(currentVerticesGrid.shape[1])
         newVerticesGrid[0, range_indices, range_indices, 0] += delta
         newVerticesGrid[1, range_indices, range_indices, 1] += delta
