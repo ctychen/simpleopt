@@ -2,97 +2,12 @@ import numpy as np
 
 import Solid
 
-def calculateAllHF_AllVals(q_dir, q_mag, trimeshSolid):
-    """
-    Calculate HF on every mesh element, with no exclusions, and returning them all in a list
-    """
-    
-    normals = trimeshSolid.face_normals
-    q_mesh_all = -1 * (np.dot(normals, q_dir)) * q_mag
-    return q_mesh_all
-
-def calculateAllHF(hfMode, q_dir, q_mag, trimeshSolid):
-    """
-    calculate HF on every mesh element, but this should use nonuniform HF on mesh element centers
-    this could also use uniform HF; just need meshHFProfile to be a list of the same HF value for each element
-    """ 
-
-    q_mesh_all = []
-
-    if hfMode == 'uniform':
-        q_mesh_all = calculateAllHF_AllVals(q_dir, q_mag, trimeshSolid)
-
-    #TODO fix this later but exponnorm profile is not a priority
-    # elif hfMode == 'exponnorm':
-    #     normals = trimeshSolid.face_normals
-    #     # newHFProfile = self.calculateHFProfileMagnitudes(trimeshSolid)
-    #     newHFProfile = meshHFProfile
-    #     for i in range(len(newHFProfile)):
-    #         magnitude = newHFProfile[i][0]
-    #         direction = newHFProfile[i][1]
-    #         q_mesh_all.append(-1 * (np.dot(normals[i], direction)) * magnitude)
-    #     q_mesh_all = np.array(q_mesh_all)
-
-    elif hfMode == "uniform_multiple":
-        #this works for 2 HF magnitudes and directions but not more - would have to generalize?
-        normals = trimeshSolid.face_normals
-        dot_product_q0 = np.dot(normals, q_dir[0])
-        mask_q0 = dot_product_q0 > 0
-        q0_mesh = -1 * np.where(mask_q0, 0, dot_product_q0) * q_mag[0]
-
-        dot_product_q1 = np.dot(normals, q_dir[1])
-        mask_q1 = dot_product_q1 > 0
-        q1_mesh = -1 * np.where(mask_q1, 0, dot_product_q1) * q_mag[1]
-
-        q_mesh_all = np.add(q0_mesh, q1_mesh)
-
-    return q_mesh_all
-
-def calculateHFMeshSum(q_mesh_all):
-    """
-    Calculate sum of heat flux from all mesh elements
-    """
-    q_mesh_vals = np.where(q_mesh_all > 0, q_mesh_all, 0)
-    q_mesh_sum = np.sum(np.abs(q_mesh_vals))
-    return q_mesh_sum
-
 def calculateIntegratedEnergy(q_mesh_all, trimeshSolid):
     faceAreas = trimeshSolid.area_faces
     mesh_q_dot_areas = q_mesh_all * faceAreas
     prods = np.where(mesh_q_dot_areas > 0, mesh_q_dot_areas, 0)
     mesh_energy = np.sum(np.abs(prods))
     return mesh_energy
-
-def calculateMaxHF(q_mesh_all):
-    return np.max(q_mesh_all)
-
-def filteredCalculateMaxHF(q_mesh_all, unconstrainedFaces = []):
-    """
-    filtering out unconstrained faces from max HF calculation - originally was added bc of HF with incident angle
-    if no unconstrained faces defined, then we just return max HF same as before
-    """
-
-    # if unconstrainedFaces: #if unconstrainedFaces is not empty
-    #     unconstrainedFaces = list(unconstrainedFaces) 
-    #     mask = np.ones(q_mesh_all.shape, dtype=bool)
-    #     mask[unconstrainedFaces] = False
-    #     q_mesh_all[mask] = 0
-
-    return np.max(q_mesh_all)
-
-def calculateHFDistribution(q_dir, q_mag, trimeshSolid):
-    """
-    Calculate mean, variance, standard deviation on all HF over mesh elements
-    """
-    
-    normals = trimeshSolid.face_normals
-    q_mesh_all = -1 * (np.dot(normals, q_dir)) * q_mag
-
-    hfMean = np.mean(q_mesh_all)
-    hfVariance = np.var(q_mesh_all)
-    hfStd = np.std(q_mesh_all)
-
-    return hfMean, hfVariance, hfStd, q_mesh_all
 
 def eich_profile(s_bar, q0, lambda_q, S, q_BG):
     """

@@ -119,17 +119,8 @@ class RunSetup_MeshHF:
             #this should be for faces to NOT use (so they shouldn't move)
             return []
 
-        q_mesh_initial = ForwardModel.calculateAllHF(self.fwd.hfMode, self.fwd.q_dir, self.fwd.q_mag, trimeshSolid) #self.fwd.calculateAllHF(trimeshSolid)
-        maxHF_initial = ForwardModel.filteredCalculateMaxHF(q_mesh_initial, unconstrainedFaces=[]) #self.fwd.filteredCalculateMaxHF(q_mesh_initial, unconstrainedFaces = [])
-        sumHF_initial = ForwardModel.calculateHFMeshSum(q_mesh_initial) 
-        energy_initial = ForwardModel.calculateIntegratedEnergy(q_mesh_initial, trimeshSolid)  #self.fwd.calculateIntegratedEnergy(q_mesh_initial, trimeshSolid)
 
         numFaces = len(trimeshSolid.faces)  #for normalizing terms in objective function
-
-        print(f"Initial max HF: {maxHF_initial}")
-        print(f"Initial sum HF: {sumHF_initial}")
-        print(f"Initial energy: {energy_initial}")
-
 
         def sweep_coefficients_and_record_output(coefficients_list, idx_to_vary, sweep_values):
             """
@@ -153,9 +144,6 @@ class RunSetup_MeshHF:
                 self.opt.meshHFOpt(
                     facesToKeep,
                     self.fwd.makeHFProfile,
-                    ForwardModel.calculateAllHF, #self.fwd.calculateAllHF,
-                    ForwardModel.filteredCalculateMaxHF, #self.fwd.filteredCalculateMaxHF, #self.fwd.calculateMaxHF,
-                    ForwardModel.calculateIntegratedEnergy, #self.fwd.calculateIntegratedEnergy,
                     my_trimeshSolid, 
                     coefficients_list,
                     threshold=0.00000001, 
@@ -224,9 +212,6 @@ class RunSetup_MeshHF:
                     self.opt.meshHFOpt(
                         facesToKeep,
                         self.fwd.makeHFProfile,
-                        ForwardModel.calculateAllHF,
-                        ForwardModel.filteredCalculateMaxHF, #self.fwd.calculateMaxHF,
-                        ForwardModel.calculateIntegratedEnergy,
                         my_trimeshSolid, 
                         coefficients_list,
                         threshold=0.00000001, 

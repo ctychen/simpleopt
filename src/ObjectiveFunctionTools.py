@@ -19,13 +19,29 @@ class ObjectiveFunctionTools:
         self.currentVerticesGrid = np.array([np.tile(vertices[np.newaxis, :], (len(vertices), 1, 1)) for _ in range(3)])
         self.newVerticesGrid = np.array([np.tile(vertices[np.newaxis, :], (len(vertices), 1, 1)) for _ in range(3)])
         self.initialIMC = self.calculateNonNormalizedIntegralMeanCurvature(vertices, self.all_faces, self.face_adjacency, self.face_adjacency_edges)
+        q_mesh_initial = self.calculateAllHF_AllVals_GivenVertices(self.q_dir, self.q_mag, vertices)
+        self.maxHF_initial = self.filteredCalculateMaxHF(q_mesh_initial, unconstrainedFaces=[]) #self.fwd.filteredCalculateMaxHF(q_mesh_initial, unconstrainedFaces = [])
+        self.sumHF_initial = self.calculateHFMeshSum(q_mesh_initial) 
+        self.initialHFSum = self.calculateHFMeshSum(q_mesh_initial)
         self.initialVertexDefects = np.sum(np.abs(self.calculateVertexDefects(vertices, self.all_faces, self.face_adjacency)))
+        print(f"Initial max HF: {self.maxHF_initial}")
+        print(f"Initial sum HF: {self.sumHF_initial}")
         print(f"Initial vertex defects sum: {self.initialVertexDefects}")
+        print(f"Initial integral mean curvature: {self.initialIMC}")
         return 
+    
+    def setForwardModel(self, fwdModel):
+        self.fwdModel = fwdModel
+        return
     
     def setParams(self, initialParams, coefficientsList):
         self.initialParams = initialParams
         self.coefficientsList = coefficientsList
+        return 
+    
+    def setHeatFluxParams(self, q_dir, q_mag):
+        self.q_dir = q_dir
+        self.q_mag = q_mag
         return 
     
     def setFacesToMove(self, facesToMove):
@@ -50,9 +66,7 @@ class ObjectiveFunctionTools:
         return faceNormals
 
     def calculateNormalsDiff(self, trimeshSolid):
-        # vertex_defects = trimesh.curvature.vertex_defects(trimeshSolid)
         vertex_defects = self.calculateVertexDefects(trimeshSolid.vertices, trimeshSolid.faces, trimeshSolid.face_adjacency)
-        # vertex_defects = self.calculateVertexDefects(trimeshSolid.vertices, trimeshSolid.faces, trimeshSolid.face_adjacency)
         sumVertexDefects = np.sum(np.abs(vertex_defects))
         maxVertexDefect = np.max(np.abs(vertex_defects))  
         maxAngleBetweenNormals = 0 #TODO - will need to bring in these terms from impelmentation in RunModel
@@ -80,7 +94,6 @@ class ObjectiveFunctionTools:
         Compute the integral mean curvature of a mesh. Not normalized. This was the original function used
         """
         #calc face normals
-        #face_normals = Solid.calculateFaceNormals(vertices, faces)
         face_normals = self.calculateFaceNormals(vertices, faces)
         #calc angles between adjacent faces
         pairs = face_normals[face_adjacency]
@@ -88,9 +101,6 @@ class ObjectiveFunctionTools:
         #calc integral mean curvature
         edges_length = np.linalg.norm(np.subtract(
             *vertices[face_adjacency_edges.T]), axis=1)
-        # del vertices
-        # del face_normals
-        # del pairs 
         integralMeanCurvature = (angles * edges_length).sum() * 0.5
         return integralMeanCurvature
     
@@ -99,7 +109,6 @@ class ObjectiveFunctionTools:
         Compute the integral mean curvature of a mesh. Normalized: sum(curvatures / sum of curvatures)
         """
         #calc face normals
-        #face_normals = Solid.calculateFaceNormals(vertices, faces)
         face_normals = self.calculateFaceNormals(vertices, faces)
         #calc angles between adjacent faces
         pairs = face_normals[face_adjacency]
@@ -218,40 +227,106 @@ class ObjectiveFunctionTools:
         return (2*np.pi) - angle_sum
     
 
+    def calculateAllHF_AllVals(self, q_dir, q_mag, vtx, dim):
+        """
+        Calculate HF on every mesh element, with no exclusions, and returning them all in a list
+        """
+        vertices = self.newVerticesGrid[dim][vtx]
+        normals = self.calculateFaceNormals(vertices, self.all_faces)
+        q_mesh_all = -1 * (np.dot(normals, q_dir)) * q_mag
+        return q_mesh_all    
+    
+    def calculateAllHF_AllVals_GivenVertices(self, q_dir, q_mag, vertices):
+        """
+        Calculate HF on every mesh element, with no exclusions, and returning them all in a list
+        """
+        normals = self.calculateFaceNormals(vertices, self.all_faces)
+        q_mesh_all = -1 * (np.dot(normals, q_dir)) * q_mag
+        return q_mesh_all    
+    
+    def calculateAllHF(self, hfMode, q_dir, q_mag, vtx, dim):
+        """
+        calculate HF on every mesh element, but this should use nonuniform HF on mesh element centers
+        this could also use uniform HF; just need meshHFProfile to be a list of the same HF value for each element
+        """ 
+
+        q_mesh_all = []
+
+        if hfMode == 'uniform':
+            q_mesh_all = self.calculateAllHF_AllVals(q_dir, q_mag, vtx, dim)
+
+        elif hfMode == "uniform_multiple":
+            #this works for 2 HF magnitudes and directions but not more - would have to generalize?
+            vertices = self.newVerticesGrid[dim][vtx]
+            normals = self.calculateFaceNormals(vertices, self.all_faces)
+            dot_product_q0 = np.dot(normals, q_dir[0])
+            mask_q0 = dot_product_q0 > 0
+            q0_mesh = -1 * np.where(mask_q0, 0, dot_product_q0) * q_mag[0]
+
+            dot_product_q1 = np.dot(normals, q_dir[1])
+            mask_q1 = dot_product_q1 > 0
+            q1_mesh = -1 * np.where(mask_q1, 0, dot_product_q1) * q_mag[1]
+
+            q_mesh_all = np.add(q0_mesh, q1_mesh)
+
+        return q_mesh_all
+    
+    def calculateHFMeshSum(self, q_mesh_all):
+        """
+        Calculate sum of heat flux from all mesh elements
+        """
+        q_mesh_vals = np.where(q_mesh_all > 0, q_mesh_all, 0)
+        q_mesh_sum = np.sum(np.abs(q_mesh_vals))
+        return q_mesh_sum
+    
+    def calculateMaxHF(self, q_mesh_all):
+        return np.max(q_mesh_all)
+
+    def filteredCalculateMaxHF(self, q_mesh_all, unconstrainedFaces = []):
+        """
+        filtering out unconstrained faces from max HF calculation - originally was added bc of HF with incident angle
+        if no unconstrained faces defined, then we just return max HF same as before
+        """
+
+        # if unconstrainedFaces: #if unconstrainedFaces is not empty
+        #     unconstrainedFaces = list(unconstrainedFaces) 
+        #     mask = np.ones(q_mesh_all.shape, dtype=bool)
+        #     mask[unconstrainedFaces] = False
+        #     q_mesh_all[mask] = 0
+
+        return np.max(q_mesh_all)
+
+    def calculateHFDistribution(self, q_dir, q_mag, vtx, dim):
+        """
+        Calculate mean, variance, standard deviation on all HF over mesh elements
+        """
+        vertices = self.newVerticesGrid[dim][vtx]
+        normals = self.calculateFaceNormals(vertices, self.all_faces)
+        q_mesh_all = -1 * (np.dot(normals, q_dir)) * q_mag
+
+        hfMean = np.mean(q_mesh_all)
+        hfVariance = np.var(q_mesh_all)
+        hfStd = np.std(q_mesh_all)
+
+        return hfMean, hfVariance, hfStd, q_mesh_all
+
     def vtxFacesObjectiveFunctionCalc(self, verticesList):
         c0, c1, c2, c3, c4 = self.coefficientsList
-        maxHeatFluxTerm = c0
-        sumHeatFluxTerm = c1
+        #self.hfMode, self.q_dir, self.q_mag, self.facesToMove, 0), self.facesToMove
+        q_mesh_all = self.calculateAllHF_AllVals_GivenVertices(self.fwdModel.q_dir, self.fwdModel.q_mag, verticesList)
+        maxHeatFluxTerm = c0 * self.filteredCalculateMaxHF(q_mesh_all)
+        sumHeatFluxTerm = c1 * (self.calculateHFMeshSum(q_mesh_all) / self.initialHFSum)
         imcTerm = c2 * self.calculateIntegralMeanCurvature(verticesList, self.all_faces, self.face_adjacency, self.face_adjacency_edges, self.initialIMC)
         vertexDefectsTerm = c3 * np.sum(np.abs(self.calculateVertexDefects(verticesList, self.all_faces)))
         return maxHeatFluxTerm + sumHeatFluxTerm + imcTerm + vertexDefectsTerm 
 
     def objectiveFunction(self, vtx, dim): 
         c0, c1, c2, c3, c4 = self.coefficientsList
-        maxHeatFluxTerm = c0 
-        sumHeatFluxTerm = c1
+        q_mesh_all = self.calculateAllHF(self.fwdModel.hfMode, self.fwdModel.q_dir, self.fwdModel.q_mag, self.facesToMove, vtx, dim)
+        maxHeatFluxTerm = c0 * self.filteredCalculateMaxHF(q_mesh_all)
+        sumHeatFluxTerm = c1 * (self.calculateHFMeshSum(q_mesh_all) / self.initialHFSum)
         imcTerm = c2 * self.calculateIntegralMeanCurvatureParallel(vtx, dim)
         vertexDefectsTerm = c3 * np.sum(np.abs(self.calculateVertexDefectsParallel(vtx, dim)))
-        return maxHeatFluxTerm + sumHeatFluxTerm + imcTerm + vertexDefectsTerm #[imcTerm + maxNormalsTerm + vertexDefectsTerm, imcTerm, maxNormalsTerm]
+        return maxHeatFluxTerm + sumHeatFluxTerm + imcTerm + vertexDefectsTerm
     
-
-    #face_adjacency, faces, and face_adjacency_edges are from trimesh but all will only need to be accessed once at beginning, and are all np arrays
-    # def objectiveFunction(vertices, faces, face_adjacency, face_adjacency_edges, initialParams, coefficientsList, unconstrainedFaces):
-    #     #for initialParams - this is volume of original mesh, etc. - for normalization, etc. 
-    #     c0, c1, c2, c3, c4 = coefficientsList
-    #     # maxHFTerm = 0 #c0 * self.fwd.filteredCalculateMaxHF(q_mesh_all, unconstrainedFaces)    #try not dividing by initial value
-    #     # sumHFTerm = 0 #c1 * (self.fwd.calculateHFMeshSum(q_mesh_all) / numFaces) 
-    #     # sumVertexDefects, maxVertexDefects, maxAngleBetweenNormals = calculateNormalsDiff(trimeshSolid)  
-    #     imcTerm = c2 * self.calculateIntegralMeanCurvature(vertices, faces, face_adjacency, face_adjacency_edges)
-    #     # imcTerm = c2 * (Solid.calculateSurfaceArea(vertices, faces) / initialParams[0])
-    #     # normalsPenalty = c2 * sumVertexDefects
-    #     vertexDefectsTerm = 0#c2 * calculateVertexDefects(vertices, faces, face_adjacency)
-    #     maxNormalsTerm = 0#c3 * maxAngleBetweenNormals   
-    #     #c4 was originally a thing but i've given up
-    #     # return [vertexDefectsTerm + maxNormalsTerm, vertexDefectsTerm, maxNormalsTerm]
-    #     #return [maxHFTerm + sumHFTerm + normalsPenalty + maxNormalsTerm + maxVertexDefectsTerm, normalsPenalty, maxNormalsTerm, maxVertexDefectsTerm]
-    #     # return [normalsPenalty + maxNormalsTerm + maxVertexDefectsTerm, normalsPenalty, maxNormalsTerm]   
-    #     return [imcTerm + maxNormalsTerm + vertexDefectsTerm, imcTerm, maxNormalsTerm]
-    
-
     
