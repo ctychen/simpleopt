@@ -3,6 +3,12 @@ simple start for optimizing cad for minimizing heat flux
 
 ### demos/progress:
 
+PPPL GSS presentation: https://github.com/ctychen/simpleopt/blob/main/optimages/cchen_pppl_poster_revfinal.pdf
+
+![alt text][poster]
+
+[poster]: https://github.com/ctychen/simpleopt/blob/main/optimages/ppplPoster.png "ppplposter"
+
 Cube rotation demo: https://github.com/ctychen/simpleopt/tree/cuberotationdemo
 
 Pyramid mesh demo: https://github.com/ctychen/simpleopt/tree/pyramiddemo
