@@ -153,8 +153,6 @@ class OptModel_MeshHF:
         prev_objVal = 2000
         curr_objVal = 0
 
-        # t0 = time.time()
-
         #faces to NOT move
         facesToKeep = indicesToNotMove
 
