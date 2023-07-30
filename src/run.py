@@ -6,11 +6,6 @@ import os
 import pandas as pd
 import scipy
 
-import plotly.graph_objects as go
-import plotly.io as pio
-from plotly.subplots import make_subplots
-import plotly.express as px
-
 from multiprocessing import Process
 
 try:
@@ -23,13 +18,9 @@ if (runMode == 'docker'):
     FreeCADPath = '/usr/lib/freecad-daily/lib'
     BlenderPath = '/usr/lib/blender'
     OpenSCADPath = '/usr/bin/openscad'
-
-    # HEATPath = '/root/source/HEAT'
 else:
-    #FreeCADPath = '/Applications/FreeCAD.app' #'/usr/lib/freecad-python3/lib'
     FreeCADPath = '/Applications/FreeCAD.app/Contents/Resources/lib'
     BlenderPath = '/Applications/Blender.app/Contents/MacOS/blender'
-    # HEATPath = '/Users/cchen/Desktop/HEAT'
 
 sys.path.append(FreeCADPath)
 sys.path.append(BlenderPath)
@@ -225,7 +216,7 @@ class RunSetup_MeshHF:
                 my_trimeshSolid = trimeshSolid.copy()
                 coefficients_list[idx_to_vary] = val
                 # directoryName = self.makeDirectories(f"vertexscans1_0mm/imc_and_maxvtx/c2_c3_test_", coefficients_list)
-                directoryName = self.makeDirectories(f"vertexscans1_0mm/imc_and_vtxdefects/c2_c3_test_", coefficients_list)
+                directoryName = self.makeDirectories(f"1_0mm_sphere_testing/imc_and_vtxdefects_vtxnotnormalized/test_", coefficients_list)
                 #meshHFOpt(self, hfObjectiveFcn, constraint, updateHFProfile, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
                 self.opt.meshHFOpt(
                     facesToKeep,
@@ -322,7 +313,7 @@ class RunSetup_MeshHF:
             return 
 
 
-        coefficients_list = [0, 0, 6.67 * 2 *  94.24777960769379, 50, 0] #[0, 0, 0, 20, 10]
+        coefficients_list = [0, 0, 6.67 * 2 *  94.24777960769379, 10, 0] #[0, 0, 0, 20, 10]
         #sweep_c2 = [50]
         # import random
         # sweep_c2 = random.uniform(1000, 10000) #[6.67 * 2 *  94.24777960769379] #[25 * 94.24777960769379] #[13.34 * 94.24777960769379] #[14.0 * 94.24777960769379] #[12.0 * 94.24777960769379] #[10.0 * 94.24777960769379] #[15.0 * 94.24777960769379] #[1500] #[6.67 * 2] #13.3 works really well for integral calc #[10]
