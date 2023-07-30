@@ -15,6 +15,93 @@ print(trimesh.interfaces.scad.exists)
 
 tools = toolsClass.tools()
 
+### Mesh Properties ###
+
+def calculateVertexDefects(vertices, faces):
+    """
+    Compute the vertex defects for each vertex in a mesh - vertex defects 2*pi - sum of angles around each vertex
+
+    Parameters
+    ----------
+    vertices : (n, 3) array
+        Vertex coordinate in the space.
+    faces : (m, 3) array
+        Indices of vertices that make up each face.
+    
+    Returns
+    -------
+    vertex_defects : (n,) array
+        Vertex defect for each vertex.
+    """
+
+    vertex_defects = 2 * np.pi * np.ones(vertices.shape[0])
+
+    for face in faces:
+        #vectors to previous and next vertices
+        prev_vectors = vertices[face] - vertices[face[[2, 0, 1]]]
+        next_vectors = vertices[face[[1, 2, 0]]] - vertices[face]
+
+        #normalize vectors
+        prev_vectors /= np.linalg.norm(prev_vectors, axis=-1, keepdims=True)
+        next_vectors /= np.linalg.norm(next_vectors, axis=-1, keepdims=True)
+
+        #angle at each vertex is the angle between the two vectors
+        cosines = np.sum(prev_vectors * next_vectors, axis=-1)
+        angles = np.arccos(np.clip(cosines, -1, 1))
+
+        #subtract these angles from the vertices' defects
+        np.subtract.at(vertex_defects, face, angles)
+
+    return #vertex_defects
+
+
+def calculateFaceCenters(vertices, faces):
+    """
+    Compute the center of each face.
+
+    Args:
+    vertices: A (n, 3) array representing the coordinates of each vertex.
+    faces: A (m, 3) array representing the faces, where each row contains the indices of three vertices.
+
+    Returns:
+    A (m, 3) array representing the center of each face.
+    """
+    #index into the vertices array to get the vertices of each face.
+    face_vertices = vertices[faces]
+    
+    #compute the center of each face by taking the mean across the second dimension.
+    face_centers = np.mean(face_vertices, axis=1)
+
+    return face_centers
+
+
+def calculateFaceAreas(vertices, faces):
+    """
+    Compute the area of each face.
+
+    Args:
+    vertices: A (n, 3) array representing the coordinates of each vertex.
+    faces: A (m, 3) array representing the faces, where each row contains the indices of three vertices.
+
+    Returns:
+    A (m,) array representing the area of each face.
+    """
+    #get vectors of the two edges for each face
+    vec1 = vertices[faces[:, 1]] - vertices[faces[:, 0]]
+    vec2 = vertices[faces[:, 2]] - vertices[faces[:, 0]]
+    
+    #calculate normal vectors using cross product
+    face_normals = np.cross(vec1, vec2)
+    
+    #area of each face is half the norm of the cross product of the two edges
+    face_areas = 0.5 * np.linalg.norm(face_normals, axis=1)
+    
+    return face_areas
+
+def calculateSurfaceArea(vertices, faces):
+    return np.sum(calculateFaceAreas(vertices, faces))  
+
+
 class MeshSolid(CADClass.CAD):
 
     def __init__(self, stlfile="", stpfile="", meshres=2.0):
@@ -45,10 +132,12 @@ class MeshSolid(CADClass.CAD):
 
         newMesh = Mesh.Mesh(vertices)
         return newMesh
+    
 
     def processSolid(self):
         """
         take solid, mesh it, and convert it into a trimesh mesh object
+        save vertices, faces, and face adjacency to class variables - should take these in for calculation for normals, centers, areas, angle diffs, etc. 
         """
 
         vertices = []
@@ -73,25 +162,32 @@ class MeshSolid(CADClass.CAD):
             vertices=solidVertices, faces=solidFaces
         )     
 
-        return trimeshSolid
-    
+        self.meshVertices = np.array(trimeshSolid.vertices) 
+        self.meshFaces = np.array(trimeshSolid.faces)
+        self.meshFaceAdjacency = np.array(trimeshSolid.face_adjacency)
+        # self.meshNormals = Solid.calculateFaceNormals(self.meshVertices, self.meshFaces)
 
-    def normalsCentersAreas_Trimesh(self, trimeshSolid):
+        return trimeshSolid    
 
-        """
-        Return lists of normal vectors, centers, areas for each mesh face
-        """
 
-        #normal vectors of each face
-        faceNormals = trimeshSolid.face_normals
+    ### Old functions ###
 
-        #center of each face
-        faceCenters = trimeshSolid.triangles_center
+    # def normalsCentersAreas_Trimesh(self, trimeshSolid):
 
-        #area of each face
-        faceAreas = trimeshSolid.area_faces
+    #     """
+    #     Return lists of normal vectors, centers, areas for each mesh face
+    #     """
 
-        return faceNormals, faceCenters, faceAreas
+    #     #normal vectors of each face
+    #     faceNormals = trimeshSolid.face_normals
+
+    #     #center of each face
+    #     faceCenters = trimeshSolid.triangles_center
+
+    #     #area of each face
+    #     faceAreas = trimeshSolid.area_faces
+
+    #     return faceNormals, faceCenters, faceAreas
 
 
     def saveMeshSTL(self, mesh, label, resolution, path='./'):

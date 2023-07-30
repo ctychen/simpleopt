@@ -2,20 +2,36 @@ import FreeCAD
 import Part
 import Mesh
 import MeshPart
-from FreeCAD import Base
 import numpy as np
 
 import time
+import copy
+
+import Solid
+import ForwardModel
+import ObjectiveFunctionTools
+import trimesh
 
 import plotly.graph_objects as go
 import plotly.io as pio
 from plotly.subplots import make_subplots
 import plotly.express as px
 
+import pandas as pd
+import multiprocessing
+from multiprocessing import Pool
+from concurrent.futures import ThreadPoolExecutor
 
 import vtk
 from vtk import vtkPolyData, vtkPoints, vtkCellArray, vtkDoubleArray, vtkPolyDataWriter, vtkTriangle
-from tvtk.api import tvtk
+
+from vtk.util.numpy_support import numpy_to_vtk
+from scipy.optimize import curve_fit
+from vtk.util import numpy_support
+
+### GRADIENT DESCENT AND OPTIMIZATION###
+
+objfcnTools = ObjectiveFunctionTools.ObjectiveFunctionTools()
 
 class OptModel_MeshHF: 
     """
@@ -26,174 +42,201 @@ class OptModel_MeshHF:
         """
         TODO: figure out what properties we actually need for optmodel, and what can just be fcn inputs
         """
+        self.Ncores = 2 #multiprocessing.cpu_count() - 1
+        #in case we run on single core machine
+        if self.Ncores <= 0:
+            self.Ncores = 1
+
+        print(f"number cores being used: {self.Ncores}")
         return
-    
 
-    def gradientDescentHF(self, tri_mesh, objectiveFunction, allmeshelementsHF, delta, filedir, count):
-        """
-        gradient descent implementation for heat flux minimization
-        takes in trimesh object and sorts elements by HF to deal with worst elements first
-        calc gradient for each element by moving vertices a small amount and finding change in objective function
-        move each vertex based on gradient * delta when all gradients calculated
-        """ 
+    #gradientDescentHF(self, tri_mesh, allmeshelementsHF, face_adjacency, face_adjacency_edges, initialParams, facesToKeep, facesToMove, coefficientsList, delta, filedir, count):
+    def gradientDescentHF(self, tri_mesh, allmeshelementsHF, facesToMove, delta):
 
-        #process now:
-        #find all vertices and all heat fluxes for all faces
-        #make array of 0s with same length as list of faces
-        #sort heat flux list by magnitude
-        #assign face (list of vertices) to same index that its hf is at so those stay linked
-        #convert list of faces to list of vertices, keeping the order
-        #this way the faces with the highest hf's get moved/gradients calculated first 
-        #
+        use_set = set(np.where(allmeshelementsHF >= -10.0)[0]) #changed for 3sphere test
+        vertices = tri_mesh.vertices
+        gradient = np.zeros_like(vertices)
 
-        use_set = set(np.where(allmeshelementsHF > 0.0)[0])
+        all_faces = tri_mesh.faces
 
-        # Sort indices based on allmeshelementsHF values in descending order
-        sortedFaceIndices = np.argsort(allmeshelementsHF)[::-1]
+        useFaces = all_faces[list(use_set)]
+        objfcnTools.setFacesToMove(facesToMove)
+        flattenedVtx = useFaces.flatten() 
+        uniqueVtx = np.unique(flattenedVtx)
+        numVtx = len(vertices)
 
-        gradient = np.zeros_like(tri_mesh.vertices)
+        currentVerticesGrid = np.array([np.tile(vertices[np.newaxis, :], (numVtx, 1, 1)) for _ in range(3)])
+        numDim = len(currentVerticesGrid)
 
-        # #variable delta
-        # max_delta = delta * 5
-        # orig_delta = delta
-        # min_delta = 1e-6
-        # delta_decrease_factor = 0.5
-        # delta_increase_factor = 1.01
-        # successful_moves = 0
+        currentObjFcnVal = objfcnTools.vtxFacesObjectiveFunctionCalc(currentVerticesGrid[0][0])
+        currentObjectiveFcnValues = np.full((numVtx, 3), currentObjFcnVal)
 
-        # normals_threshold = 0.01
-        # moves_threshold = 5
+        newVerticesGrid = currentVerticesGrid.copy()
+        delta = delta * (254.0 / numVtx)
+        range_indices = np.arange(currentVerticesGrid.shape[1])
+        newVerticesGrid[0, range_indices, range_indices, 0] += delta
+        newVerticesGrid[1, range_indices, range_indices, 1] += delta
+        newVerticesGrid[2, range_indices, range_indices, 2] += delta
+        objfcnTools.setNewVerticesGrid(newVerticesGrid)
 
-        # Original position and normals
-        # original_vertices = tri_mesh.vertices.copy()
+        numProcesses = self.Ncores
 
-        for idx in sortedFaceIndices: 
-            if idx in use_set: 
-                face = tri_mesh.faces[idx]
+        try: 
+            pool = multiprocessing.Pool(numProcesses)
+            newObjectiveFcnValues = np.array(pool.starmap(
+                objfcnTools.objectiveFunction, 
+                [(vtx, dim) for vtx in range(numVtx) for dim in range(numDim)]
+            )).reshape(numVtx, 3)
+        finally:
+            pool.close()
+            pool.join()
+            del pool
 
-                for vertexIdx in face:  #vertexIdx is VERTEX INDICES
+        gradient = (newObjectiveFcnValues - currentObjectiveFcnValues) / (2 * delta) 
 
-                    obj_beforeMoving = objectiveFunction(tri_mesh)
+        # print(f"calculated new gradient")
 
-                    for j in range(3): #for every dimension - move the vertex a bit and calculate the change in objectiveFunction
-
-                        tri_mesh.vertices[vertexIdx, j] += delta
-                        obj_afterMoving = objectiveFunction(tri_mesh)
-
-                        tri_mesh.vertices[vertexIdx, j] -= delta
-
-                        gradient[vertexIdx, j] = (obj_afterMoving - obj_beforeMoving) / (2 * delta)
-                
-                    #basically - move each vertex and update it
-
-                    tri_mesh.vertices[vertexIdx, 0] -= (delta * gradient[vertexIdx, 0])
-                    tri_mesh.vertices[vertexIdx, 1] -= (delta * gradient[vertexIdx, 1])
-                    tri_mesh.vertices[vertexIdx, 2] -= (delta * gradient[vertexIdx, 2])    
+        #basically - move each vertex and update it
+        tri_mesh.vertices[uniqueVtx, 0] -= (delta * gradient[uniqueVtx, 0])
+        tri_mesh.vertices[uniqueVtx, 1] -= (delta * gradient[uniqueVtx, 1])
+        tri_mesh.vertices[uniqueVtx, 2] -= (delta * gradient[uniqueVtx, 2])
 
         return tri_mesh
 
-
-    def moveMeshVertices(self, trimeshSolid, gradient, delta):
-        """
-        function for how we want to adjust mesh vertices, depending on what the gradient is 
-        """
-        return trimeshSolid.vertices - (delta * gradient)
-
-
-    def meshHFOpt(self, hfObjectiveFcn, calcHFAllMesh, calcMaxHF, calcHFSum, meshObj, changeMeshFcn, threshold, delta, id):
+    # def meshHFOpt(self, hfObjectiveFcn, calcHFAllMesh, calcMaxHF, calcEnergy, meshObj, coefficientsList, threshold, delta, id):
+    def meshHFOpt(self, constraint, updateHFProfile, meshObj, coefficientsList, threshold, delta, fwdModel, id):
     # def meshHFOpt(self, hfFunction, hfObjectiveFcn, meshObj, threshold, step, id):
         """
         runs optimization process until objective fcn value reaches stopping condition @ minimum
         modifies the mesh based on gradient by applying changeMeshFcn accordingly
-
-        can change changeMeshFcn, hfObjectiveFcn to use different functions
-        if we want a different manipulation, or add more stuff to the functions
         """
-        #TODO: add constraints somehow - take in list of criteria? eg. don't move face if x=0 or y=0 or x=10 or y=10?
 
         #assuming input is already a trimesh, ie. processing the solid was done already
         trimeshSolid = meshObj
 
         count = 0
+ 
+        # #commented out for spheretests since don't need this 
+        mesh_centers = trimeshSolid.triangles_center
+        mesh_center_yvals = mesh_centers[:, 1]
+        mesh_center_xvals = mesh_centers[:, 0]
+        mesh_center_zvals = mesh_centers[:, 2]
 
-        all_objective_function_values = [hfObjectiveFcn(trimeshSolid)]
-        max_hf_each_run = [calcMaxHF(trimeshSolid)]
-        sum_hf_each_run = [calcHFSum(trimeshSolid)] 
+        # indicesToNotMove = set(constraint(mesh_center_xvals, mesh_center_yvals, mesh_center_zvals))
+        indicesToNotMove = set(constraint(trimeshSolid))
+        allIndices = set(range(len(mesh_center_xvals)))  # assuming all arrays are the same length
+        facesToMove = allIndices - indicesToNotMove #faces to move
 
-        print("Starting the mesh HF opt")
+        print(f"Objective function with coefficients: {coefficientsList}")
+        vertices = trimeshSolid.vertices
+        # faces = trimeshSolid.faces
+        face_adjacency = trimeshSolid.face_adjacency
+        face_adjacency_edges = trimeshSolid.face_adjacency_edges
+        initialVolume = trimeshSolid.volume
+        print(f"Initial volume: {initialVolume}")
+        initialParams = [initialVolume] 
 
-        print(f"Starting objective function value: {hfObjectiveFcn(trimeshSolid)}")
-        #trimeshSolid.export(f"test{id}/original.stl")
+        #objective function tools setup 
+        objfcnTools.setParams(initialParams, coefficientsList)
+        objfcnTools.setForwardModel(fwdModel)
+        objfcnTools.setMeshAndGrids(trimeshSolid)
+
+        objFcnVal = objfcnTools.vtxFacesObjectiveFunctionCalc(vertices)
+        all_objective_function_values = [objFcnVal]
+
+        hf_all_mesh = objfcnTools.calculateAllHF(fwdModel.hfMode, fwdModel.q_dir, fwdModel.q_mag, vertices) #
+        # max_hf_each_run = [calcMaxHF(hf_all_mesh, facesToMove)]
+
+        # make VTK to display HF on surface
+        self.plotHFVTK(objfcnTools.calculateAllHF(fwdModel.hfMode, fwdModel.q_dir, fwdModel.q_mag, vertices), trimeshSolid, f"{id}", count=4242)
 
         prev_objVal = 2000
         curr_objVal = 0
 
-        t0 = time.time()
+        #faces to NOT move
+        facesToKeep = indicesToNotMove
 
-        while abs(prev_objVal - curr_objVal) > threshold: 
+        while abs(prev_objVal - curr_objVal) > threshold and count < 2000:
 
-            hf_all_mesh = calcHFAllMesh(trimeshSolid)
-            
-            #calc the gradient
-            newTrimesh = self.gradientDescentHF(trimeshSolid, hfObjectiveFcn, hf_all_mesh, delta, f"test{id}", count)
+            vertices = trimeshSolid.vertices
 
-            print(f"Time elapsed for GD {count}: {time.time() - t0}")
+            hf_all_mesh = objfcnTools.calculateAllHF(fwdModel.hfMode, fwdModel.q_dir, fwdModel.q_mag, vertices)
 
-            trimeshSolid = newTrimesh
+            t1 = time.time()
 
-            # trimeshSolid.export(f"test{id}/{count}.stl")
+            #calculate the gradient
+            trimeshSolid = self.gradientDescentHF(trimeshSolid, hf_all_mesh, facesToMove, delta)
 
-            new_objVal = hfObjectiveFcn(trimeshSolid)
+            print(f"{count}: gradient descent time: {time.time() - t1}")
+
+            vertices = trimeshSolid.vertices
+
+            #recalculate the hf profile on the surface - don't need this for spheretests
+            # updateHFProfile(trimeshSolid) 
+
+            new_objVal = objfcnTools.vtxFacesObjectiveFunctionCalc(vertices)
             all_objective_function_values.append(new_objVal)
 
             prev_objVal = curr_objVal
             curr_objVal = new_objVal
 
-            new_max_hf = calcMaxHF(trimeshSolid)
-            max_hf_each_run.append(new_max_hf)
-
-            new_sum_hf = calcHFSum(trimeshSolid) #hfAllMesh(trimeshSolid)
-            sum_hf_each_run.append(new_sum_hf)
-
-            #make VTK to display HF on surface
-            self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"test{id}", count)
-
-            print(f"New objective function value: {new_objVal}")
-
-            if count and count % 5 == 0: 
-                x_count = np.linspace(0, len(all_objective_function_values), len(all_objective_function_values))
-                fig = px.scatter(x = x_count, y = all_objective_function_values)
-                fig.update_xaxes(title_text='Iterations')
-                fig.update_yaxes(title_text=f'Objective function: {hfObjectiveFcn.__name__}')
-                fig.show()            
-                output_file = f"test{id}/objective_up_to_run_{count}.html"
-                pio.write_html(fig, output_file)
-
-                x_count = np.linspace(0, len(max_hf_each_run), len(max_hf_each_run))
-                fig = px.scatter(x = x_count, y = max_hf_each_run)
-                fig.update_xaxes(title_text='Iterations')
-                fig.update_yaxes(title_text=f'{calcMaxHF.__name__}')
-                fig.show()            
-                output_file = f"test{id}/max_hf_up_to_run_{count}.html"
-                pio.write_html(fig, output_file)
-
-                x_count = np.linspace(0, len(sum_hf_each_run), len(sum_hf_each_run))
-                fig = px.scatter(x = x_count, y = sum_hf_each_run)
-                fig.update_xaxes(title_text='Iterations')
-                fig.update_yaxes(title_text=f'{calcHFSum.__name__}')
-                fig.show()            
-                output_file = f"test{id}/sum_hf_up_to_run_{count}.html"
-                pio.write_html(fig, output_file)
-
-                # #make VTK to display HF on surface
-                # self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"test{id}")
+            if count and count % 20 == 0: #count % 5 == 0: 
+                #self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"{id}", count)
+                self.plotHFVTK(objfcnTools.calculateAllHF(fwdModel.hfMode, fwdModel.q_dir, fwdModel.q_mag, vertices), trimeshSolid, f"{id}", count)
 
             count += 1
+
+        vertices = trimeshSolid.vertices
         
-        self.plotRun(all_objective_function_values, max_hf_each_run, sum_hf_each_run, f"test{id}")
+        # self.plotRun(all_objective_function_values, max_hf_each_run, f"{id}")
+        # self.plotHFVTK(calcHFAllMesh(trimeshSolid), trimeshSolid, f"{id}", count)
+        self.plotHFVTK(objfcnTools.calculateAllHF(fwdModel.hfMode, fwdModel.q_dir, fwdModel.q_mag, vertices), trimeshSolid, f"{id}", count)
+        # self.plotMaxNormalsDiff(all_max_normals_diff, f"{id}")
+        # self.plotNormalsDiff(all_sum_normals_diff, f"{id}")
+        self.plotObjectiveFunction(all_objective_function_values, f"{id}")
+        # self.plotMaxHF(max_hf_each_run, f"{id}")  
+          
+        # finalMaxHF = np.min(max_hf_each_run)
+        # print(f"Finished run, maxHF is {finalMaxHF}")
+        print(f"Finished run")
         
-        #when process is done, the mesh should have been modified - so return it 
         return trimeshSolid
+
+    def plotMaxNormalsDiff(self, max_normals_diff_runs, directoryName):
+        x_count = np.linspace(0, len(max_normals_diff_runs), len(max_normals_diff_runs))
+        fig = px.scatter(x = x_count, y = max_normals_diff_runs)
+        fig.update_xaxes(title_text='Iterations')
+        fig.update_yaxes(title_text='Max normals difference')
+        fig.show()            
+        output_file = f"{directoryName}/max_normals_diff_each_run.html"
+        pio.write_html(fig, output_file)
+
+    def plotNormalsDiff(self, normals_diff_runs, directoryName):
+        x_count = np.linspace(0, len(normals_diff_runs), len(normals_diff_runs))
+        fig = px.scatter(x = x_count, y = normals_diff_runs)
+        fig.update_xaxes(title_text='Iterations')
+        fig.update_yaxes(title_text='Sum of normals difference')
+        fig.show()            
+        output_file = f"{directoryName}/sum_normals_diff_each_run.html"
+        pio.write_html(fig, output_file)
+
+    def plotObjectiveFunction(self, objectiveFunctionValues, directoryName):
+        x_count = np.linspace(0, len(objectiveFunctionValues), len(objectiveFunctionValues))
+        fig = px.scatter(x = x_count, y = objectiveFunctionValues)
+        fig.update_xaxes(title_text='Iterations')
+        fig.update_yaxes(title_text='Objective Function Values')
+        fig.show()            
+        output_file = f"{directoryName}/objective_each_run.html"
+        pio.write_html(fig, output_file)
+
+    def plotMaxHF(self, maxHFValues, directoryName):
+        x_count = np.linspace(0, len(maxHFValues), len(maxHFValues))
+        fig = px.scatter(x = x_count, y = maxHFValues)
+        fig.update_xaxes(title_text='Iterations')
+        fig.update_yaxes(title_text='Max HF Values')
+        fig.show()            
+        output_file = f"{directoryName}/max_hf_each_run.html"
+        pio.write_html(fig, output_file)
 
 
     def plotHFVTK(self, hfValues, trimeshSolid, fileDir, count):
@@ -230,14 +273,70 @@ class OptModel_MeshHF:
 
         # Write to a .vtk file
         writer = vtkPolyDataWriter()
-        writer.SetFileName(f"{fileDir}/{count}_hfOnMesh.vtk")
+        writer.SetFileName(f"{fileDir}/{count:05}.vtk")
         writer.SetInputData(polydata)
         writer.Write()
 
         return 
     
+    def makePolyFitSurface(self, verticesToUse, fileDir, count):
 
-    def plotRun(self, objective_function_values, max_hf_each_run, sum_hf_each_run, outputDir):
+        def poly_surface(coord, a, b, c, d, e, f):
+            x, y = coord
+            return a * x**2 + b * y**2 + c * x * y + d * x + e * y + f
+        
+        # Create a 2D coordinate grid
+        x = verticesToUse[:, 0]
+        z = verticesToUse[:, 2]
+        coord = np.vstack((x, z))
+
+        # y values are the heights for the surface
+        y = verticesToUse[:, 1]
+
+        # Fit the surface using SciPy's curve_fit function
+        popt, pcov = curve_fit(poly_surface, coord, y)
+
+        # Calculate distances from the points to the fitted surface
+        y_fit = poly_surface(coord, *popt)
+        distances = np.abs(y - y_fit)
+
+        # Visualization using VTK
+
+        # Create a structured grid
+        grid = vtk.vtkStructuredGrid()
+
+        # Generate a grid over the x and z values
+        x_grid, z_grid = np.meshgrid(np.linspace(x.min(), x.max(), 100), np.linspace(z.min(), z.max(), 100))
+
+        # Compute y values over the grid
+        #curvefit returns values of params, so [a, b, c, d, e, f] coefficients
+        y_fit_grid = poly_surface((x_grid.ravel(), z_grid.ravel()), *popt)
+
+        # Combine x, y, z arrays to a single 3D array for the VTK grid
+        points = np.column_stack([x_grid.ravel(), y_fit_grid, z_grid.ravel()])
+        points_vtk = numpy_to_vtk(points, deep=1)
+
+        # Define points and grid
+        points = vtk.vtkPoints()
+        points.SetData(points_vtk)
+        grid.SetPoints(points)
+
+        # Set dimensions of the grid
+        grid.SetDimensions(x_grid.shape[0], x_grid.shape[1], 1)
+
+        # Save grid to a .vts file
+        writer = vtk.vtkXMLStructuredGridWriter()
+        writer.SetFileName(f"{fileDir}/polyfit_{count:05}.vts")
+        if vtk.VTK_MAJOR_VERSION <= 5:
+            writer.SetInput(grid)
+        else:
+            writer.SetInputData(grid)
+        writer.Write()
+
+        return 
+    
+
+    def plotRun(self, objective_function_values, max_hf_each_run, outputDir):
         """
         plot values of objective function, as well as max HF and sum of HF's, over iterations
         """
@@ -249,21 +348,12 @@ class OptModel_MeshHF:
         output_file = f"{outputDir}/entire_run.html"
         pio.write_html(fig, output_file)
 
-
         x_count = np.linspace(0, len(max_hf_each_run), len(max_hf_each_run))
         fig = px.scatter(x = x_count, y = max_hf_each_run)
         fig.update_xaxes(title_text='Iterations')
         fig.update_yaxes(title_text='Max HF')
         fig.show()            
         output_file = f"{outputDir}/max_hf_each_run.html"
-        pio.write_html(fig, output_file)
-
-        x_count = np.linspace(0, len(sum_hf_each_run), len(sum_hf_each_run))
-        fig = px.scatter(x = x_count, y = sum_hf_each_run)
-        fig.update_xaxes(title_text='Iterations')
-        fig.update_yaxes(title_text='Sum HF on mesh')
-        fig.show()            
-        output_file = f"{outputDir}/sum_hf_each_run.html"
         pio.write_html(fig, output_file)
 
         return 
@@ -296,4 +386,3 @@ class OptModel_Template:
         self.g_prev = self.g_curr
         self.g_curr = g_new
         return    
-
